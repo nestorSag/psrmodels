@@ -17,6 +17,7 @@ cffi = "*"
 shapely = "*"
 dfply = "*"
 "pymc3" = "*"
+twine = "*"
 
 [requires]
 python_version = "3.6"
