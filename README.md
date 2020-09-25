@@ -14,7 +14,7 @@ is enough to install the package. It runs on Python `>=3.6`
 
 ## Usage
 
-You can see the full documentation ![here](). Below some toy models are created for time-collapsed and time-sequential analysis
+You can see the full documentation ![here](https://nestorsag.github.io/psrmodels/index.html#package). Below some toy models are created for time-collapsed and time-sequential analysis
 
 ### toy bivariate time-collapsed and time-sequential models
 
