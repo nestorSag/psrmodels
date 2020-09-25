@@ -1,6 +1,8 @@
 import setuptools
 from distutils.core import Extension
 
+LATEST = "1.0.5"
+
 with open("README.md", "r") as fh:
 
     long_description = fh.read()
@@ -9,7 +11,7 @@ setuptools.setup(
 
      name='psrmodels',  
 
-     version='1.0.3',
+     version=LATEST,
 
      author="Nestor Sanchez",
 
@@ -28,6 +30,7 @@ setuptools.setup(
         'scipy',
         'pandas',
         'matplotlib',
+        'pymc3==3.7',
         'seaborn',
         'cffi>=1.0.0',
         'shapely'
@@ -61,6 +64,6 @@ setuptools.setup(
 
      #ext_modules = [mcgensim_module]
 
-     download_url = 'https://github.com/nestorSag/psrmodels/archive/1.0.4.tar.gz'
+     download_url = 'https://github.com/nestorSag/psrmodels/archive/{v}.tar.gz'.format(v=LATEST)
 
  )
