@@ -1,6 +1,6 @@
 
 # reinstall and test package
-pipenv run pytest test/ && pipenv run pip install -e .
+pipenv run pip install -e . && pipenv run pytest test/
 # update docs
 rm -rf docs/
 pipenv run pdoc --html psrmodels/

@@ -1,4 +1,6 @@
 from cffi import FFI
+import os
+
 ffibuilder = FFI()
 
 ffibuilder.cdef(""" 
@@ -37,10 +39,17 @@ ffibuilder.cdef("""
 
 	""")
 
+# with open('psrmodels/_c/libtimedependence.h','r') as f:
+# 	ffibuilder.cdef(f.read())
+
+header = "#include \"" + os.path.dirname(os.path.abspath(__file__)) + "/../_c/libtimedependence.h\""
+
+
 ffibuilder.set_source("_c_ext_timedependence",  # name of the output C extension
-    """
-    #include "../../psrmodels/_c/libtimedependence.h"
-    """,
+    # """
+    # #include "../../psrmodels/_c/libtimedependence.h"
+    # """,
+    header,
     sources=['psrmodels/_c/libtimedependence.c','psrmodels/_c/mtwist-1.5/mtwist.c'],
     libraries=['m'])    # on Unix, link with the math library
 

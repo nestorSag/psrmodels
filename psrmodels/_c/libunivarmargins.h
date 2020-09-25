@@ -1,5 +1,5 @@
-#ifndef UNIVAR_MARGINS_H_INCLUDED
-#define UNIVAR_MARGINS_H_INCLUDED
+//#ifndef UNIVAR_MARGINS_H_INCLUDED
+//#define UNIVAR_MARGINS_H_INCLUDED
 
 /**
  * @brief calculate maximum of two numbers
@@ -335,5 +335,5 @@ double bev_epu(
 	double* gen_expectation);
 
 
-#endif
+//#endif
 

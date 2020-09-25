@@ -1,4 +1,6 @@
 from cffi import FFI
+import os
+
 ffibuilder = FFI()
 
 ffibuilder.cdef(""" 
@@ -77,10 +79,13 @@ ffibuilder.cdef("""
 
 	""")
 
+header = "#include \"" + os.path.dirname(os.path.abspath(__file__)) + "/../_c/libunivarmargins.h\""
+
 ffibuilder.set_source("_c_ext_univarmargins",  # name of the output C extension
-    """
-    #include "../../psrmodels/_c/libunivarmargins.h"
-    """,
+    # """
+    # #include "../../psrmodels/_c/libunivarmargins.h"
+    # """,
+    header,
     sources=['psrmodels/_c/libunivarmargins.c'],
     libraries=['m'])    # on Unix, link with the math library
 

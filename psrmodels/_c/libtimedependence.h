@@ -1,5 +1,5 @@
-#ifndef TIMEDEPENDENCE_H_INCLUDED
-#define TIMEDEPENDENCE_H_INCLUDED
+//#ifndef TIMEDEPENDENCE_H_INCLUDED
+//#define TIMEDEPENDENCE_H_INCLUDED
 
 /**
  * @brief simulate a time series of availability states for a single generator, simulating each step separately
@@ -174,4 +174,4 @@ void calculate_post_itc_share_margins(
 // 	double* post_itc_series2,
 // 	long series_length);
 
-#endif
+//#endif

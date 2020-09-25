@@ -1,5 +1,5 @@
-#ifndef BIVAR_MARGINS_H_INCLUDED
-#define BIVAR_MARGINS_H_INCLUDED
+//#ifndef BIVAR_MARGINS_H_INCLUDED
+//#define BIVAR_MARGINS_H_INCLUDED
 
 double sign(double x);
 
@@ -421,4 +421,4 @@ long get_joint_polygon_y_bound_given_x(
 	int intersection);
 
 
-#endif
+//#endif

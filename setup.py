@@ -55,10 +55,12 @@ setuptools.setup(
 
      ],
 
+     include_package_data=True,
+
      #ext_package = 'psrmodels',
 
      #ext_modules = [mcgensim_module]
 
-     download_url = 'https://github.com/nestorSag/psrmodels/archive/1.0.3.tar.gz'
+     download_url = 'https://github.com/nestorSag/psrmodels/archive/1.0.4.tar.gz'
 
  )

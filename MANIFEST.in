@@ -1,0 +1,2 @@
+include psrmodels/_c/*.h
+include psrmodels/_c/mtwist-1.5/*.h

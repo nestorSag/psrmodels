@@ -566,9 +566,7 @@ static void (*_cffi_call_python_org)(struct _cffi_externpy_s *, char *);
 
 /************************************************************/
 
-
-    #include "../../psrmodels/_c/libbivarmargins.h"
-    
+#include "/home/nestor/progs/psrmodels/psrmodels/_c_builders/../_c/libbivarmargins.h"
 
 /************************************************************/
 
