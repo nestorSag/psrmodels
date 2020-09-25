@@ -1,11 +1,15 @@
 import setuptools
 from distutils.core import Extension
 
+with open("README.md", "r") as fh:
+
+    long_description = fh.read()
+
 setuptools.setup(
 
      name='psrmodels',  
 
-     version='1.0.0',
+     version='1.0.3',
 
      author="Nestor Sanchez",
 
@@ -30,7 +34,7 @@ setuptools.setup(
 
     ],
 
-     long_description="Models for security of supply in power systems' reliability",
+     long_description=long_description,
 
      long_description_content_type="text/markdown",
 
@@ -49,12 +53,12 @@ setuptools.setup(
 
          "Operating System :: OS Independent",
 
-     ]
+     ],
 
      #ext_package = 'psrmodels',
 
      #ext_modules = [mcgensim_module]
 
-     download_url = 'https://github.com/nestorSag/psrmodels/archive/1.0.1.tar.gz'
+     download_url = 'https://github.com/nestorSag/psrmodels/archive/1.0.3.tar.gz'
 
  )
