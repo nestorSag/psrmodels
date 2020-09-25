@@ -1,0 +1,955 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, minimum-scale=1" />
+<meta name="generator" content="pdoc 0.9.1" />
+<title>psrmodels.time_collapsed.EnergyUnservedExplorer API documentation</title>
+<meta name="description" content="" />
+<link rel="preload stylesheet" as="style" href="https://cdnjs.cloudflare.com/ajax/libs/10up-sanitize.css/11.0.1/sanitize.min.css" integrity="sha256-PK9q560IAAa6WVRRh76LtCaI8pjTJ2z11v0miyNNjrs=" crossorigin>
+<link rel="preload stylesheet" as="style" href="https://cdnjs.cloudflare.com/ajax/libs/10up-sanitize.css/11.0.1/typography.min.css" integrity="sha256-7l/o7C8jubJiy74VsKTidCy1yBkRtiUGbVkYBylBqUg=" crossorigin>
+<link rel="stylesheet preload" as="style" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.1.1/styles/github.min.css" crossorigin>
+<style>:root{--highlight-color:#fe9}.flex{display:flex !important}body{line-height:1.5em}#content{padding:20px}#sidebar{padding:30px;overflow:hidden}#sidebar > *:last-child{margin-bottom:2cm}.http-server-breadcrumbs{font-size:130%;margin:0 0 15px 0}#footer{font-size:.75em;padding:5px 30px;border-top:1px solid #ddd;text-align:right}#footer p{margin:0 0 0 1em;display:inline-block}#footer p:last-child{margin-right:30px}h1,h2,h3,h4,h5{font-weight:300}h1{font-size:2.5em;line-height:1.1em}h2{font-size:1.75em;margin:1em 0 .50em 0}h3{font-size:1.4em;margin:25px 0 10px 0}h4{margin:0;font-size:105%}h1:target,h2:target,h3:target,h4:target,h5:target,h6:target{background:var(--highlight-color);padding:.2em 0}a{color:#058;text-decoration:none;transition:color .3s ease-in-out}a:hover{color:#e82}.title code{font-weight:bold}h2[id^="header-"]{margin-top:2em}.ident{color:#900}pre code{background:#f8f8f8;font-size:.8em;line-height:1.4em}code{background:#f2f2f1;padding:1px 4px;overflow-wrap:break-word}h1 code{background:transparent}pre{background:#f8f8f8;border:0;border-top:1px solid #ccc;border-bottom:1px solid #ccc;margin:1em 0;padding:1ex}#http-server-module-list{display:flex;flex-flow:column}#http-server-module-list div{display:flex}#http-server-module-list dt{min-width:10%}#http-server-module-list p{margin-top:0}.toc ul,#index{list-style-type:none;margin:0;padding:0}#index code{background:transparent}#index h3{border-bottom:1px solid #ddd}#index ul{padding:0}#index h4{margin-top:.6em;font-weight:bold}@media (min-width:200ex){#index .two-column{column-count:2}}@media (min-width:300ex){#index .two-column{column-count:3}}dl{margin-bottom:2em}dl dl:last-child{margin-bottom:4em}dd{margin:0 0 1em 3em}#header-classes + dl > dd{margin-bottom:3em}dd dd{margin-left:2em}dd p{margin:10px 0}.name{background:#eee;font-weight:bold;font-size:.85em;padding:5px 10px;display:inline-block;min-width:40%}.name:hover{background:#e0e0e0}dt:target .name{background:var(--highlight-color)}.name > span:first-child{white-space:nowrap}.name.class > span:nth-child(2){margin-left:.4em}.inherited{color:#999;border-left:5px solid #eee;padding-left:1em}.inheritance em{font-style:normal;font-weight:bold}.desc h2{font-weight:400;font-size:1.25em}.desc h3{font-size:1em}.desc dt code{background:inherit}.source summary,.git-link-div{color:#666;text-align:right;font-weight:400;font-size:.8em;text-transform:uppercase}.source summary > *{white-space:nowrap;cursor:pointer}.git-link{color:inherit;margin-left:1em}.source pre{max-height:500px;overflow:auto;margin:0}.source pre code{font-size:12px;overflow:visible}.hlist{list-style:none}.hlist li{display:inline}.hlist li:after{content:',\2002'}.hlist li:last-child:after{content:none}.hlist .hlist{display:inline;padding-left:1em}img{max-width:100%}td{padding:0 .5em}.admonition{padding:.1em .5em;margin-bottom:1em}.admonition-title{font-weight:bold}.admonition.note,.admonition.info,.admonition.important{background:#aef}.admonition.todo,.admonition.versionadded,.admonition.tip,.admonition.hint{background:#dfd}.admonition.warning,.admonition.versionchanged,.admonition.deprecated{background:#fd4}.admonition.error,.admonition.danger,.admonition.caution{background:lightpink}</style>
+<style media="screen and (min-width: 700px)">@media screen and (min-width:700px){#sidebar{width:30%;height:100vh;overflow:auto;position:sticky;top:0}#content{width:70%;max-width:100ch;padding:3em 4em;border-left:1px solid #ddd}pre code{font-size:1em}.item .name{font-size:1em}main{display:flex;flex-direction:row-reverse;justify-content:flex-end}.toc ul ul,#index ul{padding-left:1.5em}.toc > ul > li{margin-top:.5em}}</style>
+<style media="print">@media print{#sidebar h1{page-break-before:always}.source{display:none}}@media print{*{background:transparent !important;color:#000 !important;box-shadow:none !important;text-shadow:none !important}a[href]:after{content:" (" attr(href) ")";font-size:90%}a[href][title]:after{content:none}abbr[title]:after{content:" (" attr(title) ")"}.ir a:after,a[href^="javascript:"]:after,a[href^="#"]:after{content:""}pre,blockquote{border:1px solid #999;page-break-inside:avoid}thead{display:table-header-group}tr,img{page-break-inside:avoid}img{max-width:100% !important}@page{margin:0.5cm}p,h2,h3{orphans:3;widows:3}h1,h2,h3,h4,h5,h6{page-break-after:avoid}}</style>
+<script defer src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.1.1/highlight.min.js" integrity="sha256-Uv3H6lx7dJmRfRvH8TH6kJD1TSK1aFcwgx+mdg3epi8=" crossorigin></script>
+<script>window.addEventListener('DOMContentLoaded', () => hljs.initHighlighting())</script>
+</head>
+<body>
+<main>
+<article id="content">
+<header>
+<h1 class="title">Module <code>psrmodels.time_collapsed.EnergyUnservedExplorer</code></h1>
+</header>
+<section id="section-intro">
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">import numpy as np
+
+import seaborn as sns
+import matplotlib.pyplot as plt
+
+from scipy.optimize import bisect, minimize, NonlinearConstraint
+
+from scipy.stats import genpareto
+
+class EnergyUnservedExplorer(object):
+
+        &#34;&#34;&#34;This class outputs some exploratory plots and statistics from extreme value theory, for a bivariate hindcast power margin distribution
+  
+  **Parameters**:
+
+  `bivariate_hindcast_model` (`BivariateHindcastMargin`): instance of `BivariateHindcastMargin`
+
+  &#34;&#34;&#34;
+
+        def __init__(self,bivariate_hindcast_model):
+
+                self.quantile_grid_delta = 0.05
+
+                self.set_model(bivariate_hindcast_model)
+
+        def set_model(self,model):
+                self.precomputed_quantiles = {}
+                self.precomputed_nc = {}
+                self.hindcast = model
+                self.hindcast_limits = [-np.max(self.hindcast.net_demand[:,i]) for i in range(2)]
+
+        ### implictly work with the negative of the margins so that
+        ### energy unserved can be treated as a right side tail
+        def _inverted_hindcast_margin_cdf(self,x):
+                x0, x1 = x
+                return 1 - self.hindcast.marginal_cdf(-x0-1,i=0) - self.hindcast.marginal_cdf(-x1-1,i=1) + self.hindcast.cdf(-np.array(x)-1)
+        
+        def system_eu_ecdf(self,x):
+                return self._inverted_hindcast_margin_cdf(x) - self._inverted_hindcast_margin_cdf(np.minimum(0,x))
+        
+        def _inverted_hindcast_marginal_cdf(self,x,i=0):
+                return 1 - self.hindcast.marginal_cdf(-x-1,i=i)
+
+        def system_eu_mecdf(self,x,i=0):
+                return self._inverted_hindcast_marginal_cdf(x,i) - self._inverted_hindcast_marginal_cdf(min(x,0),i)
+
+        # create quantile grid
+        def _create_quantile_grid(self,c,policy):
+                # create or get dictionary with quantiles of marginal tail cdfs
+                if (c,policy) not in self.precomputed_quantiles.keys():
+                        Q = np.linspace(0,1,int(1/self.quantile_grid_delta)+1) #5% intervals
+                        quantiles = np.zeros((len(Q),2))
+                        #print(&#34;precomputing quantiles...&#34;)
+                        for i in range(quantiles.shape[0]):
+                                for j in range(2):
+                                        quantiles[i,j] = self._jtemq(Q[i],j,c,policy)
+
+                        self.precomputed_quantiles[(c,policy)] = quantiles
+                        #print(&#34;finished...&#34;)
+
+        # get else create normalising constant (joint tail probability)
+        def _get_else_create_nc(self,c,policy):
+                # create or get dictionary with quantiles of marginal tail cdfs
+                if (c,policy) not in self.precomputed_nc.keys():
+                        nc = self.hindcast.cdf((-1,-1),c=c,policy=policy)
+                        self.precomputed_nc[(c,policy)] = nc
+                else:
+                        nc = self.precomputed_nc[(c,policy)]
+
+                return nc  
+
+        # joint tail empirical marginal quantile function
+        def _jtemq(self,q,i,c,policy):
+                if q == 0:
+                        return 0
+                elif q == 1:
+                        return max(self.hindcast.net_demand[:,i])
+                else:
+                        if (c,policy) in self.precomputed_quantiles.keys():
+                                quantiles = self.precomputed_quantiles[(c,policy)][:,i]
+                                b_idx = int(np.ceil(q/self.quantile_grid_delta))
+                                b = quantiles[b_idx]
+                                a = quantiles[b_idx-1] if b_idx &gt; 0 else 0
+                        else:
+                                a = 0
+                                b = max(self.hindcast.net_demand[:,i])
+
+                        f = lambda k: -q + self._jtemcdf(k,i=i,c=c,policy=policy)
+
+                        #print(&#34;q: {q}, a: {a}, b: {b}&#34;.format(q=q,a=a,b=b))
+                        #print(&#34;f(a): {a}, f(b): {b}&#34;.format(a=f(a),b=f(b)))
+                        r = bisect(f= f,a=a,b=b,xtol=0.5)
+                        return int(r)
+
+        # joint tail empirical marginal cdf
+        def _jtemcdf(self,m,i,c,policy):
+                nc = self._get_else_create_nc(c,policy)
+                if i == 0:
+                        m_ = (-m-1,-1)
+                else:
+                        m_ = (-1,-m-1)
+                #
+                #print(m_)
+                return 1 - self.hindcast.cdf(m=m_,c=c,policy=policy)/nc
+
+        # joint tail empirical cdf
+        def _jtecdf(self,x,c,policy):
+                nc = self._get_else_create_nc(c,policy)
+                x0, x1 = x
+                area_prob =\
+                  self.hindcast.cdf(m=(-1,-1),c=c,policy=policy) -\
+                  self.hindcast.cdf(m=(-x0-1,-1),c=c,policy=policy) -\
+                  self.hindcast.cdf(m=(-1,-x1-1),c=c,policy=policy) +\
+                  self.hindcast.cdf(m=-np.array(x)-1,c=c,policy=policy)
+                return area_prob/nc
+
+        def pickands(self,t,c,policy):
+                &#34;&#34;&#34;Computes Pickands dependence function for an array of values in [0,1], for the distribution of power margins conditioned to both areas having a shortfall
+  
+          **Parameters**:
+
+          `t` (`numpy.ndarray`): Array of values in [0,1]
+
+          `c` (`int`): Interconnection capacity
+
+          `policy` (`string`): Either &#39;veto&#39; or &#39;share&#39;
+
+          &#34;&#34;&#34;
+                q0 = self._jtemq(np.exp(-(1-t)),i=0,c=c,policy=policy)
+                q1 = self._jtemq(np.exp(-t),i=1,c=c,policy=policy)
+                return -np.log(self._jtecdf(x=(q0,q1),c=c,policy=policy))
+
+        def plot_empirical_pickands(self,c=0,policy=&#34;veto&#34;,grid_size=30):
+                &#34;&#34;&#34;Creates a plot of the Pickands dependence function for the post-interconnection power margin distribution conditional distribution `m[0] &lt;= m_0 AND m[1] &lt;= m_1` (both areas having a shortfall)
+  
+          **Parameters**:
+
+          `c` (`int`): Interconnection capacity
+
+          `policy` (`string`): Either &#39;veto&#39; or &#39;share&#39;
+
+          `grid_size` (`int`): Number of points in the [0,1] grid
+
+
+          &#34;&#34;&#34;
+                self._create_quantile_grid(c,policy)
+
+                pickands = []
+                T = np.linspace(0,1,grid_size)
+                for t in T:
+                        pickands.append(self.pickands(t,c,policy))
+
+                pickands[0] = 1
+                pickands[-1] = 1
+                sns.lineplot(T,pickands)
+                # add pickand function bounds
+                plt.plot([0,0.5], [1,0.5], &#39;--&#39;, linewidth=1,color=&#34;grey&#34;)
+                plt.plot([0.5,1], [0.5,1], &#39;--&#39;, linewidth=1,color=&#34;grey&#34;)
+                plt.plot([0,1], [1,1], &#39;--&#39;, linewidth=1,color=&#34;grey&#34;)
+                plt.show()
+
+        def extremal_coefficient(self,c,policy):
+                &#34;&#34;&#34;Returns the extremal coefficient for the post-interconnection power margin distribution conditioned to `m[0] &lt;= m_0 AND m[1] &lt;= m_1`
+  
+          **Parameters**:
+
+          `c` (`int`): Interconnection capacity
+
+          `policy` (`string`): Either &#39;veto&#39; or &#39;share&#39;
+
+
+          &#34;&#34;&#34;
+                return self.pickands(0.5,c=c,policy=policy)
+
+        def fit_marginal_models(self,n=100,c=0,policy=&#34;veto&#34;,qq_plots=False,seed=1):
+
+                &#34;&#34;&#34;Fit Generalised Pareto models to the negative portion of post-interconnection power margin distributions and returns fitted parameters
+  
+          **Parameters**:
+
+          `n` (`int`): Number of simulated samples with which to fit the models
+
+          `c` (`int`): Assumed interconnection capacity
+
+          `policy` (`string`): Either &#39;veto&#39; or &#39;share&#39;
+
+          `qq_plots` (`bool`): if `True`, outputs QQ-plots of fitted models
+
+          `seed` (`int`): random seed
+
+
+          &#34;&#34;&#34;
+                a1_shortfalls = self.hindcast.simulate_region(n=n,m=(-1,np.Inf),c=c,policy=policy)
+                a2_shortfalls = self.hindcast.simulate_region(n=n,m=(np.Inf,-1),c=c,policy=policy)
+
+                a1_shortfalls = -a1_shortfalls[:,0]
+                a2_shortfalls = -a2_shortfalls[:,1]
+
+                pars0 = self._cdf_univar_gp_fitter(a1_shortfalls,upper_endpoint_lb = -self.hindcast_limits[0])
+                pars1 = self._cdf_univar_gp_fitter(a2_shortfalls,upper_endpoint_lb = -self.hindcast_limits[1])
+
+                a1_scale_est = np.exp(pars0.x[0])
+                a1_shape_est = pars0.x[1]
+
+                a2_scale_est = np.exp(pars1.x[0])
+                a2_shape_est = pars1.x[1]
+
+                #a1_scale_std = np.exp(pars0.hess_inv[0,0]/np.sqrt(n))
+                #a1_shape_std = pars0.hess_inv[1,1]/np.sqrt(n)
+
+                #a2_scale_std = np.exp(pars1.hess_inv[0,0]/np.sqrt(n))
+                #a2_shape_std = pars1.hess_inv[1,1]/np.sqrt(n)
+
+                if qq_plots:
+                        q_grid = np.linspace(0.01,0.99,99)
+                        eq1 = np.quantile(a1_shortfalls,q = q_grid)
+                        eq2 = np.quantile(a2_shortfalls,q = q_grid)
+
+                        fq1 = genpareto(loc=0,scale=a1_scale_est,c=a1_shape_est).ppf(q=q_grid)
+                        fq2 = genpareto(loc=0,scale=a2_scale_est,c=a2_shape_est).ppf(q=q_grid)
+
+                        fig = plt.figure(figsize=(5,5))
+                        ax = fig.add_subplot(211)
+                        ax.scatter(eq1, fq1, color = &#39;#004C99&#39;)
+                        ax.plot([0, max(eq1)], [0, max(eq1)], &#39;--&#39;, color = &#39;#FF8000&#39;)
+                        #ax.xlim(lineStart, lineEnd)
+                        #ax.ylim(lineStart, lineEnd)
+                        ax.set_xlabel(&#39;Empirical quantiles&#39;)
+                        ax.set_ylabel(&#39;Fitted quantiles&#39;)
+                        ax.set_title(&#39;Area 1&#39;)
+                        ##plt.axis(&#39;scaled&#39;)
+
+                        ax = fig.add_subplot(212)
+                        ax.scatter(eq2, fq2, color = &#39;#004C99&#39;)
+                        ax.plot([0, max(eq2)], [0, max(eq2)], &#39;--&#39;, color = &#39;#FF8000&#39;)
+                        #ax.xlim(lineStart, lineEnd)
+                        #ax.ylim(lineStart, lineEnd)
+                        ax.set_xlabel(&#39;Empirical quantiles&#39;)
+                        ax.set_ylabel(&#39;Fitted quantiles&#39;)
+                        ax.set_title(&#39;Area 2&#39;)
+                        ##plt.axis(&#39;scaled&#39;)
+
+                        plt.tight_layout()
+                        plt.show()
+
+
+                # res = {
+                #   &#34;area1&#34;:{
+                #     &#34;pars&#34;:{
+                #       &#34;scale&#34;:a1_scale_est,
+                #       &#34;c&#34;:a1_shape_est
+                #     },
+                #     &#34;std&#34;:{
+                #       &#34;scale&#34;:a1_scale_std,
+                #       &#34;c&#34;:a1_shape_std
+                #     }
+                #   },
+                #   &#34;area2&#34;:{
+                #     &#34;pars&#34;:{
+                #       &#34;scale&#34;:a2_scale_est,
+                #       &#34;c&#34;:a2_shape_est
+                #     },
+                #     &#34;std&#34;:{
+                #       &#34;scale&#34;:a2_scale_std,
+                #       &#34;c&#34;:a2_shape_std
+                #     }
+                #   }
+                # }
+
+                res = {
+                  &#34;a1_scale&#34;:a1_scale_est,
+                  &#34;a1_shape&#34;:a1_shape_est,
+                  &#34;a2_scale&#34;:a2_scale_est,
+                  &#34;a2_shape&#34;:a2_shape_est}
+
+                return res
+
+        def _cdf_univar_gp_fitter(self,x,upper_endpoint_lb=None):
+
+                def loglikelihood(par):
+                        logscale = par[0]
+                        shape = par[1]
+                        dist = genpareto(loc=0,scale=np.exp(logscale),c=shape)
+                        return -np.mean(dist.logpdf(x))
+
+                def upper_endpoint_constraint(par):
+                        logscale = par[0]
+                        shape = par[1]
+                        return np.exp(logscale) - max(-shape*upper_endpoint_lb,0)
+
+                logscale0 = np.log(np.std(x))
+                shape0 = 0
+
+                par0 = np.array([logscale0,shape0])
+
+                if upper_endpoint_lb is not None:
+                        const = cons = {&#39;type&#39;:&#39;ineq&#39;, &#39;fun&#39;: upper_endpoint_constraint, &#39;lb&#39;: 0, &#39;ub&#39;: np.Inf}
+                
+                res = minimize(
+                        fun=loglikelihood,
+                        x0=par0,
+                        constraints = () if upper_endpoint_lb is None else const)
+
+
+                return res</code></pre>
+</details>
+</section>
+<section>
+</section>
+<section>
+</section>
+<section>
+</section>
+<section>
+<h2 class="section-title" id="header-classes">Classes</h2>
+<dl>
+<dt id="psrmodels.time_collapsed.EnergyUnservedExplorer.EnergyUnservedExplorer"><code class="flex name class">
+<span>class <span class="ident">EnergyUnservedExplorer</span></span>
+<span>(</span><span>bivariate_hindcast_model)</span>
+</code></dt>
+<dd>
+<div class="desc"><p>This class outputs some exploratory plots and statistics from extreme value theory, for a bivariate hindcast power margin distribution</p>
+<p><strong>Parameters</strong>:</p>
+<p><code>bivariate_hindcast_model</code> (<code>BivariateHindcastMargin</code>): instance of <code>BivariateHindcastMargin</code></p></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">class EnergyUnservedExplorer(object):
+
+        &#34;&#34;&#34;This class outputs some exploratory plots and statistics from extreme value theory, for a bivariate hindcast power margin distribution
+  
+  **Parameters**:
+
+  `bivariate_hindcast_model` (`BivariateHindcastMargin`): instance of `BivariateHindcastMargin`
+
+  &#34;&#34;&#34;
+
+        def __init__(self,bivariate_hindcast_model):
+
+                self.quantile_grid_delta = 0.05
+
+                self.set_model(bivariate_hindcast_model)
+
+        def set_model(self,model):
+                self.precomputed_quantiles = {}
+                self.precomputed_nc = {}
+                self.hindcast = model
+                self.hindcast_limits = [-np.max(self.hindcast.net_demand[:,i]) for i in range(2)]
+
+        ### implictly work with the negative of the margins so that
+        ### energy unserved can be treated as a right side tail
+        def _inverted_hindcast_margin_cdf(self,x):
+                x0, x1 = x
+                return 1 - self.hindcast.marginal_cdf(-x0-1,i=0) - self.hindcast.marginal_cdf(-x1-1,i=1) + self.hindcast.cdf(-np.array(x)-1)
+        
+        def system_eu_ecdf(self,x):
+                return self._inverted_hindcast_margin_cdf(x) - self._inverted_hindcast_margin_cdf(np.minimum(0,x))
+        
+        def _inverted_hindcast_marginal_cdf(self,x,i=0):
+                return 1 - self.hindcast.marginal_cdf(-x-1,i=i)
+
+        def system_eu_mecdf(self,x,i=0):
+                return self._inverted_hindcast_marginal_cdf(x,i) - self._inverted_hindcast_marginal_cdf(min(x,0),i)
+
+        # create quantile grid
+        def _create_quantile_grid(self,c,policy):
+                # create or get dictionary with quantiles of marginal tail cdfs
+                if (c,policy) not in self.precomputed_quantiles.keys():
+                        Q = np.linspace(0,1,int(1/self.quantile_grid_delta)+1) #5% intervals
+                        quantiles = np.zeros((len(Q),2))
+                        #print(&#34;precomputing quantiles...&#34;)
+                        for i in range(quantiles.shape[0]):
+                                for j in range(2):
+                                        quantiles[i,j] = self._jtemq(Q[i],j,c,policy)
+
+                        self.precomputed_quantiles[(c,policy)] = quantiles
+                        #print(&#34;finished...&#34;)
+
+        # get else create normalising constant (joint tail probability)
+        def _get_else_create_nc(self,c,policy):
+                # create or get dictionary with quantiles of marginal tail cdfs
+                if (c,policy) not in self.precomputed_nc.keys():
+                        nc = self.hindcast.cdf((-1,-1),c=c,policy=policy)
+                        self.precomputed_nc[(c,policy)] = nc
+                else:
+                        nc = self.precomputed_nc[(c,policy)]
+
+                return nc  
+
+        # joint tail empirical marginal quantile function
+        def _jtemq(self,q,i,c,policy):
+                if q == 0:
+                        return 0
+                elif q == 1:
+                        return max(self.hindcast.net_demand[:,i])
+                else:
+                        if (c,policy) in self.precomputed_quantiles.keys():
+                                quantiles = self.precomputed_quantiles[(c,policy)][:,i]
+                                b_idx = int(np.ceil(q/self.quantile_grid_delta))
+                                b = quantiles[b_idx]
+                                a = quantiles[b_idx-1] if b_idx &gt; 0 else 0
+                        else:
+                                a = 0
+                                b = max(self.hindcast.net_demand[:,i])
+
+                        f = lambda k: -q + self._jtemcdf(k,i=i,c=c,policy=policy)
+
+                        #print(&#34;q: {q}, a: {a}, b: {b}&#34;.format(q=q,a=a,b=b))
+                        #print(&#34;f(a): {a}, f(b): {b}&#34;.format(a=f(a),b=f(b)))
+                        r = bisect(f= f,a=a,b=b,xtol=0.5)
+                        return int(r)
+
+        # joint tail empirical marginal cdf
+        def _jtemcdf(self,m,i,c,policy):
+                nc = self._get_else_create_nc(c,policy)
+                if i == 0:
+                        m_ = (-m-1,-1)
+                else:
+                        m_ = (-1,-m-1)
+                #
+                #print(m_)
+                return 1 - self.hindcast.cdf(m=m_,c=c,policy=policy)/nc
+
+        # joint tail empirical cdf
+        def _jtecdf(self,x,c,policy):
+                nc = self._get_else_create_nc(c,policy)
+                x0, x1 = x
+                area_prob =\
+                  self.hindcast.cdf(m=(-1,-1),c=c,policy=policy) -\
+                  self.hindcast.cdf(m=(-x0-1,-1),c=c,policy=policy) -\
+                  self.hindcast.cdf(m=(-1,-x1-1),c=c,policy=policy) +\
+                  self.hindcast.cdf(m=-np.array(x)-1,c=c,policy=policy)
+                return area_prob/nc
+
+        def pickands(self,t,c,policy):
+                &#34;&#34;&#34;Computes Pickands dependence function for an array of values in [0,1], for the distribution of power margins conditioned to both areas having a shortfall
+  
+          **Parameters**:
+
+          `t` (`numpy.ndarray`): Array of values in [0,1]
+
+          `c` (`int`): Interconnection capacity
+
+          `policy` (`string`): Either &#39;veto&#39; or &#39;share&#39;
+
+          &#34;&#34;&#34;
+                q0 = self._jtemq(np.exp(-(1-t)),i=0,c=c,policy=policy)
+                q1 = self._jtemq(np.exp(-t),i=1,c=c,policy=policy)
+                return -np.log(self._jtecdf(x=(q0,q1),c=c,policy=policy))
+
+        def plot_empirical_pickands(self,c=0,policy=&#34;veto&#34;,grid_size=30):
+                &#34;&#34;&#34;Creates a plot of the Pickands dependence function for the post-interconnection power margin distribution conditional distribution `m[0] &lt;= m_0 AND m[1] &lt;= m_1` (both areas having a shortfall)
+  
+          **Parameters**:
+
+          `c` (`int`): Interconnection capacity
+
+          `policy` (`string`): Either &#39;veto&#39; or &#39;share&#39;
+
+          `grid_size` (`int`): Number of points in the [0,1] grid
+
+
+          &#34;&#34;&#34;
+                self._create_quantile_grid(c,policy)
+
+                pickands = []
+                T = np.linspace(0,1,grid_size)
+                for t in T:
+                        pickands.append(self.pickands(t,c,policy))
+
+                pickands[0] = 1
+                pickands[-1] = 1
+                sns.lineplot(T,pickands)
+                # add pickand function bounds
+                plt.plot([0,0.5], [1,0.5], &#39;--&#39;, linewidth=1,color=&#34;grey&#34;)
+                plt.plot([0.5,1], [0.5,1], &#39;--&#39;, linewidth=1,color=&#34;grey&#34;)
+                plt.plot([0,1], [1,1], &#39;--&#39;, linewidth=1,color=&#34;grey&#34;)
+                plt.show()
+
+        def extremal_coefficient(self,c,policy):
+                &#34;&#34;&#34;Returns the extremal coefficient for the post-interconnection power margin distribution conditioned to `m[0] &lt;= m_0 AND m[1] &lt;= m_1`
+  
+          **Parameters**:
+
+          `c` (`int`): Interconnection capacity
+
+          `policy` (`string`): Either &#39;veto&#39; or &#39;share&#39;
+
+
+          &#34;&#34;&#34;
+                return self.pickands(0.5,c=c,policy=policy)
+
+        def fit_marginal_models(self,n=100,c=0,policy=&#34;veto&#34;,qq_plots=False,seed=1):
+
+                &#34;&#34;&#34;Fit Generalised Pareto models to the negative portion of post-interconnection power margin distributions and returns fitted parameters
+  
+          **Parameters**:
+
+          `n` (`int`): Number of simulated samples with which to fit the models
+
+          `c` (`int`): Assumed interconnection capacity
+
+          `policy` (`string`): Either &#39;veto&#39; or &#39;share&#39;
+
+          `qq_plots` (`bool`): if `True`, outputs QQ-plots of fitted models
+
+          `seed` (`int`): random seed
+
+
+          &#34;&#34;&#34;
+                a1_shortfalls = self.hindcast.simulate_region(n=n,m=(-1,np.Inf),c=c,policy=policy)
+                a2_shortfalls = self.hindcast.simulate_region(n=n,m=(np.Inf,-1),c=c,policy=policy)
+
+                a1_shortfalls = -a1_shortfalls[:,0]
+                a2_shortfalls = -a2_shortfalls[:,1]
+
+                pars0 = self._cdf_univar_gp_fitter(a1_shortfalls,upper_endpoint_lb = -self.hindcast_limits[0])
+                pars1 = self._cdf_univar_gp_fitter(a2_shortfalls,upper_endpoint_lb = -self.hindcast_limits[1])
+
+                a1_scale_est = np.exp(pars0.x[0])
+                a1_shape_est = pars0.x[1]
+
+                a2_scale_est = np.exp(pars1.x[0])
+                a2_shape_est = pars1.x[1]
+
+                #a1_scale_std = np.exp(pars0.hess_inv[0,0]/np.sqrt(n))
+                #a1_shape_std = pars0.hess_inv[1,1]/np.sqrt(n)
+
+                #a2_scale_std = np.exp(pars1.hess_inv[0,0]/np.sqrt(n))
+                #a2_shape_std = pars1.hess_inv[1,1]/np.sqrt(n)
+
+                if qq_plots:
+                        q_grid = np.linspace(0.01,0.99,99)
+                        eq1 = np.quantile(a1_shortfalls,q = q_grid)
+                        eq2 = np.quantile(a2_shortfalls,q = q_grid)
+
+                        fq1 = genpareto(loc=0,scale=a1_scale_est,c=a1_shape_est).ppf(q=q_grid)
+                        fq2 = genpareto(loc=0,scale=a2_scale_est,c=a2_shape_est).ppf(q=q_grid)
+
+                        fig = plt.figure(figsize=(5,5))
+                        ax = fig.add_subplot(211)
+                        ax.scatter(eq1, fq1, color = &#39;#004C99&#39;)
+                        ax.plot([0, max(eq1)], [0, max(eq1)], &#39;--&#39;, color = &#39;#FF8000&#39;)
+                        #ax.xlim(lineStart, lineEnd)
+                        #ax.ylim(lineStart, lineEnd)
+                        ax.set_xlabel(&#39;Empirical quantiles&#39;)
+                        ax.set_ylabel(&#39;Fitted quantiles&#39;)
+                        ax.set_title(&#39;Area 1&#39;)
+                        ##plt.axis(&#39;scaled&#39;)
+
+                        ax = fig.add_subplot(212)
+                        ax.scatter(eq2, fq2, color = &#39;#004C99&#39;)
+                        ax.plot([0, max(eq2)], [0, max(eq2)], &#39;--&#39;, color = &#39;#FF8000&#39;)
+                        #ax.xlim(lineStart, lineEnd)
+                        #ax.ylim(lineStart, lineEnd)
+                        ax.set_xlabel(&#39;Empirical quantiles&#39;)
+                        ax.set_ylabel(&#39;Fitted quantiles&#39;)
+                        ax.set_title(&#39;Area 2&#39;)
+                        ##plt.axis(&#39;scaled&#39;)
+
+                        plt.tight_layout()
+                        plt.show()
+
+
+                # res = {
+                #   &#34;area1&#34;:{
+                #     &#34;pars&#34;:{
+                #       &#34;scale&#34;:a1_scale_est,
+                #       &#34;c&#34;:a1_shape_est
+                #     },
+                #     &#34;std&#34;:{
+                #       &#34;scale&#34;:a1_scale_std,
+                #       &#34;c&#34;:a1_shape_std
+                #     }
+                #   },
+                #   &#34;area2&#34;:{
+                #     &#34;pars&#34;:{
+                #       &#34;scale&#34;:a2_scale_est,
+                #       &#34;c&#34;:a2_shape_est
+                #     },
+                #     &#34;std&#34;:{
+                #       &#34;scale&#34;:a2_scale_std,
+                #       &#34;c&#34;:a2_shape_std
+                #     }
+                #   }
+                # }
+
+                res = {
+                  &#34;a1_scale&#34;:a1_scale_est,
+                  &#34;a1_shape&#34;:a1_shape_est,
+                  &#34;a2_scale&#34;:a2_scale_est,
+                  &#34;a2_shape&#34;:a2_shape_est}
+
+                return res
+
+        def _cdf_univar_gp_fitter(self,x,upper_endpoint_lb=None):
+
+                def loglikelihood(par):
+                        logscale = par[0]
+                        shape = par[1]
+                        dist = genpareto(loc=0,scale=np.exp(logscale),c=shape)
+                        return -np.mean(dist.logpdf(x))
+
+                def upper_endpoint_constraint(par):
+                        logscale = par[0]
+                        shape = par[1]
+                        return np.exp(logscale) - max(-shape*upper_endpoint_lb,0)
+
+                logscale0 = np.log(np.std(x))
+                shape0 = 0
+
+                par0 = np.array([logscale0,shape0])
+
+                if upper_endpoint_lb is not None:
+                        const = cons = {&#39;type&#39;:&#39;ineq&#39;, &#39;fun&#39;: upper_endpoint_constraint, &#39;lb&#39;: 0, &#39;ub&#39;: np.Inf}
+                
+                res = minimize(
+                        fun=loglikelihood,
+                        x0=par0,
+                        constraints = () if upper_endpoint_lb is None else const)
+
+
+                return res</code></pre>
+</details>
+<h3>Methods</h3>
+<dl>
+<dt id="psrmodels.time_collapsed.EnergyUnservedExplorer.EnergyUnservedExplorer.extremal_coefficient"><code class="name flex">
+<span>def <span class="ident">extremal_coefficient</span></span>(<span>self, c, policy)</span>
+</code></dt>
+<dd>
+<div class="desc"><p>Returns the extremal coefficient for the post-interconnection power margin distribution conditioned to <code>m[0] &lt;= m_0 AND m[1] &lt;= m_1</code></p>
+<p><strong>Parameters</strong>:</p>
+<p><code>c</code> (<code>int</code>): Interconnection capacity</p>
+<p><code>policy</code> (<code>string</code>): Either 'veto' or 'share'</p></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def extremal_coefficient(self,c,policy):
+        &#34;&#34;&#34;Returns the extremal coefficient for the post-interconnection power margin distribution conditioned to `m[0] &lt;= m_0 AND m[1] &lt;= m_1`
+
+  **Parameters**:
+
+  `c` (`int`): Interconnection capacity
+
+  `policy` (`string`): Either &#39;veto&#39; or &#39;share&#39;
+
+
+  &#34;&#34;&#34;
+        return self.pickands(0.5,c=c,policy=policy)</code></pre>
+</details>
+</dd>
+<dt id="psrmodels.time_collapsed.EnergyUnservedExplorer.EnergyUnservedExplorer.fit_marginal_models"><code class="name flex">
+<span>def <span class="ident">fit_marginal_models</span></span>(<span>self, n=100, c=0, policy='veto', qq_plots=False, seed=1)</span>
+</code></dt>
+<dd>
+<div class="desc"><p>Fit Generalised Pareto models to the negative portion of post-interconnection power margin distributions and returns fitted parameters</p>
+<p><strong>Parameters</strong>:</p>
+<p><code>n</code> (<code>int</code>): Number of simulated samples with which to fit the models</p>
+<p><code>c</code> (<code>int</code>): Assumed interconnection capacity</p>
+<p><code>policy</code> (<code>string</code>): Either 'veto' or 'share'</p>
+<p><code>qq_plots</code> (<code>bool</code>): if <code>True</code>, outputs QQ-plots of fitted models</p>
+<p><code>seed</code> (<code>int</code>): random seed</p></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def fit_marginal_models(self,n=100,c=0,policy=&#34;veto&#34;,qq_plots=False,seed=1):
+
+        &#34;&#34;&#34;Fit Generalised Pareto models to the negative portion of post-interconnection power margin distributions and returns fitted parameters
+
+  **Parameters**:
+
+  `n` (`int`): Number of simulated samples with which to fit the models
+
+  `c` (`int`): Assumed interconnection capacity
+
+  `policy` (`string`): Either &#39;veto&#39; or &#39;share&#39;
+
+  `qq_plots` (`bool`): if `True`, outputs QQ-plots of fitted models
+
+  `seed` (`int`): random seed
+
+
+  &#34;&#34;&#34;
+        a1_shortfalls = self.hindcast.simulate_region(n=n,m=(-1,np.Inf),c=c,policy=policy)
+        a2_shortfalls = self.hindcast.simulate_region(n=n,m=(np.Inf,-1),c=c,policy=policy)
+
+        a1_shortfalls = -a1_shortfalls[:,0]
+        a2_shortfalls = -a2_shortfalls[:,1]
+
+        pars0 = self._cdf_univar_gp_fitter(a1_shortfalls,upper_endpoint_lb = -self.hindcast_limits[0])
+        pars1 = self._cdf_univar_gp_fitter(a2_shortfalls,upper_endpoint_lb = -self.hindcast_limits[1])
+
+        a1_scale_est = np.exp(pars0.x[0])
+        a1_shape_est = pars0.x[1]
+
+        a2_scale_est = np.exp(pars1.x[0])
+        a2_shape_est = pars1.x[1]
+
+        #a1_scale_std = np.exp(pars0.hess_inv[0,0]/np.sqrt(n))
+        #a1_shape_std = pars0.hess_inv[1,1]/np.sqrt(n)
+
+        #a2_scale_std = np.exp(pars1.hess_inv[0,0]/np.sqrt(n))
+        #a2_shape_std = pars1.hess_inv[1,1]/np.sqrt(n)
+
+        if qq_plots:
+                q_grid = np.linspace(0.01,0.99,99)
+                eq1 = np.quantile(a1_shortfalls,q = q_grid)
+                eq2 = np.quantile(a2_shortfalls,q = q_grid)
+
+                fq1 = genpareto(loc=0,scale=a1_scale_est,c=a1_shape_est).ppf(q=q_grid)
+                fq2 = genpareto(loc=0,scale=a2_scale_est,c=a2_shape_est).ppf(q=q_grid)
+
+                fig = plt.figure(figsize=(5,5))
+                ax = fig.add_subplot(211)
+                ax.scatter(eq1, fq1, color = &#39;#004C99&#39;)
+                ax.plot([0, max(eq1)], [0, max(eq1)], &#39;--&#39;, color = &#39;#FF8000&#39;)
+                #ax.xlim(lineStart, lineEnd)
+                #ax.ylim(lineStart, lineEnd)
+                ax.set_xlabel(&#39;Empirical quantiles&#39;)
+                ax.set_ylabel(&#39;Fitted quantiles&#39;)
+                ax.set_title(&#39;Area 1&#39;)
+                ##plt.axis(&#39;scaled&#39;)
+
+                ax = fig.add_subplot(212)
+                ax.scatter(eq2, fq2, color = &#39;#004C99&#39;)
+                ax.plot([0, max(eq2)], [0, max(eq2)], &#39;--&#39;, color = &#39;#FF8000&#39;)
+                #ax.xlim(lineStart, lineEnd)
+                #ax.ylim(lineStart, lineEnd)
+                ax.set_xlabel(&#39;Empirical quantiles&#39;)
+                ax.set_ylabel(&#39;Fitted quantiles&#39;)
+                ax.set_title(&#39;Area 2&#39;)
+                ##plt.axis(&#39;scaled&#39;)
+
+                plt.tight_layout()
+                plt.show()
+
+
+        # res = {
+        #   &#34;area1&#34;:{
+        #     &#34;pars&#34;:{
+        #       &#34;scale&#34;:a1_scale_est,
+        #       &#34;c&#34;:a1_shape_est
+        #     },
+        #     &#34;std&#34;:{
+        #       &#34;scale&#34;:a1_scale_std,
+        #       &#34;c&#34;:a1_shape_std
+        #     }
+        #   },
+        #   &#34;area2&#34;:{
+        #     &#34;pars&#34;:{
+        #       &#34;scale&#34;:a2_scale_est,
+        #       &#34;c&#34;:a2_shape_est
+        #     },
+        #     &#34;std&#34;:{
+        #       &#34;scale&#34;:a2_scale_std,
+        #       &#34;c&#34;:a2_shape_std
+        #     }
+        #   }
+        # }
+
+        res = {
+          &#34;a1_scale&#34;:a1_scale_est,
+          &#34;a1_shape&#34;:a1_shape_est,
+          &#34;a2_scale&#34;:a2_scale_est,
+          &#34;a2_shape&#34;:a2_shape_est}
+
+        return res</code></pre>
+</details>
+</dd>
+<dt id="psrmodels.time_collapsed.EnergyUnservedExplorer.EnergyUnservedExplorer.pickands"><code class="name flex">
+<span>def <span class="ident">pickands</span></span>(<span>self, t, c, policy)</span>
+</code></dt>
+<dd>
+<div class="desc"><p>Computes Pickands dependence function for an array of values in [0,1], for the distribution of power margins conditioned to both areas having a shortfall</p>
+<p><strong>Parameters</strong>:</p>
+<p><code>t</code> (<code>numpy.ndarray</code>): Array of values in [0,1]</p>
+<p><code>c</code> (<code>int</code>): Interconnection capacity</p>
+<p><code>policy</code> (<code>string</code>): Either 'veto' or 'share'</p></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def pickands(self,t,c,policy):
+        &#34;&#34;&#34;Computes Pickands dependence function for an array of values in [0,1], for the distribution of power margins conditioned to both areas having a shortfall
+
+  **Parameters**:
+
+  `t` (`numpy.ndarray`): Array of values in [0,1]
+
+  `c` (`int`): Interconnection capacity
+
+  `policy` (`string`): Either &#39;veto&#39; or &#39;share&#39;
+
+  &#34;&#34;&#34;
+        q0 = self._jtemq(np.exp(-(1-t)),i=0,c=c,policy=policy)
+        q1 = self._jtemq(np.exp(-t),i=1,c=c,policy=policy)
+        return -np.log(self._jtecdf(x=(q0,q1),c=c,policy=policy))</code></pre>
+</details>
+</dd>
+<dt id="psrmodels.time_collapsed.EnergyUnservedExplorer.EnergyUnservedExplorer.plot_empirical_pickands"><code class="name flex">
+<span>def <span class="ident">plot_empirical_pickands</span></span>(<span>self, c=0, policy='veto', grid_size=30)</span>
+</code></dt>
+<dd>
+<div class="desc"><p>Creates a plot of the Pickands dependence function for the post-interconnection power margin distribution conditional distribution <code>m[0] &lt;= m_0 AND m[1] &lt;= m_1</code> (both areas having a shortfall)</p>
+<p><strong>Parameters</strong>:</p>
+<p><code>c</code> (<code>int</code>): Interconnection capacity</p>
+<p><code>policy</code> (<code>string</code>): Either 'veto' or 'share'</p>
+<p><code>grid_size</code> (<code>int</code>): Number of points in the [0,1] grid</p></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def plot_empirical_pickands(self,c=0,policy=&#34;veto&#34;,grid_size=30):
+        &#34;&#34;&#34;Creates a plot of the Pickands dependence function for the post-interconnection power margin distribution conditional distribution `m[0] &lt;= m_0 AND m[1] &lt;= m_1` (both areas having a shortfall)
+
+  **Parameters**:
+
+  `c` (`int`): Interconnection capacity
+
+  `policy` (`string`): Either &#39;veto&#39; or &#39;share&#39;
+
+  `grid_size` (`int`): Number of points in the [0,1] grid
+
+
+  &#34;&#34;&#34;
+        self._create_quantile_grid(c,policy)
+
+        pickands = []
+        T = np.linspace(0,1,grid_size)
+        for t in T:
+                pickands.append(self.pickands(t,c,policy))
+
+        pickands[0] = 1
+        pickands[-1] = 1
+        sns.lineplot(T,pickands)
+        # add pickand function bounds
+        plt.plot([0,0.5], [1,0.5], &#39;--&#39;, linewidth=1,color=&#34;grey&#34;)
+        plt.plot([0.5,1], [0.5,1], &#39;--&#39;, linewidth=1,color=&#34;grey&#34;)
+        plt.plot([0,1], [1,1], &#39;--&#39;, linewidth=1,color=&#34;grey&#34;)
+        plt.show()</code></pre>
+</details>
+</dd>
+<dt id="psrmodels.time_collapsed.EnergyUnservedExplorer.EnergyUnservedExplorer.set_model"><code class="name flex">
+<span>def <span class="ident">set_model</span></span>(<span>self, model)</span>
+</code></dt>
+<dd>
+<div class="desc"></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def set_model(self,model):
+        self.precomputed_quantiles = {}
+        self.precomputed_nc = {}
+        self.hindcast = model
+        self.hindcast_limits = [-np.max(self.hindcast.net_demand[:,i]) for i in range(2)]</code></pre>
+</details>
+</dd>
+<dt id="psrmodels.time_collapsed.EnergyUnservedExplorer.EnergyUnservedExplorer.system_eu_ecdf"><code class="name flex">
+<span>def <span class="ident">system_eu_ecdf</span></span>(<span>self, x)</span>
+</code></dt>
+<dd>
+<div class="desc"></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def system_eu_ecdf(self,x):
+        return self._inverted_hindcast_margin_cdf(x) - self._inverted_hindcast_margin_cdf(np.minimum(0,x))</code></pre>
+</details>
+</dd>
+<dt id="psrmodels.time_collapsed.EnergyUnservedExplorer.EnergyUnservedExplorer.system_eu_mecdf"><code class="name flex">
+<span>def <span class="ident">system_eu_mecdf</span></span>(<span>self, x, i=0)</span>
+</code></dt>
+<dd>
+<div class="desc"></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def system_eu_mecdf(self,x,i=0):
+        return self._inverted_hindcast_marginal_cdf(x,i) - self._inverted_hindcast_marginal_cdf(min(x,0),i)</code></pre>
+</details>
+</dd>
+</dl>
+</dd>
+</dl>
+</section>
+</article>
+<nav id="sidebar">
+<h1>Index</h1>
+<div class="toc">
+<ul></ul>
+</div>
+<ul id="index">
+<li><h3>Super-module</h3>
+<ul>
+<li><code><a title="psrmodels.time_collapsed" href="index.html">psrmodels.time_collapsed</a></code></li>
+</ul>
+</li>
+<li><h3><a href="#header-classes">Classes</a></h3>
+<ul>
+<li>
+<h4><code><a title="psrmodels.time_collapsed.EnergyUnservedExplorer.EnergyUnservedExplorer" href="#psrmodels.time_collapsed.EnergyUnservedExplorer.EnergyUnservedExplorer">EnergyUnservedExplorer</a></code></h4>
+<ul class="">
+<li><code><a title="psrmodels.time_collapsed.EnergyUnservedExplorer.EnergyUnservedExplorer.extremal_coefficient" href="#psrmodels.time_collapsed.EnergyUnservedExplorer.EnergyUnservedExplorer.extremal_coefficient">extremal_coefficient</a></code></li>
+<li><code><a title="psrmodels.time_collapsed.EnergyUnservedExplorer.EnergyUnservedExplorer.fit_marginal_models" href="#psrmodels.time_collapsed.EnergyUnservedExplorer.EnergyUnservedExplorer.fit_marginal_models">fit_marginal_models</a></code></li>
+<li><code><a title="psrmodels.time_collapsed.EnergyUnservedExplorer.EnergyUnservedExplorer.pickands" href="#psrmodels.time_collapsed.EnergyUnservedExplorer.EnergyUnservedExplorer.pickands">pickands</a></code></li>
+<li><code><a title="psrmodels.time_collapsed.EnergyUnservedExplorer.EnergyUnservedExplorer.plot_empirical_pickands" href="#psrmodels.time_collapsed.EnergyUnservedExplorer.EnergyUnservedExplorer.plot_empirical_pickands">plot_empirical_pickands</a></code></li>
+<li><code><a title="psrmodels.time_collapsed.EnergyUnservedExplorer.EnergyUnservedExplorer.set_model" href="#psrmodels.time_collapsed.EnergyUnservedExplorer.EnergyUnservedExplorer.set_model">set_model</a></code></li>
+<li><code><a title="psrmodels.time_collapsed.EnergyUnservedExplorer.EnergyUnservedExplorer.system_eu_ecdf" href="#psrmodels.time_collapsed.EnergyUnservedExplorer.EnergyUnservedExplorer.system_eu_ecdf">system_eu_ecdf</a></code></li>
+<li><code><a title="psrmodels.time_collapsed.EnergyUnservedExplorer.EnergyUnservedExplorer.system_eu_mecdf" href="#psrmodels.time_collapsed.EnergyUnservedExplorer.EnergyUnservedExplorer.system_eu_mecdf">system_eu_mecdf</a></code></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</nav>
+</main>
+<footer id="footer">
+<p>Generated by <a href="https://pdoc3.github.io/pdoc"><cite>pdoc</cite> 0.9.1</a>.</p>
+</footer>
+</body>
+</html>

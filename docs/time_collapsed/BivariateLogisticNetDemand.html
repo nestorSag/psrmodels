@@ -1,0 +1,1267 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, minimum-scale=1" />
+<meta name="generator" content="pdoc 0.9.1" />
+<title>psrmodels.time_collapsed.BivariateLogisticNetDemand API documentation</title>
+<meta name="description" content="" />
+<link rel="preload stylesheet" as="style" href="https://cdnjs.cloudflare.com/ajax/libs/10up-sanitize.css/11.0.1/sanitize.min.css" integrity="sha256-PK9q560IAAa6WVRRh76LtCaI8pjTJ2z11v0miyNNjrs=" crossorigin>
+<link rel="preload stylesheet" as="style" href="https://cdnjs.cloudflare.com/ajax/libs/10up-sanitize.css/11.0.1/typography.min.css" integrity="sha256-7l/o7C8jubJiy74VsKTidCy1yBkRtiUGbVkYBylBqUg=" crossorigin>
+<link rel="stylesheet preload" as="style" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.1.1/styles/github.min.css" crossorigin>
+<style>:root{--highlight-color:#fe9}.flex{display:flex !important}body{line-height:1.5em}#content{padding:20px}#sidebar{padding:30px;overflow:hidden}#sidebar > *:last-child{margin-bottom:2cm}.http-server-breadcrumbs{font-size:130%;margin:0 0 15px 0}#footer{font-size:.75em;padding:5px 30px;border-top:1px solid #ddd;text-align:right}#footer p{margin:0 0 0 1em;display:inline-block}#footer p:last-child{margin-right:30px}h1,h2,h3,h4,h5{font-weight:300}h1{font-size:2.5em;line-height:1.1em}h2{font-size:1.75em;margin:1em 0 .50em 0}h3{font-size:1.4em;margin:25px 0 10px 0}h4{margin:0;font-size:105%}h1:target,h2:target,h3:target,h4:target,h5:target,h6:target{background:var(--highlight-color);padding:.2em 0}a{color:#058;text-decoration:none;transition:color .3s ease-in-out}a:hover{color:#e82}.title code{font-weight:bold}h2[id^="header-"]{margin-top:2em}.ident{color:#900}pre code{background:#f8f8f8;font-size:.8em;line-height:1.4em}code{background:#f2f2f1;padding:1px 4px;overflow-wrap:break-word}h1 code{background:transparent}pre{background:#f8f8f8;border:0;border-top:1px solid #ccc;border-bottom:1px solid #ccc;margin:1em 0;padding:1ex}#http-server-module-list{display:flex;flex-flow:column}#http-server-module-list div{display:flex}#http-server-module-list dt{min-width:10%}#http-server-module-list p{margin-top:0}.toc ul,#index{list-style-type:none;margin:0;padding:0}#index code{background:transparent}#index h3{border-bottom:1px solid #ddd}#index ul{padding:0}#index h4{margin-top:.6em;font-weight:bold}@media (min-width:200ex){#index .two-column{column-count:2}}@media (min-width:300ex){#index .two-column{column-count:3}}dl{margin-bottom:2em}dl dl:last-child{margin-bottom:4em}dd{margin:0 0 1em 3em}#header-classes + dl > dd{margin-bottom:3em}dd dd{margin-left:2em}dd p{margin:10px 0}.name{background:#eee;font-weight:bold;font-size:.85em;padding:5px 10px;display:inline-block;min-width:40%}.name:hover{background:#e0e0e0}dt:target .name{background:var(--highlight-color)}.name > span:first-child{white-space:nowrap}.name.class > span:nth-child(2){margin-left:.4em}.inherited{color:#999;border-left:5px solid #eee;padding-left:1em}.inheritance em{font-style:normal;font-weight:bold}.desc h2{font-weight:400;font-size:1.25em}.desc h3{font-size:1em}.desc dt code{background:inherit}.source summary,.git-link-div{color:#666;text-align:right;font-weight:400;font-size:.8em;text-transform:uppercase}.source summary > *{white-space:nowrap;cursor:pointer}.git-link{color:inherit;margin-left:1em}.source pre{max-height:500px;overflow:auto;margin:0}.source pre code{font-size:12px;overflow:visible}.hlist{list-style:none}.hlist li{display:inline}.hlist li:after{content:',\2002'}.hlist li:last-child:after{content:none}.hlist .hlist{display:inline;padding-left:1em}img{max-width:100%}td{padding:0 .5em}.admonition{padding:.1em .5em;margin-bottom:1em}.admonition-title{font-weight:bold}.admonition.note,.admonition.info,.admonition.important{background:#aef}.admonition.todo,.admonition.versionadded,.admonition.tip,.admonition.hint{background:#dfd}.admonition.warning,.admonition.versionchanged,.admonition.deprecated{background:#fd4}.admonition.error,.admonition.danger,.admonition.caution{background:lightpink}</style>
+<style media="screen and (min-width: 700px)">@media screen and (min-width:700px){#sidebar{width:30%;height:100vh;overflow:auto;position:sticky;top:0}#content{width:70%;max-width:100ch;padding:3em 4em;border-left:1px solid #ddd}pre code{font-size:1em}.item .name{font-size:1em}main{display:flex;flex-direction:row-reverse;justify-content:flex-end}.toc ul ul,#index ul{padding-left:1.5em}.toc > ul > li{margin-top:.5em}}</style>
+<style media="print">@media print{#sidebar h1{page-break-before:always}.source{display:none}}@media print{*{background:transparent !important;color:#000 !important;box-shadow:none !important;text-shadow:none !important}a[href]:after{content:" (" attr(href) ")";font-size:90%}a[href][title]:after{content:none}abbr[title]:after{content:" (" attr(title) ")"}.ir a:after,a[href^="javascript:"]:after,a[href^="#"]:after{content:""}pre,blockquote{border:1px solid #999;page-break-inside:avoid}thead{display:table-header-group}tr,img{page-break-inside:avoid}img{max-width:100% !important}@page{margin:0.5cm}p,h2,h3{orphans:3;widows:3}h1,h2,h3,h4,h5,h6{page-break-after:avoid}}</style>
+<script defer src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.1.1/highlight.min.js" integrity="sha256-Uv3H6lx7dJmRfRvH8TH6kJD1TSK1aFcwgx+mdg3epi8=" crossorigin></script>
+<script>window.addEventListener('DOMContentLoaded', () => hljs.initHighlighting())</script>
+</head>
+<body>
+<main>
+<article id="content">
+<header>
+<h1 class="title">Module <code>psrmodels.time_collapsed.BivariateLogisticNetDemand</code></h1>
+</header>
+<section id="section-intro">
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">import numpy as np
+from scipy.stats import genpareto as gp
+from scipy.stats import expon as expdist
+from scipy.stats import gumbel_r as gumbel
+from scipy.stats import gaussian_kde
+
+from scipy.special import lambertw
+
+class BivariateLogisticNetDemand(object):
+  &#34;&#34;&#34;Semi-parametric bivariate net demand model with a logistic extreme value model at the tails.
+  It does not performs estimation, instead receiving the estimated parameters as input
+  
+  **Parameters**:
+
+  `X` (`numpy.ndarray`): net demand data matrix with two columns
+
+  `p` (`float`): threshold probability for each of the components
+
+  `alpha` (`float`): estimated dependence parameter for logistic extreme value model
+
+  `shapes` (`numpy.ndarray`): shape estimates for margin GP approximations
+
+  `scales` (`numpy.ndarray`): scale estimates for margin GP approximation
+
+  &#34;&#34;&#34;
+  
+  def __init__(self,X,p,alpha,shapes,scales):
+
+    self.n, self.d = X.shape
+    self.X = X.clip(min=0)
+
+    #self.u = np.array(u)
+    #self.p = np.array([np.sum(self.X[:,i] &lt;= self.u[i])/self.n for i in range(self.d)])
+
+    self.p = float(p)
+    self.u = np.quantile(self.X,self.p,axis=0)
+    
+    self.alpha = alpha
+    self.shapes = np.array(shapes)
+    self.scales = np.array(scales)
+    self.endpoints = np.array([self.u[i] - self.scales[i]/self.shapes[i] if shapes[i] &lt; 0 else np.Inf for i in range(self.d)])
+    self.kde = None #kernel density estimates for the marginals (they are used for plotting only)
+
+  def _dy_dx(self,x,i):
+    #derivative of y = -log(-log(F(x))) w.r.t. x
+    # x is a vector
+    # i = component index
+
+    eta = self.shapes[i]
+    sigma = self.scales[i]
+    mu = self.u[i]
+    p = self.p
+    
+    # copied from wolfram alpha as text
+    if x[i] &gt;= mu:
+      if eta != 0:
+        d = -((1 - p)*((eta*(x[i] - mu))/sigma + 1)**(-1/eta - 1))/(sigma*((1 - p)*(1 - ((eta*(x[i] - mu))/sigma + 1)**(-1/eta)) + p)*np.log((1 - p)*(1 - ((eta*(x[i] - mu))/sigma + 1)**(-1/eta)) + p))
+      else:
+        d = -np.exp(mu/sigma)/(((p - 1)*np.exp(mu/sigma) + np.exp(x[i]/sigma))*np.log((p - 1)*np.exp((mu - x[i])/sigma) + 1))
+
+    else:
+      # the derivatives dont exist below the threshold, so they are imputed by a Gaussian KDE
+      if self.kde is None:
+        self.kde = []
+        self.kde_normval = []
+        for j in range(self.d):
+          self.kde.append(gaussian_kde(self.X[:,j]))
+          # record normalizing constant necessary so that the density is continuous
+          kde_cdf = self.kde[j].integrate_box_1d(-np.Inf,self.u[j])
+          self.kde_normval.append(self._dy_dx(self.u,j)/(-(1-p)/(kde_cdf*np.log(kde_cdf))*self.kde[j](self.u[j])[0]))
+          
+      #d = -(1-p)/(self._sp_margin_cdf(x[i],i)*np.log(self._sp_margin_cdf(x[i],i)))*self.kde[i](x[i])[0]*self.kde_normval[i]
+
+      kde_cdf = self.kde[i].integrate_box_1d(-np.Inf,x[i])
+      
+      d = -(1-p)/(kde_cdf*np.log(kde_cdf))*self.kde[i](x[i])[0]*self.kde_normval[i]
+            
+    return d
+  
+  def _margin_tail_cdf(self,x,i):
+    # CDF of GP approximation (no need to weight it by p, that&#39;s done elsewhere)
+    # i = component index
+    if self.shapes[i] != 0:
+      return gp.cdf(x,c=self.shapes[i],loc=self.u[i],scale=self.scales[i])
+    else:
+      return expdist.cdf(x,loc=self.u[i],scale=self.scales[i])
+
+  def _margin_tail_pdf(self,x,i):
+    # density of GP approximation (no need to weight it by p, that&#39;s done elsewhere)
+    # i = component index
+    if self.shapes[i] != 0:
+      return gp.pdf(x,c=self.shapes[i],loc=self.u[i],scale=self.scales[i])
+    else:
+      return expdist.pdf(x,loc=self.u[i],scale=self.scales[i])
+    
+  def _sp_margin_cdf(self,x,i=0):
+    # x is a scalar
+    # semiparametric marginal cdf
+    if x &lt;= self.u[i]:
+      return self._mecdf(x,i=i)
+    else:
+      p = self.p
+      return p + (1-p)*self._margin_tail_cdf(x,i)
+
+  def _sp_margin_pdf(self,x,i=0):
+    # only non-zero above margin threshold
+    if x &lt;= self.u[i]:
+      return 0
+    else:
+      return (1-self.p)*self._margin_tail_pdf(x,i)
+
+  def _jecdf(self,x):
+    # joint empirical cdf
+    return np.sum((self.X[:,0] &lt;= x[0])*(self.X[:,1] &lt;= x[1] ))/self.X.shape[0]
+
+  def _mecdf(self,x,i=0):
+    # marginal empirical cdf
+    return np.sum(self.X[:,i] &lt;= np.array(x))/self.X.shape[0]
+
+  def _to_gumbel(self,x):
+    # transform vector to gumbel marginals componentwise using semiparametric marginal estimates
+    return np.array([-np.log(-np.log(self._sp_margin_cdf(x[i],i=i))) for i in range(self.d)])
+  
+  def _cond_ext_pdf(self,x,i):
+    # conditional extreme value cdf
+    # x = point to evaluate
+    # i = largest component (quantile-wise)
+
+    
+    # transform data to Gumbel margins first
+    y = self._to_gumbel(x)
+    j = 1 if i == 0 else 0 #the not-so-large component
+
+    # integrating the assymptotic density Y_j|Y_i = y_i w.r.t. a std. Gumbel from y[i] to infty
+    # and using the fact that Gumbel ~ exp(1)
+    
+    return gumbel.cdf(y[j],loc=0,scale=1) + np.exp(-y[j]) - np.sum(np.exp(-y/self.alpha))**self.alpha
+
+  def _cond_ext_pdf(self,x,i):
+    # conditional extreme value pdf
+    # x = point to evaluate
+    # i = largest component (quantile-wise)
+
+    # transform data to Gumbel margins first
+    y = self._to_gumbel(x)
+    j = 1 if i == 0 else 0 #the not-so-large component
+
+    # dF/(dx1dx2) = dF/(dy1dy2)*dy1/dx1*dy2/dx2
+
+    # copied from wolfram alpha as plain text
+    dF_dy1dy2 = -((self.alpha - 1)*np.exp(y[i]/self.alpha + y[j]/self.alpha)*(np.exp(-y[i]/self.alpha) + np.exp(-y[j]/self.alpha))**self.alpha)/(self.alpha*(np.exp(y[i]/self.alpha) + np.exp(y[j]/self.alpha))**2)
+
+    dyi_dxi = self._dy_dx(x,i)
+    dyj_dxj = self._dy_dx(x,j)
+
+    return dF_dy1dy2 * dyi_dxi * dyj_dxj
+  
+  def _jtcdf(self,x):
+    # joint tail cdf
+
+    # transform data to Gumbel margins first
+    y = self._to_gumbel(x)
+    return np.exp(-np.sum(np.exp(-1.0/self.alpha*y))**self.alpha)
+
+  def _jtpdf(self,x):
+    # joint tail pdf
+
+    # transform data to Gumbel margins first
+    y = self._to_gumbel(x)
+
+    # both are exceedances so the order doesnt matter
+    i = 0
+    j = 1
+    # dF/(dx1dx2) = dF/(dy1dy2)*dy1/dx1*dy2/dx2
+    dyi_dxi = self._dy_dx(x,i)
+    dyj_dxj = self._dy_dx(x,j)
+    
+    # from wolfram alpha as plain text
+    density = (np.exp(y[i]/self.alpha - (np.exp(-y[i]/self.alpha) + np.exp(-y[j]/self.alpha))**self.alpha + y[j]/self.alpha)*(np.exp(-y[i]/self.alpha) + np.exp(-y[j]/self.alpha))**self.alpha*(-self.alpha + self.alpha*(np.exp(-y[i]/self.alpha) + np.exp(-y[j]/self.alpha))**self.alpha + 1))/(self.alpha*(np.exp(y[i]/self.alpha) + np.exp(y[j]/self.alpha))**2)
+    
+    return density * dyi_dxi * dyj_dxj
+    
+  def cdf(self,x):
+    &#34;&#34;&#34; Get model cumulative density function (CDF)
+    
+    **Parameters**:
+
+    `x` (`numpy.ndarray`): point to evaluate the model&#39;s CDF in
+
+    &#34;&#34;&#34;
+    
+    if np.all(x &gt; self.u):
+      return self._jtcdf(x)
+    
+    elif np.all(x &lt;= self.u):
+      return self._jecdf(x)
+    
+    else:
+      i = int(np.argwhere(x &gt; self.u))
+      return self._cond_ext_pdf(x,i)
+      #return self._jtcdf(x)
+
+  def pdf(self,x):
+    &#34;&#34;&#34; Get model probability density function (PDF)
+    
+    **Parameters**:
+
+    `x` (`numpy.ndarray`): point to evaluate the model&#39;s PDF in
+
+    &#34;&#34;&#34;
+    
+    if np.all(x &lt;= self.u):
+      return 0
+    
+    elif np.all(x &gt;= self.u):
+      return self._jtpdf(x)
+    
+    else:
+      i = int(np.argwhere(x &gt; self.u))
+      return self._cond_ext_pdf(x,i)
+      #return self._jtpdf(x)
+      
+
+  def raster(self,nx=100,ny=100,cdf=True,llim=None,ulim=None,beta=0.995):
+    &#34;&#34;&#34; Get model PDF or CDF contour lines raster, in the scale of the original data.
+    
+    **Parameters**:
+
+    `nx` (`int`): number of grid points in the x axis
+
+    `ny` (`int`): number of grid points in the y axis
+
+    `cdf` (`bool`): Plot CDF. If False, plot PDF
+
+    `llim` (`float`): lower plot threshold. If None, taken as minus infinity
+
+    `ulim` (`float`): upper plot threshold. If None, taken as infinity
+
+    `beta` (`float`): If estimated enpoint of original data is infinite, use a quantile of beta as upper plot endpoint
+
+    &#34;&#34;&#34;
+
+    
+    def compute_upper_limits(beta=beta):
+      # compute beta quantile as plot limits
+      lims = []
+      gamma = np.exp(2**(self.alpha)*np.log(beta))
+      for i in range(self.d):
+        p = self.p
+        if self.shapes[i] &lt; 0:
+          val = self.endpoints[i]
+        elif self.shapes[i] &gt; 0:
+          val = self.u[i] + self.scales[i]*(((1-(gamma-p)/(1-p))**(-self.shapes[i])-1)/self.shapes[i])
+        else:
+          val = 1.5 * (self.u[i] + self.scales[i]*(-np.log(1-(gamma-p)/(1-p))))
+
+        lims.append(val)
+
+      return lims
+    
+    # nx, ny = number of grid points in each axis
+    # llim = lower plot limits
+    # ulim upper plot limits
+    
+    # bound plot
+    
+    llim = [-np.Inf for i in range(self.d)] if llim is None else llim
+
+    ulim = [np.Inf for i in range(self.d)] if ulim is None else ulim
+
+    llim = [max(llim[i],min(self.X[:,i])) for i in range(self.d)]
+
+    ubounds = compute_upper_limits()
+
+    ulim = [min(ulim[i],ubounds[i]) for i in range(self.d)]
+
+    #print(llim)
+    #print(ulim)
+    
+    x = np.linspace(llim[0],ulim[0],nx)
+    y = np.flip(np.linspace(llim[1],ulim[1],ny))
+
+    vals = []
+    
+    for x_ in x:
+      for y_ in y:
+        val = self.cdf((x_,y_)) if cdf else self.pdf((x_,y_))
+        vals.append(val)
+
+    z = np.array(vals).reshape((int(ny),int(nx)),order=&#34;F&#34;)
+    
+    return {&#34;x&#34;:x,&#34;y&#34;:y,&#34;z&#34;:np.nan_to_num(z)}
+
+  def margin_quantiles(self,probs):
+    &#34;&#34;&#34;get quantiles of semiparametric CDFs, componentwise
+    
+    **Parameters**:
+
+    `probs` (`iterable`): probabilities for which quantiles will be evaluated at each component
+
+    &#34;&#34;&#34;
+
+    x = []
+    for i in range(self.d):
+      p = self.p
+      if probs[i] &lt;= p:
+        val = np.quantile(X[:,i],probs[i])
+      elif self.shapes[i] != 0:
+        val = self.u[i] + self.scales[i]*(((1-(probs[i]-p)/(1-p))**(-self.shapes[i])-1)/self.shapes[i])
+      else:
+        val = self.u[i] + self.scales[i]*(-np.log(1-(probs[i]-p)/(1-p)))
+
+      x.append(val)
+
+    return np.array(x)
+      
+  def _from_gumbel(self,m):
+    # transform gumbel simulated values to original data distribution
+
+    def original_scale(v,i):
+      # v = vector of Gumbel quantiles
+      # i = component index
+      p = self.p
+      index = v &gt; p
+      above = v[index]
+      below = v[np.logical_not(index)]
+
+      if self.shapes[i] != 0:
+        above = self.u[i] + self.scales[i]*(((1-(above-p)/(1-p))**(-self.shapes[i])-1)/self.shapes[i])
+      else:
+        above = self.u[i] + self.scales[i]*(-np.log(1-(above-p)/(1-p)))
+
+      
+      below = np.quantile(self.X[:,i],below)
+
+      v[index] = above
+      v[np.logical_not(index)] = below
+
+      return v
+
+    m_= np.empty(shape=m.shape)
+    
+    for i in range(self.d):
+      gamma = np.exp(-np.exp(-m[:,i]))
+      m_[:,i] = original_scale(gamma,i)
+
+    return m_
+
+  def _simulate_exceedances(self,n,threshold=None,exs_prob=None,seed=None,asymptotic=False):
+    # simulate from extreme value model at the tails
+    if seed is not None:
+      np.random.seed(int(seed))
+
+    n = int(n)
+
+    #determine threshold values and probabilities
+    threshold, exs_prob = self._format_th_params(threshold,exs_prob)
+
+    gumbel_threshold = self._to_gumbel(threshold)
+    
+    maximums = -np.log(-np.log(exs_prob*np.random.uniform(size=n)+1-exs_prob)) + self.alpha*np.log(2)
+    comp = np.random.binomial(1,0.5,n)
+
+    if asymptotic:
+      other = np.array([self._sample_cond_ext_dist(np.Inf,uq=self._joint_cond_ext_pdf(0,np.Inf)) for x in maximums]).reshape(n,1)
+    else:
+      other = np.array([self._sample_cond_ext_dist(x,uq=self._joint_cond_ext_pdf(0,x)) for x in maximums]).reshape(n,1)
+
+    xs0 = maximums[comp==0].reshape(-1,1)
+    xs1 = maximums[comp==1].reshape(-1,1)
+
+    other0 = other[comp==0] + xs0
+    other1 = other[comp==1] + xs1
+
+    mat0 = np.concatenate((xs0,other0),axis=1)
+    mat1 = np.concatenate((other1,xs1),axis=1)
+   
+    return self._from_gumbel(np.concatenate((mat0,mat1),axis=0))
+    
+
+  def _joint_cond_ext_pdf(self,z,y):
+    return (1+np.exp(-z/self.alpha))**(self.alpha-1)*np.exp(np.exp(-y)*(1-(1+np.exp(-z/self.alpha))**self.alpha))
+  
+  def _sample_cond_ext_dist(self,exs,lq=0,uq=1):
+    # sample conditional extremes distribution given an exceedance in the other component
+    gamma = np.exp(-exs)
+    beta = np.log(np.random.uniform(size=1,low=lq,high=uq)) - gamma
+    eta = beta/(self.alpha-1) - 1.0/self.alpha*lambertw(-gamma*self.alpha/(self.alpha-1)*np.exp(self.alpha*beta/(self.alpha-1))).real
+    z = -self.alpha*np.log(np.exp(eta)-1)
+    return z
+
+  def _simulate_empirical(self,n,exs_prob=None,threshold=None,seed=None):
+    # get uniform sample from observations below thresholds
+    if seed is not None:
+      np.random.seed(int(seed))
+      
+    n = int(n)
+
+    #determine threshold values and probabilities
+    threshold, exs_prob = self._format_th_params(threshold,exs_prob)
+      
+    #threshold = self.u if threshold is None else threshold
+    # matrix with observations below the thresholds
+    th = np.array(threshold)
+    fX = np.array([row for row in self.X if np.all(row &lt;= th)])
+    
+    rand_i = np.random.randint(low=0,high=fX.shape[0],size=n)
+    return fX[rand_i,:]
+
+    
+  def simulate(self,n=1000,exs_prob=None,threshold=None,seed=1):
+    &#34;&#34;&#34;simulate net demand observations
+    
+    **Parameters**:
+
+    `n` (`int`): number of samples
+
+    `exs_prob` (`float`): Exceedance probability that characterises extreme value model region (assuming region bounds are equal in all components)
+
+    `threshold` (`float`): threshold after which extreme value model region starts (in Gumbel scale, applied symmetrically to components). If exs_prob and threshold are specified, exs_prob takes precedence
+
+    `seed` (`int`): random seed
+
+    &#34;&#34;&#34;
+    np.random.seed(seed)
+    n = int(n)
+
+    #determine threshold values and probabilities
+    threshold, exs_prob = self._format_th_params(threshold,exs_prob)
+      
+    # get margin thresholds corresponding to joint excess probability given by exs_prob, assuming both threshold values are equal
+    
+    
+    # b[i] == 1 &lt;==&gt; i-th simulation comes from empirical portion of CDF
+    empirical = np.random.binomial(1,1-exs_prob,n)
+
+    n_empirical = np.sum(empirical)
+
+    n_tails = n - n_empirical
+    
+    #s1 = self._simulate_exceedances(n_cond,g_th,seed)
+    s1 = self._simulate_empirical(n_empirical,threshold = threshold)
+    s2 = self._simulate_exceedances(n_tails,threshold = threshold)
+    
+    print(&#34;{n} samples from tail&#34;.format(n=n_tails))
+    sim = np.concatenate((s1,s2),axis=0)
+    np.random.shuffle(sim)
+    return sim
+
+  def _format_th_params(self,threshold,exs_prob):
+    # format input into valid model thresholds and exceedance probabilities
+    # returns conssitent threshold and exceedance probabilities
+    
+    if exs_prob is None and threshold is None:
+      exs_prob = 1-self.cdf(self.u)
+      threshold = self._from_gumbel((self.alpha*np.log(2) - np.log(-np.log(1-exs_prob))) * np.ones((1,2))).reshape((2,))
+      print(&#34;Using marginal thresholds as bivariate model threshold&#34;)
+    elif exs_prob is not None:
+      if exs_prob &gt; 1-self.cdf(self.u):
+        print(&#34;exs_prob too low. Using margin thresholds as joint threshold value&#34;)
+        exs_prob = 1-self.cdf(self.u)
+      threshold = self._from_gumbel((self.alpha*np.log(2) - np.log(-np.log(1-exs_prob))) * np.ones((1,2))).reshape((2,))
+    else:
+      if np.any(threshold &lt; self.u):
+        print(&#34;thresholds too low. Using margin thresholds as joint threshold value&#34;)
+        for i in range(self.d):
+          threshold[i] = max(self.u[i],threshold[i])
+      exs_prob = 1-self.cdf(threshold)
+
+    return np.array(threshold), exs_prob</code></pre>
+</details>
+</section>
+<section>
+</section>
+<section>
+</section>
+<section>
+</section>
+<section>
+<h2 class="section-title" id="header-classes">Classes</h2>
+<dl>
+<dt id="psrmodels.time_collapsed.BivariateLogisticNetDemand.BivariateLogisticNetDemand"><code class="flex name class">
+<span>class <span class="ident">BivariateLogisticNetDemand</span></span>
+<span>(</span><span>X, p, alpha, shapes, scales)</span>
+</code></dt>
+<dd>
+<div class="desc"><p>Semi-parametric bivariate net demand model with a logistic extreme value model at the tails.
+It does not performs estimation, instead receiving the estimated parameters as input</p>
+<p><strong>Parameters</strong>:</p>
+<p><code>X</code> (<code>numpy.ndarray</code>): net demand data matrix with two columns</p>
+<p><code>p</code> (<code>float</code>): threshold probability for each of the components</p>
+<p><code>alpha</code> (<code>float</code>): estimated dependence parameter for logistic extreme value model</p>
+<p><code>shapes</code> (<code>numpy.ndarray</code>): shape estimates for margin GP approximations</p>
+<p><code>scales</code> (<code>numpy.ndarray</code>): scale estimates for margin GP approximation</p></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">class BivariateLogisticNetDemand(object):
+  &#34;&#34;&#34;Semi-parametric bivariate net demand model with a logistic extreme value model at the tails.
+  It does not performs estimation, instead receiving the estimated parameters as input
+  
+  **Parameters**:
+
+  `X` (`numpy.ndarray`): net demand data matrix with two columns
+
+  `p` (`float`): threshold probability for each of the components
+
+  `alpha` (`float`): estimated dependence parameter for logistic extreme value model
+
+  `shapes` (`numpy.ndarray`): shape estimates for margin GP approximations
+
+  `scales` (`numpy.ndarray`): scale estimates for margin GP approximation
+
+  &#34;&#34;&#34;
+  
+  def __init__(self,X,p,alpha,shapes,scales):
+
+    self.n, self.d = X.shape
+    self.X = X.clip(min=0)
+
+    #self.u = np.array(u)
+    #self.p = np.array([np.sum(self.X[:,i] &lt;= self.u[i])/self.n for i in range(self.d)])
+
+    self.p = float(p)
+    self.u = np.quantile(self.X,self.p,axis=0)
+    
+    self.alpha = alpha
+    self.shapes = np.array(shapes)
+    self.scales = np.array(scales)
+    self.endpoints = np.array([self.u[i] - self.scales[i]/self.shapes[i] if shapes[i] &lt; 0 else np.Inf for i in range(self.d)])
+    self.kde = None #kernel density estimates for the marginals (they are used for plotting only)
+
+  def _dy_dx(self,x,i):
+    #derivative of y = -log(-log(F(x))) w.r.t. x
+    # x is a vector
+    # i = component index
+
+    eta = self.shapes[i]
+    sigma = self.scales[i]
+    mu = self.u[i]
+    p = self.p
+    
+    # copied from wolfram alpha as text
+    if x[i] &gt;= mu:
+      if eta != 0:
+        d = -((1 - p)*((eta*(x[i] - mu))/sigma + 1)**(-1/eta - 1))/(sigma*((1 - p)*(1 - ((eta*(x[i] - mu))/sigma + 1)**(-1/eta)) + p)*np.log((1 - p)*(1 - ((eta*(x[i] - mu))/sigma + 1)**(-1/eta)) + p))
+      else:
+        d = -np.exp(mu/sigma)/(((p - 1)*np.exp(mu/sigma) + np.exp(x[i]/sigma))*np.log((p - 1)*np.exp((mu - x[i])/sigma) + 1))
+
+    else:
+      # the derivatives dont exist below the threshold, so they are imputed by a Gaussian KDE
+      if self.kde is None:
+        self.kde = []
+        self.kde_normval = []
+        for j in range(self.d):
+          self.kde.append(gaussian_kde(self.X[:,j]))
+          # record normalizing constant necessary so that the density is continuous
+          kde_cdf = self.kde[j].integrate_box_1d(-np.Inf,self.u[j])
+          self.kde_normval.append(self._dy_dx(self.u,j)/(-(1-p)/(kde_cdf*np.log(kde_cdf))*self.kde[j](self.u[j])[0]))
+          
+      #d = -(1-p)/(self._sp_margin_cdf(x[i],i)*np.log(self._sp_margin_cdf(x[i],i)))*self.kde[i](x[i])[0]*self.kde_normval[i]
+
+      kde_cdf = self.kde[i].integrate_box_1d(-np.Inf,x[i])
+      
+      d = -(1-p)/(kde_cdf*np.log(kde_cdf))*self.kde[i](x[i])[0]*self.kde_normval[i]
+            
+    return d
+  
+  def _margin_tail_cdf(self,x,i):
+    # CDF of GP approximation (no need to weight it by p, that&#39;s done elsewhere)
+    # i = component index
+    if self.shapes[i] != 0:
+      return gp.cdf(x,c=self.shapes[i],loc=self.u[i],scale=self.scales[i])
+    else:
+      return expdist.cdf(x,loc=self.u[i],scale=self.scales[i])
+
+  def _margin_tail_pdf(self,x,i):
+    # density of GP approximation (no need to weight it by p, that&#39;s done elsewhere)
+    # i = component index
+    if self.shapes[i] != 0:
+      return gp.pdf(x,c=self.shapes[i],loc=self.u[i],scale=self.scales[i])
+    else:
+      return expdist.pdf(x,loc=self.u[i],scale=self.scales[i])
+    
+  def _sp_margin_cdf(self,x,i=0):
+    # x is a scalar
+    # semiparametric marginal cdf
+    if x &lt;= self.u[i]:
+      return self._mecdf(x,i=i)
+    else:
+      p = self.p
+      return p + (1-p)*self._margin_tail_cdf(x,i)
+
+  def _sp_margin_pdf(self,x,i=0):
+    # only non-zero above margin threshold
+    if x &lt;= self.u[i]:
+      return 0
+    else:
+      return (1-self.p)*self._margin_tail_pdf(x,i)
+
+  def _jecdf(self,x):
+    # joint empirical cdf
+    return np.sum((self.X[:,0] &lt;= x[0])*(self.X[:,1] &lt;= x[1] ))/self.X.shape[0]
+
+  def _mecdf(self,x,i=0):
+    # marginal empirical cdf
+    return np.sum(self.X[:,i] &lt;= np.array(x))/self.X.shape[0]
+
+  def _to_gumbel(self,x):
+    # transform vector to gumbel marginals componentwise using semiparametric marginal estimates
+    return np.array([-np.log(-np.log(self._sp_margin_cdf(x[i],i=i))) for i in range(self.d)])
+  
+  def _cond_ext_pdf(self,x,i):
+    # conditional extreme value cdf
+    # x = point to evaluate
+    # i = largest component (quantile-wise)
+
+    
+    # transform data to Gumbel margins first
+    y = self._to_gumbel(x)
+    j = 1 if i == 0 else 0 #the not-so-large component
+
+    # integrating the assymptotic density Y_j|Y_i = y_i w.r.t. a std. Gumbel from y[i] to infty
+    # and using the fact that Gumbel ~ exp(1)
+    
+    return gumbel.cdf(y[j],loc=0,scale=1) + np.exp(-y[j]) - np.sum(np.exp(-y/self.alpha))**self.alpha
+
+  def _cond_ext_pdf(self,x,i):
+    # conditional extreme value pdf
+    # x = point to evaluate
+    # i = largest component (quantile-wise)
+
+    # transform data to Gumbel margins first
+    y = self._to_gumbel(x)
+    j = 1 if i == 0 else 0 #the not-so-large component
+
+    # dF/(dx1dx2) = dF/(dy1dy2)*dy1/dx1*dy2/dx2
+
+    # copied from wolfram alpha as plain text
+    dF_dy1dy2 = -((self.alpha - 1)*np.exp(y[i]/self.alpha + y[j]/self.alpha)*(np.exp(-y[i]/self.alpha) + np.exp(-y[j]/self.alpha))**self.alpha)/(self.alpha*(np.exp(y[i]/self.alpha) + np.exp(y[j]/self.alpha))**2)
+
+    dyi_dxi = self._dy_dx(x,i)
+    dyj_dxj = self._dy_dx(x,j)
+
+    return dF_dy1dy2 * dyi_dxi * dyj_dxj
+  
+  def _jtcdf(self,x):
+    # joint tail cdf
+
+    # transform data to Gumbel margins first
+    y = self._to_gumbel(x)
+    return np.exp(-np.sum(np.exp(-1.0/self.alpha*y))**self.alpha)
+
+  def _jtpdf(self,x):
+    # joint tail pdf
+
+    # transform data to Gumbel margins first
+    y = self._to_gumbel(x)
+
+    # both are exceedances so the order doesnt matter
+    i = 0
+    j = 1
+    # dF/(dx1dx2) = dF/(dy1dy2)*dy1/dx1*dy2/dx2
+    dyi_dxi = self._dy_dx(x,i)
+    dyj_dxj = self._dy_dx(x,j)
+    
+    # from wolfram alpha as plain text
+    density = (np.exp(y[i]/self.alpha - (np.exp(-y[i]/self.alpha) + np.exp(-y[j]/self.alpha))**self.alpha + y[j]/self.alpha)*(np.exp(-y[i]/self.alpha) + np.exp(-y[j]/self.alpha))**self.alpha*(-self.alpha + self.alpha*(np.exp(-y[i]/self.alpha) + np.exp(-y[j]/self.alpha))**self.alpha + 1))/(self.alpha*(np.exp(y[i]/self.alpha) + np.exp(y[j]/self.alpha))**2)
+    
+    return density * dyi_dxi * dyj_dxj
+    
+  def cdf(self,x):
+    &#34;&#34;&#34; Get model cumulative density function (CDF)
+    
+    **Parameters**:
+
+    `x` (`numpy.ndarray`): point to evaluate the model&#39;s CDF in
+
+    &#34;&#34;&#34;
+    
+    if np.all(x &gt; self.u):
+      return self._jtcdf(x)
+    
+    elif np.all(x &lt;= self.u):
+      return self._jecdf(x)
+    
+    else:
+      i = int(np.argwhere(x &gt; self.u))
+      return self._cond_ext_pdf(x,i)
+      #return self._jtcdf(x)
+
+  def pdf(self,x):
+    &#34;&#34;&#34; Get model probability density function (PDF)
+    
+    **Parameters**:
+
+    `x` (`numpy.ndarray`): point to evaluate the model&#39;s PDF in
+
+    &#34;&#34;&#34;
+    
+    if np.all(x &lt;= self.u):
+      return 0
+    
+    elif np.all(x &gt;= self.u):
+      return self._jtpdf(x)
+    
+    else:
+      i = int(np.argwhere(x &gt; self.u))
+      return self._cond_ext_pdf(x,i)
+      #return self._jtpdf(x)
+      
+
+  def raster(self,nx=100,ny=100,cdf=True,llim=None,ulim=None,beta=0.995):
+    &#34;&#34;&#34; Get model PDF or CDF contour lines raster, in the scale of the original data.
+    
+    **Parameters**:
+
+    `nx` (`int`): number of grid points in the x axis
+
+    `ny` (`int`): number of grid points in the y axis
+
+    `cdf` (`bool`): Plot CDF. If False, plot PDF
+
+    `llim` (`float`): lower plot threshold. If None, taken as minus infinity
+
+    `ulim` (`float`): upper plot threshold. If None, taken as infinity
+
+    `beta` (`float`): If estimated enpoint of original data is infinite, use a quantile of beta as upper plot endpoint
+
+    &#34;&#34;&#34;
+
+    
+    def compute_upper_limits(beta=beta):
+      # compute beta quantile as plot limits
+      lims = []
+      gamma = np.exp(2**(self.alpha)*np.log(beta))
+      for i in range(self.d):
+        p = self.p
+        if self.shapes[i] &lt; 0:
+          val = self.endpoints[i]
+        elif self.shapes[i] &gt; 0:
+          val = self.u[i] + self.scales[i]*(((1-(gamma-p)/(1-p))**(-self.shapes[i])-1)/self.shapes[i])
+        else:
+          val = 1.5 * (self.u[i] + self.scales[i]*(-np.log(1-(gamma-p)/(1-p))))
+
+        lims.append(val)
+
+      return lims
+    
+    # nx, ny = number of grid points in each axis
+    # llim = lower plot limits
+    # ulim upper plot limits
+    
+    # bound plot
+    
+    llim = [-np.Inf for i in range(self.d)] if llim is None else llim
+
+    ulim = [np.Inf for i in range(self.d)] if ulim is None else ulim
+
+    llim = [max(llim[i],min(self.X[:,i])) for i in range(self.d)]
+
+    ubounds = compute_upper_limits()
+
+    ulim = [min(ulim[i],ubounds[i]) for i in range(self.d)]
+
+    #print(llim)
+    #print(ulim)
+    
+    x = np.linspace(llim[0],ulim[0],nx)
+    y = np.flip(np.linspace(llim[1],ulim[1],ny))
+
+    vals = []
+    
+    for x_ in x:
+      for y_ in y:
+        val = self.cdf((x_,y_)) if cdf else self.pdf((x_,y_))
+        vals.append(val)
+
+    z = np.array(vals).reshape((int(ny),int(nx)),order=&#34;F&#34;)
+    
+    return {&#34;x&#34;:x,&#34;y&#34;:y,&#34;z&#34;:np.nan_to_num(z)}
+
+  def margin_quantiles(self,probs):
+    &#34;&#34;&#34;get quantiles of semiparametric CDFs, componentwise
+    
+    **Parameters**:
+
+    `probs` (`iterable`): probabilities for which quantiles will be evaluated at each component
+
+    &#34;&#34;&#34;
+
+    x = []
+    for i in range(self.d):
+      p = self.p
+      if probs[i] &lt;= p:
+        val = np.quantile(X[:,i],probs[i])
+      elif self.shapes[i] != 0:
+        val = self.u[i] + self.scales[i]*(((1-(probs[i]-p)/(1-p))**(-self.shapes[i])-1)/self.shapes[i])
+      else:
+        val = self.u[i] + self.scales[i]*(-np.log(1-(probs[i]-p)/(1-p)))
+
+      x.append(val)
+
+    return np.array(x)
+      
+  def _from_gumbel(self,m):
+    # transform gumbel simulated values to original data distribution
+
+    def original_scale(v,i):
+      # v = vector of Gumbel quantiles
+      # i = component index
+      p = self.p
+      index = v &gt; p
+      above = v[index]
+      below = v[np.logical_not(index)]
+
+      if self.shapes[i] != 0:
+        above = self.u[i] + self.scales[i]*(((1-(above-p)/(1-p))**(-self.shapes[i])-1)/self.shapes[i])
+      else:
+        above = self.u[i] + self.scales[i]*(-np.log(1-(above-p)/(1-p)))
+
+      
+      below = np.quantile(self.X[:,i],below)
+
+      v[index] = above
+      v[np.logical_not(index)] = below
+
+      return v
+
+    m_= np.empty(shape=m.shape)
+    
+    for i in range(self.d):
+      gamma = np.exp(-np.exp(-m[:,i]))
+      m_[:,i] = original_scale(gamma,i)
+
+    return m_
+
+  def _simulate_exceedances(self,n,threshold=None,exs_prob=None,seed=None,asymptotic=False):
+    # simulate from extreme value model at the tails
+    if seed is not None:
+      np.random.seed(int(seed))
+
+    n = int(n)
+
+    #determine threshold values and probabilities
+    threshold, exs_prob = self._format_th_params(threshold,exs_prob)
+
+    gumbel_threshold = self._to_gumbel(threshold)
+    
+    maximums = -np.log(-np.log(exs_prob*np.random.uniform(size=n)+1-exs_prob)) + self.alpha*np.log(2)
+    comp = np.random.binomial(1,0.5,n)
+
+    if asymptotic:
+      other = np.array([self._sample_cond_ext_dist(np.Inf,uq=self._joint_cond_ext_pdf(0,np.Inf)) for x in maximums]).reshape(n,1)
+    else:
+      other = np.array([self._sample_cond_ext_dist(x,uq=self._joint_cond_ext_pdf(0,x)) for x in maximums]).reshape(n,1)
+
+    xs0 = maximums[comp==0].reshape(-1,1)
+    xs1 = maximums[comp==1].reshape(-1,1)
+
+    other0 = other[comp==0] + xs0
+    other1 = other[comp==1] + xs1
+
+    mat0 = np.concatenate((xs0,other0),axis=1)
+    mat1 = np.concatenate((other1,xs1),axis=1)
+   
+    return self._from_gumbel(np.concatenate((mat0,mat1),axis=0))
+    
+
+  def _joint_cond_ext_pdf(self,z,y):
+    return (1+np.exp(-z/self.alpha))**(self.alpha-1)*np.exp(np.exp(-y)*(1-(1+np.exp(-z/self.alpha))**self.alpha))
+  
+  def _sample_cond_ext_dist(self,exs,lq=0,uq=1):
+    # sample conditional extremes distribution given an exceedance in the other component
+    gamma = np.exp(-exs)
+    beta = np.log(np.random.uniform(size=1,low=lq,high=uq)) - gamma
+    eta = beta/(self.alpha-1) - 1.0/self.alpha*lambertw(-gamma*self.alpha/(self.alpha-1)*np.exp(self.alpha*beta/(self.alpha-1))).real
+    z = -self.alpha*np.log(np.exp(eta)-1)
+    return z
+
+  def _simulate_empirical(self,n,exs_prob=None,threshold=None,seed=None):
+    # get uniform sample from observations below thresholds
+    if seed is not None:
+      np.random.seed(int(seed))
+      
+    n = int(n)
+
+    #determine threshold values and probabilities
+    threshold, exs_prob = self._format_th_params(threshold,exs_prob)
+      
+    #threshold = self.u if threshold is None else threshold
+    # matrix with observations below the thresholds
+    th = np.array(threshold)
+    fX = np.array([row for row in self.X if np.all(row &lt;= th)])
+    
+    rand_i = np.random.randint(low=0,high=fX.shape[0],size=n)
+    return fX[rand_i,:]
+
+    
+  def simulate(self,n=1000,exs_prob=None,threshold=None,seed=1):
+    &#34;&#34;&#34;simulate net demand observations
+    
+    **Parameters**:
+
+    `n` (`int`): number of samples
+
+    `exs_prob` (`float`): Exceedance probability that characterises extreme value model region (assuming region bounds are equal in all components)
+
+    `threshold` (`float`): threshold after which extreme value model region starts (in Gumbel scale, applied symmetrically to components). If exs_prob and threshold are specified, exs_prob takes precedence
+
+    `seed` (`int`): random seed
+
+    &#34;&#34;&#34;
+    np.random.seed(seed)
+    n = int(n)
+
+    #determine threshold values and probabilities
+    threshold, exs_prob = self._format_th_params(threshold,exs_prob)
+      
+    # get margin thresholds corresponding to joint excess probability given by exs_prob, assuming both threshold values are equal
+    
+    
+    # b[i] == 1 &lt;==&gt; i-th simulation comes from empirical portion of CDF
+    empirical = np.random.binomial(1,1-exs_prob,n)
+
+    n_empirical = np.sum(empirical)
+
+    n_tails = n - n_empirical
+    
+    #s1 = self._simulate_exceedances(n_cond,g_th,seed)
+    s1 = self._simulate_empirical(n_empirical,threshold = threshold)
+    s2 = self._simulate_exceedances(n_tails,threshold = threshold)
+    
+    print(&#34;{n} samples from tail&#34;.format(n=n_tails))
+    sim = np.concatenate((s1,s2),axis=0)
+    np.random.shuffle(sim)
+    return sim
+
+  def _format_th_params(self,threshold,exs_prob):
+    # format input into valid model thresholds and exceedance probabilities
+    # returns conssitent threshold and exceedance probabilities
+    
+    if exs_prob is None and threshold is None:
+      exs_prob = 1-self.cdf(self.u)
+      threshold = self._from_gumbel((self.alpha*np.log(2) - np.log(-np.log(1-exs_prob))) * np.ones((1,2))).reshape((2,))
+      print(&#34;Using marginal thresholds as bivariate model threshold&#34;)
+    elif exs_prob is not None:
+      if exs_prob &gt; 1-self.cdf(self.u):
+        print(&#34;exs_prob too low. Using margin thresholds as joint threshold value&#34;)
+        exs_prob = 1-self.cdf(self.u)
+      threshold = self._from_gumbel((self.alpha*np.log(2) - np.log(-np.log(1-exs_prob))) * np.ones((1,2))).reshape((2,))
+    else:
+      if np.any(threshold &lt; self.u):
+        print(&#34;thresholds too low. Using margin thresholds as joint threshold value&#34;)
+        for i in range(self.d):
+          threshold[i] = max(self.u[i],threshold[i])
+      exs_prob = 1-self.cdf(threshold)
+
+    return np.array(threshold), exs_prob</code></pre>
+</details>
+<h3>Methods</h3>
+<dl>
+<dt id="psrmodels.time_collapsed.BivariateLogisticNetDemand.BivariateLogisticNetDemand.cdf"><code class="name flex">
+<span>def <span class="ident">cdf</span></span>(<span>self, x)</span>
+</code></dt>
+<dd>
+<div class="desc"><p>Get model cumulative density function (CDF)</p>
+<p><strong>Parameters</strong>:</p>
+<p><code>x</code> (<code>numpy.ndarray</code>): point to evaluate the model's CDF in</p></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def cdf(self,x):
+  &#34;&#34;&#34; Get model cumulative density function (CDF)
+  
+  **Parameters**:
+
+  `x` (`numpy.ndarray`): point to evaluate the model&#39;s CDF in
+
+  &#34;&#34;&#34;
+  
+  if np.all(x &gt; self.u):
+    return self._jtcdf(x)
+  
+  elif np.all(x &lt;= self.u):
+    return self._jecdf(x)
+  
+  else:
+    i = int(np.argwhere(x &gt; self.u))
+    return self._cond_ext_pdf(x,i)</code></pre>
+</details>
+</dd>
+<dt id="psrmodels.time_collapsed.BivariateLogisticNetDemand.BivariateLogisticNetDemand.margin_quantiles"><code class="name flex">
+<span>def <span class="ident">margin_quantiles</span></span>(<span>self, probs)</span>
+</code></dt>
+<dd>
+<div class="desc"><p>get quantiles of semiparametric CDFs, componentwise</p>
+<p><strong>Parameters</strong>:</p>
+<p><code>probs</code> (<code>iterable</code>): probabilities for which quantiles will be evaluated at each component</p></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def margin_quantiles(self,probs):
+  &#34;&#34;&#34;get quantiles of semiparametric CDFs, componentwise
+  
+  **Parameters**:
+
+  `probs` (`iterable`): probabilities for which quantiles will be evaluated at each component
+
+  &#34;&#34;&#34;
+
+  x = []
+  for i in range(self.d):
+    p = self.p
+    if probs[i] &lt;= p:
+      val = np.quantile(X[:,i],probs[i])
+    elif self.shapes[i] != 0:
+      val = self.u[i] + self.scales[i]*(((1-(probs[i]-p)/(1-p))**(-self.shapes[i])-1)/self.shapes[i])
+    else:
+      val = self.u[i] + self.scales[i]*(-np.log(1-(probs[i]-p)/(1-p)))
+
+    x.append(val)
+
+  return np.array(x)</code></pre>
+</details>
+</dd>
+<dt id="psrmodels.time_collapsed.BivariateLogisticNetDemand.BivariateLogisticNetDemand.pdf"><code class="name flex">
+<span>def <span class="ident">pdf</span></span>(<span>self, x)</span>
+</code></dt>
+<dd>
+<div class="desc"><p>Get model probability density function (PDF)</p>
+<p><strong>Parameters</strong>:</p>
+<p><code>x</code> (<code>numpy.ndarray</code>): point to evaluate the model's PDF in</p></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def pdf(self,x):
+  &#34;&#34;&#34; Get model probability density function (PDF)
+  
+  **Parameters**:
+
+  `x` (`numpy.ndarray`): point to evaluate the model&#39;s PDF in
+
+  &#34;&#34;&#34;
+  
+  if np.all(x &lt;= self.u):
+    return 0
+  
+  elif np.all(x &gt;= self.u):
+    return self._jtpdf(x)
+  
+  else:
+    i = int(np.argwhere(x &gt; self.u))
+    return self._cond_ext_pdf(x,i)</code></pre>
+</details>
+</dd>
+<dt id="psrmodels.time_collapsed.BivariateLogisticNetDemand.BivariateLogisticNetDemand.raster"><code class="name flex">
+<span>def <span class="ident">raster</span></span>(<span>self, nx=100, ny=100, cdf=True, llim=None, ulim=None, beta=0.995)</span>
+</code></dt>
+<dd>
+<div class="desc"><p>Get model PDF or CDF contour lines raster, in the scale of the original data.</p>
+<p><strong>Parameters</strong>:</p>
+<p><code>nx</code> (<code>int</code>): number of grid points in the x axis</p>
+<p><code>ny</code> (<code>int</code>): number of grid points in the y axis</p>
+<p><code>cdf</code> (<code>bool</code>): Plot CDF. If False, plot PDF</p>
+<p><code>llim</code> (<code>float</code>): lower plot threshold. If None, taken as minus infinity</p>
+<p><code>ulim</code> (<code>float</code>): upper plot threshold. If None, taken as infinity</p>
+<p><code>beta</code> (<code>float</code>): If estimated enpoint of original data is infinite, use a quantile of beta as upper plot endpoint</p></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def raster(self,nx=100,ny=100,cdf=True,llim=None,ulim=None,beta=0.995):
+  &#34;&#34;&#34; Get model PDF or CDF contour lines raster, in the scale of the original data.
+  
+  **Parameters**:
+
+  `nx` (`int`): number of grid points in the x axis
+
+  `ny` (`int`): number of grid points in the y axis
+
+  `cdf` (`bool`): Plot CDF. If False, plot PDF
+
+  `llim` (`float`): lower plot threshold. If None, taken as minus infinity
+
+  `ulim` (`float`): upper plot threshold. If None, taken as infinity
+
+  `beta` (`float`): If estimated enpoint of original data is infinite, use a quantile of beta as upper plot endpoint
+
+  &#34;&#34;&#34;
+
+  
+  def compute_upper_limits(beta=beta):
+    # compute beta quantile as plot limits
+    lims = []
+    gamma = np.exp(2**(self.alpha)*np.log(beta))
+    for i in range(self.d):
+      p = self.p
+      if self.shapes[i] &lt; 0:
+        val = self.endpoints[i]
+      elif self.shapes[i] &gt; 0:
+        val = self.u[i] + self.scales[i]*(((1-(gamma-p)/(1-p))**(-self.shapes[i])-1)/self.shapes[i])
+      else:
+        val = 1.5 * (self.u[i] + self.scales[i]*(-np.log(1-(gamma-p)/(1-p))))
+
+      lims.append(val)
+
+    return lims
+  
+  # nx, ny = number of grid points in each axis
+  # llim = lower plot limits
+  # ulim upper plot limits
+  
+  # bound plot
+  
+  llim = [-np.Inf for i in range(self.d)] if llim is None else llim
+
+  ulim = [np.Inf for i in range(self.d)] if ulim is None else ulim
+
+  llim = [max(llim[i],min(self.X[:,i])) for i in range(self.d)]
+
+  ubounds = compute_upper_limits()
+
+  ulim = [min(ulim[i],ubounds[i]) for i in range(self.d)]
+
+  #print(llim)
+  #print(ulim)
+  
+  x = np.linspace(llim[0],ulim[0],nx)
+  y = np.flip(np.linspace(llim[1],ulim[1],ny))
+
+  vals = []
+  
+  for x_ in x:
+    for y_ in y:
+      val = self.cdf((x_,y_)) if cdf else self.pdf((x_,y_))
+      vals.append(val)
+
+  z = np.array(vals).reshape((int(ny),int(nx)),order=&#34;F&#34;)
+  
+  return {&#34;x&#34;:x,&#34;y&#34;:y,&#34;z&#34;:np.nan_to_num(z)}</code></pre>
+</details>
+</dd>
+<dt id="psrmodels.time_collapsed.BivariateLogisticNetDemand.BivariateLogisticNetDemand.simulate"><code class="name flex">
+<span>def <span class="ident">simulate</span></span>(<span>self, n=1000, exs_prob=None, threshold=None, seed=1)</span>
+</code></dt>
+<dd>
+<div class="desc"><p>simulate net demand observations</p>
+<p><strong>Parameters</strong>:</p>
+<p><code>n</code> (<code>int</code>): number of samples</p>
+<p><code>exs_prob</code> (<code>float</code>): Exceedance probability that characterises extreme value model region (assuming region bounds are equal in all components)</p>
+<p><code>threshold</code> (<code>float</code>): threshold after which extreme value model region starts (in Gumbel scale, applied symmetrically to components). If exs_prob and threshold are specified, exs_prob takes precedence</p>
+<p><code>seed</code> (<code>int</code>): random seed</p></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def simulate(self,n=1000,exs_prob=None,threshold=None,seed=1):
+  &#34;&#34;&#34;simulate net demand observations
+  
+  **Parameters**:
+
+  `n` (`int`): number of samples
+
+  `exs_prob` (`float`): Exceedance probability that characterises extreme value model region (assuming region bounds are equal in all components)
+
+  `threshold` (`float`): threshold after which extreme value model region starts (in Gumbel scale, applied symmetrically to components). If exs_prob and threshold are specified, exs_prob takes precedence
+
+  `seed` (`int`): random seed
+
+  &#34;&#34;&#34;
+  np.random.seed(seed)
+  n = int(n)
+
+  #determine threshold values and probabilities
+  threshold, exs_prob = self._format_th_params(threshold,exs_prob)
+    
+  # get margin thresholds corresponding to joint excess probability given by exs_prob, assuming both threshold values are equal
+  
+  
+  # b[i] == 1 &lt;==&gt; i-th simulation comes from empirical portion of CDF
+  empirical = np.random.binomial(1,1-exs_prob,n)
+
+  n_empirical = np.sum(empirical)
+
+  n_tails = n - n_empirical
+  
+  #s1 = self._simulate_exceedances(n_cond,g_th,seed)
+  s1 = self._simulate_empirical(n_empirical,threshold = threshold)
+  s2 = self._simulate_exceedances(n_tails,threshold = threshold)
+  
+  print(&#34;{n} samples from tail&#34;.format(n=n_tails))
+  sim = np.concatenate((s1,s2),axis=0)
+  np.random.shuffle(sim)
+  return sim</code></pre>
+</details>
+</dd>
+</dl>
+</dd>
+</dl>
+</section>
+</article>
+<nav id="sidebar">
+<h1>Index</h1>
+<div class="toc">
+<ul></ul>
+</div>
+<ul id="index">
+<li><h3>Super-module</h3>
+<ul>
+<li><code><a title="psrmodels.time_collapsed" href="index.html">psrmodels.time_collapsed</a></code></li>
+</ul>
+</li>
+<li><h3><a href="#header-classes">Classes</a></h3>
+<ul>
+<li>
+<h4><code><a title="psrmodels.time_collapsed.BivariateLogisticNetDemand.BivariateLogisticNetDemand" href="#psrmodels.time_collapsed.BivariateLogisticNetDemand.BivariateLogisticNetDemand">BivariateLogisticNetDemand</a></code></h4>
+<ul class="">
+<li><code><a title="psrmodels.time_collapsed.BivariateLogisticNetDemand.BivariateLogisticNetDemand.cdf" href="#psrmodels.time_collapsed.BivariateLogisticNetDemand.BivariateLogisticNetDemand.cdf">cdf</a></code></li>
+<li><code><a title="psrmodels.time_collapsed.BivariateLogisticNetDemand.BivariateLogisticNetDemand.margin_quantiles" href="#psrmodels.time_collapsed.BivariateLogisticNetDemand.BivariateLogisticNetDemand.margin_quantiles">margin_quantiles</a></code></li>
+<li><code><a title="psrmodels.time_collapsed.BivariateLogisticNetDemand.BivariateLogisticNetDemand.pdf" href="#psrmodels.time_collapsed.BivariateLogisticNetDemand.BivariateLogisticNetDemand.pdf">pdf</a></code></li>
+<li><code><a title="psrmodels.time_collapsed.BivariateLogisticNetDemand.BivariateLogisticNetDemand.raster" href="#psrmodels.time_collapsed.BivariateLogisticNetDemand.BivariateLogisticNetDemand.raster">raster</a></code></li>
+<li><code><a title="psrmodels.time_collapsed.BivariateLogisticNetDemand.BivariateLogisticNetDemand.simulate" href="#psrmodels.time_collapsed.BivariateLogisticNetDemand.BivariateLogisticNetDemand.simulate">simulate</a></code></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</nav>
+</main>
+<footer id="footer">
+<p>Generated by <a href="https://pdoc3.github.io/pdoc"><cite>pdoc</cite> 0.9.1</a>.</p>
+</footer>
+</body>
+</html>
