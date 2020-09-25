@@ -55,6 +55,6 @@ setuptools.setup(
 
      #ext_modules = [mcgensim_module]
 
-     download_url = 'https://github.com/nestorSag/rlmodels/archive/1.0.0.tar.gz'
+     download_url = 'https://github.com/nestorSag/psrmodels/archive/1.0.1.tar.gz'
 
  )
