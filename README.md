@@ -1,6 +1,6 @@
 # psrmodels: a package for adequacy of supply analysis in power systems
 
-This packages implements some useful functions to do adequacy of supply analysis in single area and 2-area power systems. The focus is on time-collapsed models, but some functionality is also implemented for time-sequential analysis. Some semi-parametric extreme value models are also implemented.
+This packages implements some useful functions to do adequacy of supply analysis in single area and 2-area power systems. The focus is on time-collapsed models, but efficient simulation functionality is also implemented for time-sequential analysis. In the case of time-collapse models, some semi-parametric extreme value models are available for analysing both net demand (demand minus renewables) and power margins.
 
 ## Installation
 
