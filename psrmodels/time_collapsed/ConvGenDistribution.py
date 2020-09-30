@@ -28,6 +28,10 @@ class ConvGenDistribution(object):
     capacities = np.array(data["Capacity"])
     availabilities = np.array(data["Availability"])
 
+    if np.any(availabilities < 0) or np.any(availabilities > 1):
+      raise Exception("Availabilities bust between 0 and 1")
+      
+    self.original_data = data
     self.original_capacities = capacities #this is stored to avoid rounding error mounting up after rescaling
     self.rescaling_factor = 1
     self._setup(capacities,availabilities,bin_size)

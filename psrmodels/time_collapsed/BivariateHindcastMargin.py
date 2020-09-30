@@ -9,6 +9,8 @@ from .UnivariateHindcastMargin import *
 
 from _c_ext_bivarmargins import ffi, lib as C_CALL
 
+from deprecated import deprecated
+
 class BivariateHindcastMargin(object):
   """Main class for risk calculations in a time-collapsed 2-area hindcast model.
   It receives demand and wind generation data as opposed to just net demand data, to make it posible to calculate
@@ -28,7 +30,7 @@ class BivariateHindcastMargin(object):
   def __init__(self,demand,renewables,gen_dists,**kwargs):
 
     self.net_demand = np.ascontiguousarray((demand - renewables),dtype=np.int64).clip(min=0) #no negative net demand
-    self.wind = renewables
+    self.renewables = renewables
     self.demand = np.ascontiguousarray(demand,dtype=np.int64)
     self.gen_dists = self._parse_gendists(gen_dists,**kwargs)
     self.n = self.net_demand.shape[0]
@@ -83,6 +85,8 @@ class BivariateHindcastMargin(object):
                       np.int64(origin[0]),
                       np.int64(origin[1]),
                       np.int64(length),
+                      np.int64(bigen.X1.min),
+                      np.int64(bigen.X2.min),
                       np.int64(bigen.X1.max),
                       np.int64(bigen.X2.max),
                       ffi.cast("double *",bigen.X1.cdf_vals.ctypes.data),
@@ -397,7 +401,7 @@ class BivariateHindcastMargin(object):
 
     """
     if c > 0 or get_pointwise_risk:
-      self._check_null_fc()
+      #self._check_null_fc()
       X1 = self.gen_dists[0]
       X2 = self.gen_dists[1]
       n = self.n
@@ -465,7 +469,89 @@ class BivariateHindcastMargin(object):
 
     return self.net_demand[np.random.choice(range(self.n),size=n),:]
 
-  def efc(self,c,policy,metric="LOLE",axis=0,**kwargs):
+  @deprecated(version='1.1.5', reason="Use itc_efc or convgen_ifc methods instead.")
+  def efc(self,**kwargs):
+    return self.itc_efc(**kwargs)
+
+  def convgen_efc(self, cap, avb, add_to_axis, c,policy,metric="LOLE",axis=0,**kwargs):
+    """Returns equivalent firm capacity for area `axis` of installing an additional generator in any of the two areas with given capacity and availability probability
+
+    **Parameters**:
+    
+    `cap` (`int`): maximum available capacity of new generator
+
+    `avb` (`float`): availability probability for the new generator
+
+    `add_to_axis` (`int`): Axis to which the new generator will be added
+
+    `c` (`int`): interconnection capacity
+
+    `policy` (`str`): Either 'share' or 'veto'
+
+    `axis` (`int`): area for which this will be calculated
+
+    `metric` (`string`): name of the instance's method that will be used to measure risk. Only 'LOLE' and 'EEU' are supported
+
+    """
+    if not (axis in [0,1]):
+      raise Exception("axis value must be 0 or 1")
+
+    if not (add_to_axis in [0,1]):
+      raise Exception("add_to_axis value must be 0 or 1")
+
+    if avb > 1 or abv < 0:
+      raise Exception("Availability value must be between 0 and 1")
+
+    other = 1 - add_to_axis
+    gen_data = self.gen_dists[add_to_axis].original_data
+
+    # create augmented conv gen distribution
+    new_row = pd.Series([cap,avb],index=["Capacity","Availability"])
+    augmented_data = gen_data.append(new_row,ignore_index=True)
+    augmented_gen_dist = ConvGenDistribution(augmented_data)
+
+    # create augmented conv gen bivariate distribution and get risk metric in agumented system
+    new_bivariate_dist = [0,1] #place holder values
+    new_bivariate_dist[add_to_axis] = augmented_gen_dist
+    new_bivariate_dist[other] = self.gen_dists[other]
+    new_margin_dist = BivariateHindcastMargin(self.demand,self.renewables,new_bivariate_dist)
+    new_metric_func = getattr(new_margin_dist,metric)
+    new_metric_val = new_metric_func(c=c,policy=policy,axis=axis)
+
+    ### take original system and add firm capacity until we get new_metric_val
+    # define bisection algorithm's bounds
+    if cap >= 0:
+      leftmost = 0
+      rightmost = cap
+    else:
+      rightmost = 0
+      leftmost = cap
+
+    # clone object to prevent any side effects
+    original_bivariate_dist = [0,1]
+    original_bivariate_dist = [ConvGenDistribution(self.gen_dists[area].original_data) for area in range(2)]
+    
+    # define objective for bisection algorithm
+    def find_efc(x):
+      # add firm capacity
+      original_bivariate_dist[add_to_axis] += x
+      # create bivariate margin distribution object
+      original_dist = BivariateHindcastMargin(self.demand,self.renewables,original_bivariate_dist)
+      original_metric_func = getattr(original_dist,metric)
+      original_metric_val = original_metric_func(c=c,policy=policy,axis=axis)
+
+      # reset firm capacity to 0
+      original_bivariate_dist[add_to_axis] += (-original_bivariate_dist[add_to_axis].fc)
+      return original_metric_val - new_metric_val
+
+    efc, res = bisect(f=find_efc,a=leftmost,b=rightmost,full_output=True)
+    if not res.converged:
+      print("Warning: EFC estimator did not converge.")
+    #print("efc:{efc}".format(efc=efc))
+    return efc
+
+
+  def itc_efc(self,c,policy,metric="LOLE",axis=0,**kwargs):
     """Returns equivalent firm capacity of interconnector in one area
 
     **Parameters**:
@@ -538,6 +624,8 @@ class BivariateHindcastMargin(object):
                         np.int64(ulc1),
                         np.int64(ulc2),
                         np.int64(c),
+                        np.int64(X.X1.min),
+                        np.int64(X.X2.min),
                         np.int64(X.X1.max),
                         np.int64(X.X2.max),
                         ffi.cast("double *",X.X1.cdf_vals.ctypes.data),
@@ -570,6 +658,8 @@ class BivariateHindcastMargin(object):
                     np.int64(v1),
                     np.int64(v2),
                     np.int64(c),
+                    np.int64(FX1.min),
+                    np.int64(FX2.min),
                     np.int64(FX1.max),
                     np.int64(FX2.max),
                     ffi.cast("double *",FX1.cdf_vals.ctypes.data),
@@ -597,6 +687,8 @@ class BivariateHindcastMargin(object):
                     np.int64(v1),
                     np.int64(v2),
                     np.int64(c),
+                    np.int64(FX1.min),
+                    np.int64(FX2.min),
                     np.int64(FX1.max),
                     np.int64(FX2.max),
                     ffi.cast("double *",FX1.cdf_vals.ctypes.data),
@@ -681,6 +773,8 @@ class BivariateHindcastMargin(object):
       C_CALL.region_simulation(
         np.int64(n),
         ffi.cast("long *",simulated.ctypes.data),
+        np.int64(X.X1.min),
+        np.int64(X.X2.min),
         np.int64(X.X1.max),
         np.int64(X.X2.max),
         ffi.cast("double *",X.X1.cdf_vals.ctypes.data),
@@ -762,6 +856,8 @@ class BivariateHindcastMargin(object):
       C_CALL.conditioned_simulation(
           np.int64(n),
           ffi.cast("long *",simulated.ctypes.data),
+          np.int64(X.X1.min),
+          np.int64(X.X2.min),
           np.int64(X.X1.max),
           np.int64(X.X2.max),
           ffi.cast("double *",X.X1.cdf_vals.ctypes.data),
@@ -798,7 +894,7 @@ class BivariateHindcastMargin(object):
 
     m = np.clip(m,a_min=-self.MARGIN_BOUND,a_max=self.MARGIN_BOUND)
     m1, m2 = m
-    self._check_null_fc()
+    #self._check_null_fc()
 
     X1 = self.gen_dists[0]
     X2 = self.gen_dists[1]
@@ -821,6 +917,8 @@ class BivariateHindcastMargin(object):
       d1, d2 = self.demand[i,:]
 
       point_cdf = C_CALL.get_cond_cdf(
+                      np.int64(X.X1.min),
+                      np.int64(X.X2.min),
                       np.int64(X.X1.max),
                       np.int64(X.X2.max),
                       ffi.cast("double *",X.X1.cdf_vals.ctypes.data),

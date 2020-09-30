@@ -26,6 +26,7 @@ setuptools.setup(
      setup_requires = ['cffi>=1.0.0'],
 
      install_requires=[
+        'deprecated',
         'numpy',
         'scipy',
         'pandas',

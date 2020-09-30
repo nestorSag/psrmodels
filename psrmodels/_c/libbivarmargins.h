@@ -11,6 +11,8 @@ long min(long num1, long num2);
  * @param origin_x x coordinate of lower left corner
  * @param origin_y y coordinate of lower left corner
  * @param triangle_length of cathethuses
+ * @param min_gen1 minimum available generation in area 1
+ * @param min_gen2 minimum available generation in area 2
  * @param max_gen1 maximum available generation in area 1
  * @param max_gen2 maximum available generation in area 2
  * @param gen1_cdf_array array of CDF values for area 1 generation
@@ -21,6 +23,8 @@ double triangle_prob(
 	long origin_x,
 	long origin_y,
 	long triangle_length,
+	long min_gen1,
+	long min_gen2,
 	long max_gen1,
 	long max_gen2,
 	double* gen1_cdf_array,
@@ -31,6 +35,8 @@ double triangle_prob(
  *
  * @param x1 x coordinate
  * @param x2 y coordinate
+ * @param min_gen1 minimum available generation in area 1
+ * @param min_gen2 minimum available generation in area 2
  * @param max_gen1 maximum available generation in area 1
  * @param max_gen2 maximum available generation in area 2
  * @param gen1_cdf_array array of CDF values for area 1 generation
@@ -40,6 +46,8 @@ double triangle_prob(
 double x1_stripe_pdf(
 	long x1,
 	long x2,
+	long min_gen1,
+	long min_gen2,
 	long max_gen1,
 	long max_gen2,
 	double* gen1_cdf_array,
@@ -53,6 +61,8 @@ double x1_stripe_pdf(
  * @param v1 net demand in area 1
  * @param v2 net demand in area 2
  * @param c interconnector capacity
+ * @param min_gen1 minimum available generation in area 1
+ * @param min_gen2 minimum available generation in area 2
  * @param max_gen1 maximum available generation in area 1
  * @param max_gen2 maximum available generation in area 2
  * @param gen1_cdf_array array of CDF values for area 1 generation
@@ -65,6 +75,8 @@ double cond_epu_share(
 	long v1,
 	long v2,
 	long c,
+	long min_gen1,
+	long min_gen2,
 	long max_gen1,
 	long max_gen2,
 	double* gen1_cdf_array,
@@ -77,6 +89,8 @@ double cond_epu_share(
  * @param v1 net demand in area 1
  * @param v2 net demand in area 2
  * @param c interconnector capacity
+ * @param min_gen1 minimum available generation in area 1
+ * @param min_gen2 minimum available generation in area 2
  * @param max_gen1 maximum available generation in area 1
  * @param max_gen2 maximum available generation in area 2
  * @param gen1_cdf_array array of CDF values for area 1 generation
@@ -88,6 +102,8 @@ double cond_epu_veto(
 	long v1,
 	long v2,
 	long c,
+	long min_gen1,
+	long min_gen2,
 	long max_gen1,
 	long max_gen2,
 	double* gen1_cdf_array,
@@ -99,15 +115,19 @@ double cond_epu_veto(
  *
  * @param x1 conventional generation in area 1
  * @param x2 conventional generation in area 1
- * @param max_gen1 maximum generation in area 1
- * @param max_gen2 maximum generation in area 2
-  * @param gen1_cdf_array array of CDF values for generation in area 1
+ * @param min_gen1 minimum available generation in area 1
+ * @param min_gen2 minimum available generation in area 2
+ * @param max_gen1 maximum available generation in area 1
+ * @param max_gen2 maximum available generation in area 2
+ * @param gen1_cdf_array array of CDF values for generation in area 1
  * @param gen2_cdf_array array of CDF values for generation in area 2
  */
 
 double bigen_cdf(
 	long x1,
 	long x2,
+	long min_gen1,
+	long min_gen2,
 	long max_gen1,
 	long max_gen2,
 	double* gen1_cdf_array,
@@ -121,8 +141,10 @@ double bigen_cdf(
  * @param ul_x x coordinate of upper left corner
  * @param ul_y y coordinate of upper y corner
  * @param width width of trapezoid
- * @param max_gen1 maximum generation in area 1
- * @param max_gen2 maximum generation in area 2
+ * @param min_gen1 minimum available generation in area 1
+ * @param min_gen2 minimum available generation in area 2
+ * @param max_gen1 maximum available generation in area 1
+ * @param max_gen2 maximum available generation in area 2
  * @param gen1_cdf_array array of CDF values for generation in area 1
  * @param gen2_cdf_array array of CDF values for generation in area 2
  */
@@ -131,6 +153,8 @@ double trapezoid_prob(
 	long ul_x,
 	long ul_y,
 	long width,
+	long min_gen1,
+	long min_gen2,
 	long max_gen1,
 	long max_gen2,
 	double* gen1_cdf_array,
@@ -181,6 +205,8 @@ void get_veto_polygon_points(
 /**
  * @brief Get the power that is exchanged, given initial power margins and interconnection capacity, under a veto policy
  *
+ * @param min_gen1 minimum available generation in area 1
+ * @param min_gen2 minimum available generation in area 2
  * @param max_gen1 maximum available generation in area 1
  * @param max_gen2 maximum available generation in area 2
  * @param gen1_cdf_array array of CDF values for area 1 generation
@@ -197,6 +223,8 @@ void get_veto_polygon_points(
 
 
 double get_cond_cdf(
+	long min_gen1,
+	long min_gen2,
 	long max_gen1,
 	long max_gen2,
 	double* gen1_cdf_array,
@@ -283,8 +311,10 @@ long boxed_gen_simulation(
  *
  * @param n number of simulated samples
  * @param simulations array where simulations are stored
- * @param max_gen1 maximum generation capacity at area 1
- * @param max_gen2 maximum generation capacity at area 2
+ * @param min_gen1 minimum available generation in area 1
+ * @param min_gen2 minimum available generation in area 2
+ * @param max_gen1 maximum available generation in area 1
+ * @param max_gen2 maximum available generation in area 2
  * @param gen1_cdf_array array with CDF values for conventional generation in area 1
  * @param gen1_cdf_array array with CDF values for conventional generation in area 1
  * @param net_demand array of net demand values, of shape (n x 2)
@@ -302,6 +332,8 @@ long boxed_gen_simulation(
 void region_simulation(
 	long n,
 	long* simulations,
+	long min_gen1,
+	long min_gen2,
 	long max_gen1,
 	long max_gen2,
 	double* gen1_cdf_array,
@@ -320,8 +352,10 @@ void region_simulation(
 /**
  * @brief Calculate CDF for a bivariate hindcast margin model, given polygons induced by demand and net demand
  *
- * @param max_gen1 maximum generation capacity of area 1
- * @param max_gen1 maximum generation capacity of area 2
+ * @param min_gen1 minimum available generation in area 1
+ * @param min_gen2 minimum available generation in area 2
+ * @param max_gen1 maximum available generation in area 1
+ * @param max_gen2 maximum available generation in area 2
  * @param gen1_cdf_array array with CDF values for conventional generation in area 1
  * @param gen1_cdf_array array with CDF values for conventional generation in area 1
  * @param p_array_a1 point of -1 slope segment that characterises polygon of area 1
@@ -330,6 +364,8 @@ void region_simulation(
  * @param c2 horizontal length of sloped segment of plygon of area 2
  */
 double cond_cdf(
+	long min_gen1,
+	long min_gen2,
 	long max_gen1,
 	long max_gen2,
 	double* gen1_cdf_array,
@@ -344,8 +380,10 @@ double cond_cdf(
  *
  * @param n number of simulated samples
  * @param simulations array where simulations are stored
- * @param max_gen1 maximum generation capacity at area 1
- * @param max_gen2 maximum generation capacity at area 2
+ * @param min_gen1 minimum available generation in area 1
+ * @param min_gen2 minimum available generation in area 2
+ * @param max_gen1 maximum available generation in area 1
+ * @param max_gen2 maximum available generation in area 2
  * @param gen1_cdf_array array with CDF values for conventional generation in area 1
  * @param gen1_cdf_array array with CDF values for conventional generation in area 1
  * @param net_demand array of net demand values, of shape (n x 2)
@@ -360,6 +398,8 @@ double cond_cdf(
 void conditioned_simulation(
 	long n,
 	long* simulations,
+	long min_gen1,
+	long min_gen2,
 	long max_gen1,
 	long max_gen2,
 	double* gen1_cdf_array,
@@ -400,6 +440,7 @@ void bivar_ecdf(
 long get_joint_polygon_x_bound(
 	long* P1,
 	long* P2,
+	long min_gen1,
 	long max_gen1,
 	int intersection);
 
@@ -417,6 +458,7 @@ long get_joint_polygon_y_bound_given_x(
 	long x,
 	long* P1,
 	long* P2,
+	long min_gen1,
 	long max_gen2,
 	int intersection);
 

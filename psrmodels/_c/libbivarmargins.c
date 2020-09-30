@@ -24,14 +24,16 @@ long min(long num1, long num2){
 double x1_stripe_pdf(
   long x1,
   long x2,
+  long min_gen1,
+  long min_gen2,
   long max_gen1,
   long max_gen2,
   double* gen1_cdf_array,
   double* gen2_cdf_array){
 
-  double prob = (get_gen_array_val(x1,gen1_cdf_array,0,max_gen1) - \
-    get_gen_array_val(x1-1,gen1_cdf_array,0,max_gen1)) * \
-    get_gen_array_val(x2,gen2_cdf_array,0,max_gen2);
+  double prob = (get_gen_array_val(x1,gen1_cdf_array,min_gen1,max_gen1) - \
+    get_gen_array_val(x1-1,gen1_cdf_array,min_gen1,max_gen1)) * \
+    get_gen_array_val(x2,gen2_cdf_array,min_gen2,max_gen2);
 
   return prob;
 }
@@ -39,13 +41,15 @@ double x1_stripe_pdf(
 double bigen_cdf(
   long x1,
   long x2,
+  long min_gen1,
+  long min_gen2,
   long max_gen1,
   long max_gen2,
   double* gen1_cdf_array,
   double* gen2_cdf_array){
 
-  double prob = get_gen_array_val(x1,gen1_cdf_array,0,max_gen1) * \
-  get_gen_array_val(x2,gen2_cdf_array,0,max_gen2);
+  double prob = get_gen_array_val(x1,gen1_cdf_array,min_gen1,max_gen1) * \
+  get_gen_array_val(x2,gen2_cdf_array,min_gen2,max_gen2);
 
   return prob;
 }
@@ -53,6 +57,8 @@ double bigen_cdf(
 double bigen_pdf(
   long x1,
   long x2,
+  long min_gen1,
+  long min_gen2,
   long max_gen1,
   long max_gen2,
   double* gen1_cdf_array,
@@ -62,6 +68,8 @@ double bigen_pdf(
   r = bigen_cdf(
     x1,
     x2,
+    min_gen1,
+    min_gen2,
     max_gen1,
     max_gen2,
     gen1_cdf_array,
@@ -69,6 +77,8 @@ double bigen_pdf(
   bigen_cdf(
     x1-1,
     x2,
+    min_gen1,
+    min_gen2,
     max_gen1,
     max_gen2,
     gen1_cdf_array,
@@ -76,6 +86,8 @@ double bigen_pdf(
   bigen_cdf(
     x1,
     x2-1,
+    min_gen1,
+    min_gen2,
     max_gen1,
     max_gen2,
     gen1_cdf_array,
@@ -83,6 +95,8 @@ double bigen_pdf(
   bigen_cdf(
     x1-1,
     x2-1,
+    min_gen1,
+    min_gen2,
     max_gen1,
     max_gen2,
     gen1_cdf_array,
@@ -95,6 +109,8 @@ double triangle_prob(
   long origin_x,
   long origin_y,
   long triangle_length,
+  long min_gen1,
+  long min_gen2,
   long max_gen1,
   long max_gen2,
   double* gen1_cdf_array,
@@ -118,11 +134,11 @@ double triangle_prob(
   }else{
     // interior lattice of length 2 triangle consist in a single point
     if(triangle_length == 2){
-      gen1_pdf = get_gen_array_val(origin_x+1,gen1_cdf_array,0,max_gen1) - \
-      get_gen_array_val(origin_x,gen1_cdf_array,0,max_gen1);
+      gen1_pdf = get_gen_array_val(origin_x+1,gen1_cdf_array,min_gen1,max_gen1) - \
+      get_gen_array_val(origin_x,gen1_cdf_array,min_gen1,max_gen1);
 
-      gen2_pdf = get_gen_array_val(origin_y+1,gen2_cdf_array,0,max_gen2) - \
-      get_gen_array_val(origin_y,gen2_cdf_array,0,max_gen2);
+      gen2_pdf = get_gen_array_val(origin_y+1,gen2_cdf_array,min_gen2,max_gen2) - \
+      get_gen_array_val(origin_y,gen2_cdf_array,min_gen2,max_gen2);
 
       val = gen1_pdf * gen2_pdf;
     }else{
@@ -130,6 +146,8 @@ double triangle_prob(
       square_prob = bigen_cdf(
         origin_x+l,
         origin_y+l,
+        min_gen1,
+        min_gen2,
         max_gen1,
         max_gen2,
         gen1_cdf_array,
@@ -137,6 +155,8 @@ double triangle_prob(
         bigen_cdf(
         origin_x,
         origin_y+l,
+        min_gen1,
+        min_gen2,
         max_gen1,
         max_gen2,
         gen1_cdf_array,
@@ -144,6 +164,8 @@ double triangle_prob(
         bigen_cdf(
         origin_x+l,
         origin_y,
+        min_gen1,
+        min_gen2,
         max_gen1,
         max_gen2,
         gen1_cdf_array,
@@ -151,6 +173,8 @@ double triangle_prob(
         bigen_cdf(
         origin_x,
         origin_y,
+        min_gen1,
+        min_gen2,
         max_gen1,
         max_gen2,
         gen1_cdf_array,
@@ -161,6 +185,8 @@ double triangle_prob(
         displaces_upper_x,
         displaced_upper_y,
         triangle_length - l,
+        min_gen1,
+        min_gen2,
         max_gen1,
         max_gen2,
         gen1_cdf_array,
@@ -169,6 +195,8 @@ double triangle_prob(
         displaces_righthand_x,
         displaced_righthand_y,
         triangle_length - l,
+        min_gen1,
+        min_gen2,
         max_gen1,
         max_gen2,
         gen1_cdf_array,
@@ -184,6 +212,8 @@ double trapezoid_prob(
   long ul_x,
   long ul_y,
   long width,
+  long min_gen1,
+  long min_gen2,
   long max_gen1,
   long max_gen2,
   double* gen1_cdf_array,
@@ -197,6 +227,8 @@ double trapezoid_prob(
   bigen_cdf(
     ur_x,
     ur_y,
+    min_gen1,
+    min_gen2,
     max_gen1,
     max_gen2,
     gen1_cdf_array,
@@ -204,6 +236,8 @@ double trapezoid_prob(
   bigen_cdf(
     ul_x,
     ur_y,
+    min_gen1,
+    min_gen2,
     max_gen1,
     max_gen2,
     gen1_cdf_array,
@@ -212,6 +246,8 @@ double trapezoid_prob(
     ul_x,
     ur_y,
     width,
+    min_gen1,
+    min_gen2,
     max_gen1,
     max_gen2,
     gen1_cdf_array,
@@ -227,6 +263,8 @@ double cond_epu_share(
   long v1,
   long v2,
   long c,
+  long min_gen1,
+  long min_gen2,
   long max_gen1,
   long max_gen2,
   double* gen1_cdf_array,
@@ -242,27 +280,27 @@ double cond_epu_share(
     long x2, beta, alpha ;
     double gen2_pdf;
 
-    for(x2=0;x2<v2+c;++x2){
+    for(x2=min_gen2;x2<v2+c;++x2){
 
       //EPU += -r*FX2.pdf(x2)*((x2-v1-v2)*(FX1.cdf(beta)-FX1.cdf(alpha-1)) + FX1.expectation(fro=alpha,to=beta))
       
       beta = (long) min(beta0 + d1_div_d2*x2,v1+v2-x2);
       alpha = (long) ceil(alpha0 + d1_div_d2*x2);
-      gen2_pdf = (get_gen_array_val(x2,gen2_cdf_array,0,max_gen2) - get_gen_array_val(x2-1,gen2_cdf_array,0,max_gen2));
+      gen2_pdf = (get_gen_array_val(x2,gen2_cdf_array,min_gen2,max_gen2) - get_gen_array_val(x2-1,gen2_cdf_array,min_gen2,max_gen2));
       epu += -r*gen2_pdf*\
-         ((x2-v1-v2)*(get_gen_array_val(beta,gen1_cdf_array,0,max_gen1) - get_gen_array_val(alpha-1,gen1_cdf_array,0,max_gen1)) + \
-         (get_gen_array_val(beta,gen1_expectation,0,max_gen1) - get_gen_array_val(alpha-1,gen1_expectation,0,max_gen1)));
+         ((x2-v1-v2)*(get_gen_array_val(beta,gen1_cdf_array,min_gen1,max_gen1) - get_gen_array_val(alpha-1,gen1_cdf_array,min_gen1,max_gen1)) + \
+         (get_gen_array_val(beta,gen1_expectation,min_gen1,max_gen1) - get_gen_array_val(alpha-1,gen1_expectation,min_gen1,max_gen1)));
     }
 
-    for(x2=0;x2<v2-c;++x2){
+    for(x2=min_gen2;x2<v2-c;++x2){
 
       beta = (long) floor(beta0 + d1_div_d2*x2);
 
       //EPU += FX2.pdf(x2)*((v1+c)*(FX1.cdf(v1+c)-FX1.cdf(beta))-FX1.expectation(fro=beta+1,to=v1+c))
-      gen2_pdf = (get_gen_array_val(x2,gen2_cdf_array,0,max_gen2) - get_gen_array_val(x2-1,gen2_cdf_array,0,max_gen2));
+      gen2_pdf = (get_gen_array_val(x2,gen2_cdf_array,min_gen2,max_gen2) - get_gen_array_val(x2-1,gen2_cdf_array,min_gen2,max_gen2));
       epu += gen2_pdf*\
-         ((v1+c)*(get_gen_array_val(v1+c,gen1_cdf_array,0,max_gen1) - get_gen_array_val(beta,gen1_cdf_array,0,max_gen1)) - \
-         (get_gen_array_val(v1+c,gen1_expectation,0,max_gen1) - get_gen_array_val(beta,gen1_expectation,0,max_gen1)));
+         ((v1+c)*(get_gen_array_val(v1+c,gen1_cdf_array,min_gen1,max_gen1) - get_gen_array_val(beta,gen1_cdf_array,min_gen1,max_gen1)) - \
+         (get_gen_array_val(v1+c,gen1_expectation,min_gen1,max_gen1) - get_gen_array_val(beta,gen1_expectation,min_gen1,max_gen1)));
     }
 
     for(x2=(long) ceil(v2+c-((double)d2)/d1*(v1-c));x2<v2+c;++x2){
@@ -270,14 +308,14 @@ double cond_epu_share(
 
       //EPU += FX2.pdf(x2)*((v1-c)*FX1.cdf(alpha-1)-FX1.expectation(to=alpha-1))
 
-      gen2_pdf = (get_gen_array_val(x2,gen2_cdf_array,0,max_gen2) - get_gen_array_val(x2-1,gen2_cdf_array,0,max_gen2));
+      gen2_pdf = (get_gen_array_val(x2,gen2_cdf_array,min_gen2,max_gen2) - get_gen_array_val(x2-1,gen2_cdf_array,min_gen2,max_gen2));
       epu += gen2_pdf*\
-         ((v1-c)*get_gen_array_val(alpha-1,gen1_cdf_array,0,max_gen1) - get_gen_array_val(alpha-1,gen1_expectation,0,max_gen1));
+         ((v1-c)*get_gen_array_val(alpha-1,gen1_cdf_array,min_gen1,max_gen1) - get_gen_array_val(alpha-1,gen1_expectation,min_gen1,max_gen1));
     }
 
-    if(v1-c >= 0){
+    if(v1-c >= min_gen1){
       //EPU += (1-FX2.cdf(v2+c-1))*((v1-c)*FX1.cdf(v1-c)-FX1.expectation(to=v1-c))
-      epu += (1-get_gen_array_val(v2+c-1,gen2_cdf_array,0,max_gen2))*((v1-c)*get_gen_array_val(v1-c,gen1_cdf_array,0,max_gen1)-get_gen_array_val(v1-c,gen1_expectation,0,max_gen1));
+      epu += (1-get_gen_array_val(v2+c-1,gen2_cdf_array,min_gen2,max_gen2))*((v1-c)*get_gen_array_val(v1-c,gen1_cdf_array,min_gen1,max_gen1)-get_gen_array_val(v1-c,gen1_expectation,min_gen1,max_gen1));
     }
 
     return epu;
@@ -287,6 +325,8 @@ double cond_epu_veto(
   long v1,
   long v2,
   long c,
+  long min_gen1,
+  long min_gen2,
   long max_gen1,
   long max_gen2,
   double* gen1_cdf_array,
@@ -299,16 +339,16 @@ double cond_epu_veto(
 
     //EPU = (1 - FX2.cdf(v2+c))*((v1-c)*FX1.cdf(v1-c) - FX1.expectation(to=v1-c)) + FX2.cdf(v2-1)*(v1*FX1.cdf(v1) - FX1.expectation(to=v1))
 
-    epu = (1 - get_gen_array_val(v2+c,gen2_cdf_array,0,max_gen2))*\
-    ((v1-c)*get_gen_array_val(v1-c,gen1_cdf_array,0,max_gen1) - get_gen_array_val(v1-c,gen1_expectation,0,max_gen1)) + \
-    get_gen_array_val(v2-1,gen2_cdf_array,0,max_gen2)*(v1*get_gen_array_val(v1,gen1_cdf_array,0,max_gen1)-get_gen_array_val(v1,gen1_expectation,0,max_gen1));
+    epu = (1 - get_gen_array_val(v2+c,gen2_cdf_array,min_gen2,max_gen2))*\
+    ((v1-c)*get_gen_array_val(v1-c,gen1_cdf_array,min_gen1,max_gen1) - get_gen_array_val(v1-c,gen1_expectation,min_gen1,max_gen1)) + \
+    get_gen_array_val(v2-1,gen2_cdf_array,min_gen2,max_gen2)*(v1*get_gen_array_val(v1,gen1_cdf_array,min_gen1,max_gen1)-get_gen_array_val(v1,gen1_expectation,min_gen1,max_gen1));
 
     for(x2=v2;x2<v2+c+1;++x2){
 
       //EPU += FX2.pdf(x2) * ((v1+v2-x2)*FX1.cdf(v1+v2-x2) - FX1.expectation(to=v1+v2-x2))
-      gen2_pdf = (get_gen_array_val(x2,gen2_cdf_array,0,max_gen2) - get_gen_array_val(x2-1,gen2_cdf_array,0,max_gen2));
+      gen2_pdf = (get_gen_array_val(x2,gen2_cdf_array,min_gen2,max_gen2) - get_gen_array_val(x2-1,gen2_cdf_array,min_gen2,max_gen2));
       epu += gen2_pdf*\
-         ((v1+v2-x2)*get_gen_array_val(v1+v2-x2,gen1_cdf_array,0,max_gen1) - get_gen_array_val(v1+v2-x2,gen1_expectation,0,max_gen1));
+         ((v1+v2-x2)*get_gen_array_val(v1+v2-x2,gen1_cdf_array,min_gen1,max_gen1) - get_gen_array_val(v1+v2-x2,gen1_expectation,min_gen1,max_gen1));
     }
 
     return epu;
@@ -449,16 +489,17 @@ long axis2_polygon_upper_bound(
 long boxed_gen_simulation(
   double u,
   long upper_bound,
+  long min_gen,
   long max_gen,
   double* gen_cdf_array){
 
-  long lb = 0, i=0;
+  long lb = min_gen, i=0;
   long ub = (long) min(upper_bound,max_gen);
 
-  double p_lb = get_gen_array_val(lb-1,gen_cdf_array,0,max_gen);
-  double box_prob = get_gen_array_val(ub,gen_cdf_array,0,max_gen) - p_lb;
+  double p_lb = get_gen_array_val(lb-1,gen_cdf_array,min_gen,max_gen);
+  double box_prob = get_gen_array_val(ub,gen_cdf_array,min_gen,max_gen) - p_lb;
 
-  while(u > (get_gen_array_val(lb+i,gen_cdf_array,0,max_gen) - p_lb)/box_prob) {
+  while(u > (get_gen_array_val(lb+i,gen_cdf_array,min_gen,max_gen) - p_lb)/box_prob) {
     i +=1;
   }
 
@@ -500,6 +541,8 @@ double share_flow(
 }
 
 double cond_cdf(
+  long min_gen1,
+  long min_gen2,
   long max_gen1,
   long max_gen2,
   double* gen1_cdf_array,
@@ -528,6 +571,8 @@ double cond_cdf(
     bigen_cdf(
       p21,
       p22,
+      min_gen1,
+      min_gen2,
       max_gen1,
       max_gen2,
       gen1_cdf_array,
@@ -536,6 +581,8 @@ double cond_cdf(
       p21,
       p22,
       c2,
+      min_gen1,
+      min_gen2,
       max_gen1,
       max_gen2,
       gen1_cdf_array,
@@ -547,6 +594,8 @@ double cond_cdf(
       bigen_cdf(
         p11_r,
         p22_r,
+        min_gen1,
+        min_gen2,
         max_gen1,
         max_gen2,
         gen1_cdf_array,
@@ -554,6 +603,8 @@ double cond_cdf(
       bigen_cdf(
         p21_r,
         p22_r,
+        min_gen1,
+        min_gen2,
         max_gen1,
         max_gen2,
         gen1_cdf_array,
@@ -568,6 +619,8 @@ double cond_cdf(
       bigen_cdf(
         p11 + diff,
         p22_r,
+        min_gen1,
+        min_gen2,
         max_gen1,
         max_gen2,
         gen1_cdf_array,
@@ -575,6 +628,8 @@ double cond_cdf(
       bigen_cdf(
         p21_r,
         p22_r,
+        min_gen1,
+        min_gen2,
         max_gen1,
         max_gen2,
         gen1_cdf_array,
@@ -583,6 +638,8 @@ double cond_cdf(
         p11 + diff,
         p12 - diff,
         c1 - diff,
+        min_gen1,
+        min_gen2,
         max_gen1,
         max_gen2,
         gen1_cdf_array,
@@ -595,6 +652,8 @@ double cond_cdf(
       bigen_cdf(
         p11,
         p22_r,
+        min_gen1,
+        min_gen2,
         max_gen1,
         max_gen2,
         gen1_cdf_array,
@@ -602,6 +661,8 @@ double cond_cdf(
       bigen_cdf(
         p21_r,
         p22_r,
+        min_gen1,
+        min_gen2,
         max_gen1,
         max_gen2,
         gen1_cdf_array,
@@ -610,6 +671,8 @@ double cond_cdf(
         p11,
         p12,
         c1,
+        min_gen1,
+        min_gen2,
         max_gen1,
         max_gen2,
         gen1_cdf_array,
@@ -625,6 +688,8 @@ double cond_cdf(
       bigen_cdf(
         p11_r,
         p22,
+        min_gen1,
+        min_gen2,
         max_gen1,
         max_gen2,
         gen1_cdf_array,
@@ -638,6 +703,8 @@ double cond_cdf(
       bigen_cdf(
         p11+diff,
         p22,
+        min_gen1,
+        min_gen2,
         max_gen1,
         max_gen2,
         gen1_cdf_array,
@@ -646,6 +713,8 @@ double cond_cdf(
         p11 + diff,
         p22,
         c1 - diff,
+        min_gen1,
+        min_gen2,
         max_gen1,
         max_gen2,
         gen1_cdf_array,
@@ -657,6 +726,8 @@ double cond_cdf(
       bigen_cdf(
         p11,
         p22,
+        min_gen1,
+        min_gen2,
         max_gen1,
         max_gen2,
         gen1_cdf_array,
@@ -665,6 +736,8 @@ double cond_cdf(
         p11,
         p12,
         c1,
+        min_gen1,
+        min_gen2,
         max_gen1,
         max_gen2,
         gen1_cdf_array,
@@ -679,6 +752,8 @@ double cond_cdf(
       bigen_cdf(
         p21,
         p22,
+        min_gen1,
+        min_gen2,
         max_gen1,
         max_gen2,
         gen1_cdf_array,
@@ -687,6 +762,8 @@ double cond_cdf(
         p21,
         p22,
         p11-p21,
+        min_gen1,
+        min_gen2,
         max_gen1,
         max_gen2,
         gen1_cdf_array,
@@ -695,6 +772,8 @@ double cond_cdf(
         p11,
         p12,
         c1,
+        min_gen1,
+        min_gen2,
         max_gen1,
         max_gen2,
         gen1_cdf_array,
@@ -705,6 +784,8 @@ double cond_cdf(
       bigen_cdf(
         p21,
         p22,
+        min_gen1,
+        min_gen2,
         max_gen1,
         max_gen2,
         gen1_cdf_array,
@@ -713,6 +794,8 @@ double cond_cdf(
         p21,
         p22,
         p11_r-p21,
+        min_gen1,
+        min_gen2,
         max_gen1,
         max_gen2,
         gen1_cdf_array,
@@ -724,6 +807,8 @@ double cond_cdf(
 }
 
 double get_cond_cdf(
+  long min_gen1,
+  long min_gen2,
   long max_gen1,
   long max_gen2,
   double* gen1_cdf_array,
@@ -770,6 +855,8 @@ double get_cond_cdf(
   }
 
   cdf = cond_cdf(
+    min_gen1,
+    min_gen2,
     max_gen1,
     max_gen2,
     gen1_cdf_array,
@@ -786,6 +873,7 @@ double get_cond_cdf(
 long get_joint_polygon_x_bound(
   long* P1,
   long* P2,
+  long min_gen1,
   long max_gen1,
   int intersection){
 
@@ -818,6 +906,7 @@ long get_joint_polygon_y_bound_given_x(
   long x,
   long* P1,
   long* P2,
+  long min_gen1,
   long max_gen2,
   int intersection){
 
@@ -835,6 +924,8 @@ long get_joint_polygon_y_bound_given_x(
 void region_simulation(
   long n,
   long* simulations,
+  long min_gen1,
+  long min_gen2,
   long max_gen1,
   long max_gen2,
   double* gen1_cdf_array,
@@ -887,15 +978,17 @@ void region_simulation(
       get_veto_polygon_points(P2,m2,nd1,nd2,c,1);
     }
 
-    x1_ub = get_joint_polygon_x_bound(P1,P2,max_gen1,intersection);
+    x1_ub = get_joint_polygon_x_bound(P1,P2,min_gen1,max_gen1,intersection);
 
     for(x1=0;x1<=x1_ub;x1++){
 
-      x2_ub = get_joint_polygon_y_bound_given_x(x1,P1,P2,max_gen2,intersection);
+      x2_ub = get_joint_polygon_y_bound_given_x(x1,P1,P2,min_gen2,max_gen2,intersection);
 
       x1_cond_cdf_array[x1] = x1_stripe_pdf(
         x1,
         x2_ub,
+        min_gen1,
+        min_gen2,
         max_gen1,
         max_gen2,
         gen1_cdf_array,
@@ -910,13 +1003,13 @@ void region_simulation(
 
       u = mt_drand();
 
-      x1 = boxed_gen_simulation(u,x1_ub,max_gen1,x1_cond_cdf_array);
+      x1 = boxed_gen_simulation(u,x1_ub,min_gen1,max_gen1,x1_cond_cdf_array);
 
-      x2_ub = get_joint_polygon_y_bound_given_x(x1,P1,P2,max_gen2,intersection);
+      x2_ub = get_joint_polygon_y_bound_given_x(x1,P1,P2,min_gen2,max_gen2,intersection);
 
       u = mt_drand();
 
-      x2 = boxed_gen_simulation(u,x2_ub,max_gen2,gen2_cdf_array);
+      x2 = boxed_gen_simulation(u,x2_ub,min_gen2,max_gen2,gen2_cdf_array);
       
       m1_s = x1 - nd1;
       m2_s = x2 - nd2;
@@ -941,6 +1034,8 @@ void region_simulation(
 void conditioned_simulation(
   long n,
   long* simulations,
+  long min_gen1,
+  long min_gen2,
   long max_gen1,
   long max_gen2,
   double* gen1_cdf_array,
@@ -988,6 +1083,8 @@ void conditioned_simulation(
         cond_x2_cdf[x2] = bigen_pdf(
           P1[2],
           x2,
+          min_gen1,
+          min_gen2,
           max_gen1,
           max_gen2,
           gen1_cdf_array,
@@ -996,6 +1093,8 @@ void conditioned_simulation(
         cond_x2_cdf[x2] = bigen_pdf(
           P1[2] - (x2 - P1[3]),
           x2,
+          min_gen1,
+          min_gen2,
           max_gen1,
           max_gen2,
           gen1_cdf_array,
@@ -1004,6 +1103,8 @@ void conditioned_simulation(
         cond_x2_cdf[x2] = bigen_pdf(
           P1[0],
           x2,
+          min_gen1,
+          min_gen2,
           max_gen1,
           max_gen2,
           gen1_cdf_array,
@@ -1022,7 +1123,7 @@ void conditioned_simulation(
     for(j=0;j<row_weights[row];j++){
 
       u = mt_drand();
-      x2 = boxed_gen_simulation(u,max_gen2,max_gen2,cond_x2_cdf);
+      x2 = boxed_gen_simulation(u,max_gen2,min_gen2,max_gen2,cond_x2_cdf);
 
       if(x2 >= P1[1]){
         x1 = P1[0];
