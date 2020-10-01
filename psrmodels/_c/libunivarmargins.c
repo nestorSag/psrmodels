@@ -19,9 +19,9 @@ double get_gen_array_val(
     return 0;
   }else{
     if(y>=gen_max){
-      return array[gen_max];
+      return array[gen_max - gen_min];
     }else{
-      return array[y-gen_min];
+      return array[y - gen_min];
     }
   }
 }

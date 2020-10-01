@@ -48,6 +48,13 @@ double bigen_cdf(
   double* gen1_cdf_array,
   double* gen2_cdf_array){
 
+  //double aux1, aux2; 
+  //printf("x1: %ld, x2: %ld, min_gen1: %ld, min_gen2: %ld, max_gen1: %ld, max_gen2: %ld \n", x1,x2,min_gen1,min_gen2,max_gen1,max_gen2);
+  //aux1 = get_gen_array_val(x1,gen1_cdf_array,min_gen1,max_gen1);
+  //printf("F(x1): %.10e \n",aux1);
+  //aux2 = get_gen_array_val(x2,gen2_cdf_array,min_gen2,max_gen2);
+  //printf("F(x2): %.10e \n",aux2);
+
   double prob = get_gen_array_val(x1,gen1_cdf_array,min_gen1,max_gen1) * \
   get_gen_array_val(x2,gen2_cdf_array,min_gen2,max_gen2);
 
@@ -282,7 +289,7 @@ double cond_epu_share(
 
     for(x2=min_gen2;x2<v2+c;++x2){
 
-      //EPU += -r*FX2.pdf(x2)*((x2-v1-v2)*(FX1.cdf(beta)-FX1.cdf(alpha-1)) + FX1.expectation(fro=alpha,to=beta))
+      //EPU += -r*FX2.pdf(x2)*((x2-v1-v2)*(FX1.cdf(beta)-FX1.cdf(alpha-1)) + FX1.expectation(fro=alpha,to=beta ) )
       
       beta = (long) min(beta0 + d1_div_d2*x2,v1+v2-x2);
       alpha = (long) ceil(alpha0 + d1_div_d2*x2);
@@ -564,6 +571,8 @@ double cond_cdf(
 
   double cdf = 0;
   long diff = 0;
+
+  double aux;
   //#if P2 segment is inside marginal polygon of area 1
   if(p21_r <= p11 || (p21_r <= p11_r && p22_r <= p12 + p11 - p21_r)) {
 

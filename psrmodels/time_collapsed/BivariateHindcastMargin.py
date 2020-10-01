@@ -267,7 +267,8 @@ class BivariateHindcastMargin(object):
 
     self.demand = np.flip(self.demand,axis=1)
     self.net_demand = np.flip(self.net_demand,axis=1)
-    self.gen_dists = self.gen_dists[::-1]
+    self.gen_dists = [self.gen_dists[1],self.gen_dists[0]]
+    #self.gen_dists = self.gen_dists[::-1]
 
   def lole(self,c,policy,axis=0,get_pointwise_risk=False):
     """calculate LOLE for one of the areas
@@ -280,24 +281,29 @@ class BivariateHindcastMargin(object):
 
     `axis (`int*): area index for which this will be calculated
 
+    `get_pointwise_risk (`bool`): If `True`, returns pandas dataframe with LOLE contributions historic observation
+
     """
 
-    if axis == 1:
-      self._swap_axes()
+    # if axis == 1:
+    #   self._swap_axes()
 
-    m = (-1,np.Inf)
+    m = [np.Inf,np.Inf]
+    m[axis] = -1
+    #m = (-1,np.Inf)
     lolp_vals = self.cdf(m=m,c=c,policy=policy,get_pointwise_risk=get_pointwise_risk) 
     if get_pointwise_risk:
-      return lolp_vals
+      lole = lolp_vals
     else:
-      return self.n * lolp_vals
+      lole = self.n * lolp_vals
+
+    return lole
 
     #lole = self._lole(c=c,policy=policy,get_pointwise_risk=get_pointwise_risk)
 
-    if axis == 1:
-      self._swap_axes()
+    # if axis == 1:
+    #   self._swap_axes()
 
-    return lole
 
   # @deprecated(version="1.0.0",reason="use lole() instead")
   # def lole(self,c,policy,axis=0,get_pointwise_risk=False):
@@ -352,6 +358,8 @@ class BivariateHindcastMargin(object):
 
     `axis` (`int`): area index for which this will be calculated 
 
+    `get_pointwise_risk (`bool`): If `True`, returns pandas dataframe with EEU contributions for each historic observation
+
     """
 
     if axis == 1:
@@ -397,7 +405,7 @@ class BivariateHindcastMargin(object):
 
     `policy` (`str`): Either 'share' or 'veto'
 
-    `get_pointwise_risk` (`str`): return pandas DataFrame with net demand values and corresponding pointwise risk measurements
+    `get_pointwise_risk` (`str`): return pandas DataFrame with EPU for each historic observation
 
     """
     if c > 0 or get_pointwise_risk:
@@ -469,26 +477,28 @@ class BivariateHindcastMargin(object):
 
     return self.net_demand[np.random.choice(range(self.n),size=n),:]
 
-  @deprecated(version='1.1.5', reason="Use itc_efc or convgen_ifc methods instead.")
+  @deprecated(version='1.1.5', reason="Use methods itc_efc or convgen_ifc instead.")
   def efc(self,**kwargs):
     return self.itc_efc(**kwargs)
 
-  def convgen_efc(self, cap, avb, add_to_axis, c,policy,metric="LOLE",axis=0,**kwargs):
-    """Returns equivalent firm capacity for area `axis` of installing an additional generator in any of the two areas with given capacity and availability probability
+  def convgen_efc(self, cap, prob, gen_axis, fc_axis, c,policy,metric="lole",axis=0,**kwargs):
+    """Returns the amount of firm capacity that needs to be added to area `fc_axis` such that area `axis` has the same risk (as defined by `metric`) than if new conventional generation was installed in `gen_axis`.
 
     **Parameters**:
     
-    `cap` (`int`): maximum available capacity of new generator
+    `cap` (`int`): maximum available capacity of new generator in MW
 
-    `avb` (`float`): availability probability for the new generator
+    `prob` (`float`): availability probability for the new generator
 
-    `add_to_axis` (`int`): Axis to which the new generator will be added
+    `gen_axis` (`int`): Axis to which the new generator will be added
+
+    `fc_axis` (`int`): Area to which firm capacity will be added
 
     `c` (`int`): interconnection capacity
 
     `policy` (`str`): Either 'share' or 'veto'
 
-    `axis` (`int`): area for which this will be calculated
+    `axis` (`int`): area for which risk will be calculated
 
     `metric` (`string`): name of the instance's method that will be used to measure risk. Only 'LOLE' and 'EEU' are supported
 
@@ -496,28 +506,32 @@ class BivariateHindcastMargin(object):
     if not (axis in [0,1]):
       raise Exception("axis value must be 0 or 1")
 
-    if not (add_to_axis in [0,1]):
-      raise Exception("add_to_axis value must be 0 or 1")
+    if not (gen_axis in [0,1]):
+      raise Exception("gen_axis value must be 0 or 1")
 
-    if avb > 1 or abv < 0:
+    if not (fc_axis in [0,1]):
+      raise Exception("fc_axis value must be 0 or 1")
+
+    if prob > 1 or prob < 0:
       raise Exception("Availability value must be between 0 and 1")
 
-    other = 1 - add_to_axis
-    gen_data = self.gen_dists[add_to_axis].original_data
+    other = 1 - gen_axis
+    gen_data = self.gen_dists[gen_axis].original_data
 
     # create augmented conv gen distribution
-    new_row = pd.Series([cap,avb],index=["Capacity","Availability"])
+    new_row = pd.Series([cap,prob],index=["Capacity","Availability"])
     augmented_data = gen_data.append(new_row,ignore_index=True)
     augmented_gen_dist = ConvGenDistribution(augmented_data)
 
     # create augmented conv gen bivariate distribution and get risk metric in agumented system
     new_bivariate_dist = [0,1] #place holder values
-    new_bivariate_dist[add_to_axis] = augmented_gen_dist
+    new_bivariate_dist[gen_axis] = augmented_gen_dist
     new_bivariate_dist[other] = self.gen_dists[other]
     new_margin_dist = BivariateHindcastMargin(self.demand,self.renewables,new_bivariate_dist)
     new_metric_func = getattr(new_margin_dist,metric)
     new_metric_val = new_metric_func(c=c,policy=policy,axis=axis)
 
+    print("new metric val: {x}".format(x=new_metric_val))
     ### take original system and add firm capacity until we get new_metric_val
     # define bisection algorithm's bounds
     if cap >= 0:
@@ -528,21 +542,22 @@ class BivariateHindcastMargin(object):
       leftmost = cap
 
     # clone object to prevent any side effects
-    original_bivariate_dist = [0,1]
     original_bivariate_dist = [ConvGenDistribution(self.gen_dists[area].original_data) for area in range(2)]
     
     # define objective for bisection algorithm
     def find_efc(x):
       # add firm capacity
-      original_bivariate_dist[add_to_axis] += x
+      original_bivariate_dist[fc_axis] += x
       # create bivariate margin distribution object
-      original_dist = BivariateHindcastMargin(self.demand,self.renewables,original_bivariate_dist)
-      original_metric_func = getattr(original_dist,metric)
-      original_metric_val = original_metric_func(c=c,policy=policy,axis=axis)
+      dist = BivariateHindcastMargin(self.demand,self.renewables,original_bivariate_dist)
+      metric_func = getattr(dist,metric)
+      metric_val = metric_func(c=c,policy=policy,axis=axis)
 
       # reset firm capacity to 0
-      original_bivariate_dist[add_to_axis] += (-original_bivariate_dist[add_to_axis].fc)
-      return original_metric_val - new_metric_val
+      original_bivariate_dist[fc_axis] += (-original_bivariate_dist[fc_axis].fc)
+
+      print("Adding {x}, getting val {v}".format(x=x,v=metric_val))
+      return metric_val - new_metric_val
 
     efc, res = bisect(f=find_efc,a=leftmost,b=rightmost,full_output=True)
     if not res.converged:
@@ -551,7 +566,7 @@ class BivariateHindcastMargin(object):
     return efc
 
 
-  def itc_efc(self,c,policy,metric="LOLE",axis=0,**kwargs):
+  def itc_efc(self,c,policy,metric="lole",axis=0,**kwargs):
     """Returns equivalent firm capacity of interconnector in one area
 
     **Parameters**:
@@ -565,8 +580,8 @@ class BivariateHindcastMargin(object):
     `metric` (`string`): name of the instance's method that will be used to measure risk
 
     """
-    if not metric in ["LOLE","EEU"]:
-      raise Exception("Only LOLE or EPU supported as risk metrics")
+    if not metric in ["lole","eeu"]:
+      raise Exception("Only 'lole' or 'eeu' supported as risk metrics")
     
     with_itc = getattr(self,metric)(c=c,axis=axis,policy=policy,**kwargs)
 
@@ -888,7 +903,7 @@ class BivariateHindcastMargin(object):
 
     `policy` (`str`): Either 'share' or 'veto'
 
-    `get_pointwise_risk` (`str`): return pandas DataFrame with net demand values and corresponding point-wise risk measurements.
+    `get_pointwise_risk` (`str`): return pandas DataFrame with shortfall probabilities induced by each historic observation
 
     """
 
@@ -896,10 +911,10 @@ class BivariateHindcastMargin(object):
     m1, m2 = m
     #self._check_null_fc()
 
-    X1 = self.gen_dists[0]
-    X2 = self.gen_dists[1]
+    gendist1, gendist2 = self.gen_dists
+    #X2 = self.gen_dists[1]
 
-    X = BivariateConvGenDist(X1,X2) #system-wide conv. gen. distribution
+    #X = BivariateConvGenDist(X1,X2) #system-wide conv. gen. distribution
    
     n = self.n
 
@@ -917,12 +932,12 @@ class BivariateHindcastMargin(object):
       d1, d2 = self.demand[i,:]
 
       point_cdf = C_CALL.get_cond_cdf(
-                      np.int64(X.X1.min),
-                      np.int64(X.X2.min),
-                      np.int64(X.X1.max),
-                      np.int64(X.X2.max),
-                      ffi.cast("double *",X.X1.cdf_vals.ctypes.data),
-                      ffi.cast("double *",X.X2.cdf_vals.ctypes.data),
+                      np.int64(gendist1.min),
+                      np.int64(gendist2.min),
+                      np.int64(gendist1.max),
+                      np.int64(gendist2.max),
+                      ffi.cast("double *",gendist1.cdf_vals.ctypes.data),
+                      ffi.cast("double *",gendist2.cdf_vals.ctypes.data),
                       np.int64(m1),
                       np.int64(m2),
                       np.int64(v1),
@@ -932,6 +947,7 @@ class BivariateHindcastMargin(object):
                       np.int64(c),
                       np.int64(policy == "share"))
 
+      #print("point cdf: {x}, index: {i}".format(x=point_cdf, i=i))
       cdf += point_cdf
 
       #print(v1)
@@ -962,7 +978,7 @@ class BivariateHindcastMargin(object):
 
     `policy` (`str`): Either 'share' or 'veto'
 
-    `get_pointwise_risk` (`str`): return pandas DataFrame with net demand values and corresponding pointwise risk measurements
+    `get_pointwise_risk` (`str`): return pandas DataFrame with LOLPs for each historic observation
 
     """
 
@@ -1044,7 +1060,7 @@ class BivariateHindcastMargin(object):
 
     `policy` (`str`): Either 'share' or 'veto'
 
-    `get_pointwise_risk` (`str`): return pandas DataFrame with net demand values and corresponding pointwise risk measurements
+    `get_pointwise_risk` (`str`): return pandas DataFrame with system LOLE contributions for each historic observation
     """
     return self.n * self.system_lolp(c,get_pointwise_risk)
 
