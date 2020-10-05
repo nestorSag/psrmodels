@@ -481,7 +481,7 @@ class BivariateHindcastMargin(object):
   def efc(self,**kwargs):
     return self.itc_efc(**kwargs)
 
-  def convgen_efc(self, cap, prob, gen_axis, fc_axis, c,policy,metric="lole",axis=0,**kwargs):
+  def convgen_efc(self, cap, prob, gen_axis, fc_axis, c,policy,metric="lole",axis=0,tol=0.1,**kwargs):
     """Returns the amount of firm capacity that needs to be added to area `fc_axis` such that area `axis` has the same risk (as defined by `metric`) than if new conventional generation was installed in `gen_axis`.
 
     **Parameters**:
@@ -501,6 +501,8 @@ class BivariateHindcastMargin(object):
     `axis` (`int`): area for which risk will be calculated
 
     `metric` (`string`): name of the instance's method that will be used to measure risk. Only 'LOLE' and 'EEU' are supported
+
+    `tol` (`float`): absolute error tolerance from true target risk value
 
     """
     if not (axis in [0,1]):
@@ -559,14 +561,14 @@ class BivariateHindcastMargin(object):
       print("Adding {x}, getting val {v}".format(x=x,v=metric_val))
       return metric_val - new_metric_val
 
-    efc, res = bisect(f=find_efc,a=leftmost,b=rightmost,full_output=True)
+    efc, res = bisect(f=find_efc,a=leftmost,b=rightmost,full_output=True,xtol=tol/2,rtol=tol/(2*new_metric_val))
     if not res.converged:
       print("Warning: EFC estimator did not converge.")
     #print("efc:{efc}".format(efc=efc))
-    return efc
+    return int(efc)
 
 
-  def itc_efc(self,c,policy,metric="lole",axis=0,**kwargs):
+  def itc_efc(self,c,policy,metric="lole",axis=0,tol=0.1,**kwargs):
     """Returns equivalent firm capacity of interconnector in one area
 
     **Parameters**:
@@ -575,23 +577,27 @@ class BivariateHindcastMargin(object):
 
     `policy` (`str`): Either 'share' or 'veto'
 
-    `axis` (`int`): area for which this will be calculated
+    `axis` (`int`): area for which risk will be calculated
 
     `metric` (`string`): name of the instance's method that will be used to measure risk
+
+    `tol` (`float`): absolute error tolerance from true target risk value
 
     """
     if not metric in ["lole","eeu"]:
       raise Exception("Only 'lole' or 'eeu' supported as risk metrics")
     
+    #target value
     with_itc = getattr(self,metric)(c=c,axis=axis,policy=policy,**kwargs)
 
     def compare_itc_to_fc(k):
       self.gen_dists[axis] += k ## add firm capacity
       univar = UnivariateHindcastMargin(self.gen_dists[axis],self.net_demand[:,axis])
       #risk_metric = getattr(univar,metric)
-      k_fc_risk =  with_itc - getattr(univar,metric)()
+      without_itc = getattr(univar,metric)()
+      #k_fc_risk =  with_itc - without_itc
       self.gen_dists[axis] += (-k) #reset firm capacity to 0
-      return k_fc_risk
+      return with_itc - without_itc
 
     diff_to_null = compare_itc_to_fc(0)
 
@@ -614,11 +620,11 @@ class BivariateHindcastMargin(object):
           rightmost += c
       
       #print("finding efc in [{a},{b}]".format(a=leftmost,b=rightmost))
-      efc, res = bisect(f=compare_itc_to_fc,a=leftmost,b=rightmost,full_output=True)
+      efc, res = bisect(f=compare_itc_to_fc,a=leftmost,b=rightmost,full_output=True,xtol=tol/2,rtol=tol/(2*with_itc))
       if not res.converged:
         print("Warning: EFC estimator did not converge.")
       #print("efc:{efc}".format(efc=efc))
-      return efc
+      return int(efc)
 
   def _trapezoid_prob(self,X,ulc,c):
 

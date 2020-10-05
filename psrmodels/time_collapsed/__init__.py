@@ -9,5 +9,7 @@ from .UnivariateHindcastMargin import *
 from .UnivariateEVMargin import *
 from .UnivariateBayesianEVMargin import *
 from .EnergyUnservedExplorer import *
+from .MonteCarloEstimator import *
+
 
 
