@@ -1,0 +1,1054 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, minimum-scale=1" />
+<meta name="generator" content="pdoc 0.9.1" />
+<title>psrmodels.time_collapsed.MonteCarloEstimator API documentation</title>
+<meta name="description" content="" />
+<link rel="preload stylesheet" as="style" href="https://cdnjs.cloudflare.com/ajax/libs/10up-sanitize.css/11.0.1/sanitize.min.css" integrity="sha256-PK9q560IAAa6WVRRh76LtCaI8pjTJ2z11v0miyNNjrs=" crossorigin>
+<link rel="preload stylesheet" as="style" href="https://cdnjs.cloudflare.com/ajax/libs/10up-sanitize.css/11.0.1/typography.min.css" integrity="sha256-7l/o7C8jubJiy74VsKTidCy1yBkRtiUGbVkYBylBqUg=" crossorigin>
+<link rel="stylesheet preload" as="style" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.1.1/styles/github.min.css" crossorigin>
+<style>:root{--highlight-color:#fe9}.flex{display:flex !important}body{line-height:1.5em}#content{padding:20px}#sidebar{padding:30px;overflow:hidden}#sidebar > *:last-child{margin-bottom:2cm}.http-server-breadcrumbs{font-size:130%;margin:0 0 15px 0}#footer{font-size:.75em;padding:5px 30px;border-top:1px solid #ddd;text-align:right}#footer p{margin:0 0 0 1em;display:inline-block}#footer p:last-child{margin-right:30px}h1,h2,h3,h4,h5{font-weight:300}h1{font-size:2.5em;line-height:1.1em}h2{font-size:1.75em;margin:1em 0 .50em 0}h3{font-size:1.4em;margin:25px 0 10px 0}h4{margin:0;font-size:105%}h1:target,h2:target,h3:target,h4:target,h5:target,h6:target{background:var(--highlight-color);padding:.2em 0}a{color:#058;text-decoration:none;transition:color .3s ease-in-out}a:hover{color:#e82}.title code{font-weight:bold}h2[id^="header-"]{margin-top:2em}.ident{color:#900}pre code{background:#f8f8f8;font-size:.8em;line-height:1.4em}code{background:#f2f2f1;padding:1px 4px;overflow-wrap:break-word}h1 code{background:transparent}pre{background:#f8f8f8;border:0;border-top:1px solid #ccc;border-bottom:1px solid #ccc;margin:1em 0;padding:1ex}#http-server-module-list{display:flex;flex-flow:column}#http-server-module-list div{display:flex}#http-server-module-list dt{min-width:10%}#http-server-module-list p{margin-top:0}.toc ul,#index{list-style-type:none;margin:0;padding:0}#index code{background:transparent}#index h3{border-bottom:1px solid #ddd}#index ul{padding:0}#index h4{margin-top:.6em;font-weight:bold}@media (min-width:200ex){#index .two-column{column-count:2}}@media (min-width:300ex){#index .two-column{column-count:3}}dl{margin-bottom:2em}dl dl:last-child{margin-bottom:4em}dd{margin:0 0 1em 3em}#header-classes + dl > dd{margin-bottom:3em}dd dd{margin-left:2em}dd p{margin:10px 0}.name{background:#eee;font-weight:bold;font-size:.85em;padding:5px 10px;display:inline-block;min-width:40%}.name:hover{background:#e0e0e0}dt:target .name{background:var(--highlight-color)}.name > span:first-child{white-space:nowrap}.name.class > span:nth-child(2){margin-left:.4em}.inherited{color:#999;border-left:5px solid #eee;padding-left:1em}.inheritance em{font-style:normal;font-weight:bold}.desc h2{font-weight:400;font-size:1.25em}.desc h3{font-size:1em}.desc dt code{background:inherit}.source summary,.git-link-div{color:#666;text-align:right;font-weight:400;font-size:.8em;text-transform:uppercase}.source summary > *{white-space:nowrap;cursor:pointer}.git-link{color:inherit;margin-left:1em}.source pre{max-height:500px;overflow:auto;margin:0}.source pre code{font-size:12px;overflow:visible}.hlist{list-style:none}.hlist li{display:inline}.hlist li:after{content:',\2002'}.hlist li:last-child:after{content:none}.hlist .hlist{display:inline;padding-left:1em}img{max-width:100%}td{padding:0 .5em}.admonition{padding:.1em .5em;margin-bottom:1em}.admonition-title{font-weight:bold}.admonition.note,.admonition.info,.admonition.important{background:#aef}.admonition.todo,.admonition.versionadded,.admonition.tip,.admonition.hint{background:#dfd}.admonition.warning,.admonition.versionchanged,.admonition.deprecated{background:#fd4}.admonition.error,.admonition.danger,.admonition.caution{background:lightpink}</style>
+<style media="screen and (min-width: 700px)">@media screen and (min-width:700px){#sidebar{width:30%;height:100vh;overflow:auto;position:sticky;top:0}#content{width:70%;max-width:100ch;padding:3em 4em;border-left:1px solid #ddd}pre code{font-size:1em}.item .name{font-size:1em}main{display:flex;flex-direction:row-reverse;justify-content:flex-end}.toc ul ul,#index ul{padding-left:1.5em}.toc > ul > li{margin-top:.5em}}</style>
+<style media="print">@media print{#sidebar h1{page-break-before:always}.source{display:none}}@media print{*{background:transparent !important;color:#000 !important;box-shadow:none !important;text-shadow:none !important}a[href]:after{content:" (" attr(href) ")";font-size:90%}a[href][title]:after{content:none}abbr[title]:after{content:" (" attr(title) ")"}.ir a:after,a[href^="javascript:"]:after,a[href^="#"]:after{content:""}pre,blockquote{border:1px solid #999;page-break-inside:avoid}thead{display:table-header-group}tr,img{page-break-inside:avoid}img{max-width:100% !important}@page{margin:0.5cm}p,h2,h3{orphans:3;widows:3}h1,h2,h3,h4,h5,h6{page-break-after:avoid}}</style>
+<script defer src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.1.1/highlight.min.js" integrity="sha256-Uv3H6lx7dJmRfRvH8TH6kJD1TSK1aFcwgx+mdg3epi8=" crossorigin></script>
+<script>window.addEventListener('DOMContentLoaded', () => hljs.initHighlighting())</script>
+</head>
+<body>
+<main>
+<article id="content">
+<header>
+<h1 class="title">Module <code>psrmodels.time_collapsed.MonteCarloEstimator</code></h1>
+</header>
+<section id="section-intro">
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">import numpy as np
+from scipy.optimize import bisect
+
+class MonteCarloEstimator(object):
+  &#34;&#34;&#34; Class that contains method to calculate Monte Carlo estimates for reliability analysis from a sample of observed pre-interconnection power margin values
+  &#34;&#34;&#34;
+
+  # @staticmethod
+  def find_shortfalls(self,obs,axis,c,policy):
+    if axis not in [0,1]:
+      raise Exception(&#34;axis value must be 0 or 1&#34;)
+    if policy not in [&#34;veto&#34;,&#34;share&#34;]:
+      raise Exception(&#34;Policy not recognised.&#34;)
+    other = 1 - axis
+    shortfall_region_limit = 0 if policy == &#34;veto&#34; else c
+    shortfalls = np.logical_or(obs[:,axis] &lt; -c,np.logical_and(obs[:,axis] &lt; shortfall_region_limit,obs[:,other] &lt; -obs[:,axis]))
+
+    return shortfalls
+
+  # @staticmethod
+  # def _lolp(self,shortfalls):
+  #   return np.mean(shortfalls)
+
+  #@staticmethod
+  def lole(self,obs,season_length=3360,c=1000,policy=&#34;veto&#34;,axis=0):
+    &#34;&#34;&#34;returns LOLE estimate
+
+    **Parameters**:
+    
+    `obs` (`numpy.ndarray`): Matrix with observations of power margin values, with a column per area
+
+    `season_length` (`int`): Length of season under consideration. Defaults to length of single UK peak season in hours.
+
+    `c` (`int`): Interconnector capacity
+
+    `policy` (`string`): either &#39;share&#39; or &#39;veto&#39;
+
+    `axis` (`int`): area for which this will be calculated
+
+    &#34;&#34;&#34;
+    shortfalls = self.find_shortfalls(obs,axis,c,policy)
+
+    return np.mean(shortfalls) * season_length
+
+  #@staticmethod
+  def _power_flow(self,obs,c,policy,to_axis,demand=None):
+    other = 1 - to_axis
+    if policy == &#34;veto&#34;:
+      flow = np.minimum(np.maximum(obs[:,other],0),c)
+    else:
+      if demand is not None:
+        r = demand[:,to_axis]/np.sum(demand,axis=1)
+        flow = np.minimum(np.maximum(r*obs[:,other] - (1-r)*obs[:,to_axis],-c),c)
+      else:
+        raise Exception(&#34;demand not supplied&#34;)
+
+    return flow
+
+  #@staticmethod
+  def _epu_vector(self,obs,c=1000,policy=&#34;veto&#34;,axis=0,demand=None):
+    &#34;&#34;&#34;returns vector of EPU values for each observed power margin value
+
+    **Parameters**:
+    
+    `obs` (`numpy.ndarray`): Matrix with observations of power margin values, with a column per area
+
+    `c` (`int`): Interconnector capacity
+
+    `policy` (`string`): either &#39;share&#39; or &#39;veto&#39;
+
+    `axis` (`int`): area for which this will be calculated
+
+    `demand` (`numpy.ndarray`): Matrix with observations of demand values, with a column per area
+
+    &#34;&#34;&#34;
+    if policy == &#34;share&#34; and demand is None:
+      raise Exception(&#34;share policy requires demand observations to be passed.&#34;)
+
+    shortfalls = self.find_shortfalls(obs,axis,c,policy)
+
+    obs_shortfall = obs[shortfalls,:]
+
+    pu = obs_shortfall[:,axis] + self._power_flow(obs=obs_shortfall,c=c,policy=policy,demand=demand[shortfalls,:] if demand is not None else None,to_axis=axis)
+    return pu
+
+  #@staticmethod 
+  def eeu(self,obs,season_length=3360,c=1000,policy=&#34;veto&#34;,axis=0,demand=None):
+    &#34;&#34;&#34;returns EEU estimate
+
+    **Parameters**:
+    
+    `obs` (`numpy.ndarray`): Matrix with observations of power margin values, with a column per area
+
+    `season_length` (`int`): Length of season under consideration. Defaults to length of single UK peak season in hours.
+
+    `c` (`int`): Interconnector capacity
+
+    `policy` (`string`): either &#39;share&#39; or &#39;veto&#39;
+
+    `axis` (`int`): area for which this will be calculated
+
+    `demand` (`numpy.ndarray`): Matrix with observations of demand values, with a column per area. Can be `None` if policy equals `veto`.
+
+    &#34;&#34;&#34;
+    return - np.sum(self._epu_vector(obs=obs,c=c,policy=policy,axis=axis,demand=demand))/obs.shape[0] * season_length
+
+  #@staticmethod
+  def system_lole(self,obs,season_length=3360,c=1000,policy=&#34;veto&#34;):
+    &#34;&#34;&#34;returns system-wide LOLE estimate, treating the system as a single area
+
+    **Parameters**:
+    
+    `obs` (`numpy.ndarray`): Observation matrix with a column per area
+
+    `season_length` (`int`): Length of season under consideration. Defaults to length of single UK peak season in hours.
+
+    `c` (`int`): Interconnector capacity
+
+    `policy` (`string`): either &#39;share&#39; or &#39;veto&#39;
+
+    `axis` (`int`): area for which this will be calculated
+
+    &#34;&#34;&#34;
+
+    shortfalls_a0 = self.find_shortfalls(obs,0,c,policy)
+    shortfalls_a1 = self.find_shortfalls(obs,1,c,policy)
+
+    return np.mean(np.logical_or(shortfalls_a0,shortfalls_a1)) * season_length
+
+  #@staticmethod
+  def system_eeu(self,obs,season_length=3360,c=1000,policy=&#34;veto&#34;,demand=None):
+    &#34;&#34;&#34;returns system-wide EEU estimate, treating the system as a single area
+
+    **Parameters**:
+    
+    `obs` (`numpy.ndarray`): Observation matrix with a column per area
+
+    `season_length` (`int`): Length of season under consideration. Defaults to length of single UK peak season in hours.
+
+    `c` (`int`): Interconnector capacity
+
+    `policy` (`string`): either &#39;share&#39; or &#39;veto&#39;
+
+    `axis` (`int`): area for which this will be calculated
+
+    &#34;&#34;&#34;
+    pu_a0 = - self._epu_vector(obs,c=c,policy=policy,axis=0,demand=demand)
+    pu_a1 = - self._epu_vector(obs,c=c,policy=policy,axis=1,demand=demand)
+
+    return (np.sum(pu_a0) + np.sum(pu_a1))/obs.shape[0] * season_length
+
+  #@staticmethod
+  def power_margin_cdf(self,x,obs,c=1000,policy=&#34;veto&#34;,axis=0):
+    &#34;&#34;&#34;returns empirical CDF
+
+    **Parameters**:
+    
+    `obs` (`numpy.ndarray`): Observation matrix with a column per area
+
+    `c` (`int`): Interconnector capacity
+
+    `policy` (`string`): either &#39;share&#39; or &#39;veto&#39;
+
+    `axis` (`int`): area for which this will be calculated
+
+    &#34;&#34;&#34;
+    m = obs.shape[0]
+    if c &gt; 0:
+      flow_to_0 = self._power_flow(obs=obs,c=c,policy=policy,to_axis=0)
+      obs = np.concatenate([(obs[:,0] + flow_to_0).reshape(m,1),(obs[:,1] - flow_to_0).reshape(m,1)],axis=1)
+    
+    return np.mean(np.logical_and(obs[:,0] &lt;= x[0],obs[:,1] &lt;= x[1]))
+
+
+
+
+  #@staticmethod
+  def itc_efc(self,obs,c=1000,policy=&#34;veto&#34;,metric=&#34;lole&#34;,axis=0,tol=0.1,**kwargs):
+    &#34;&#34;&#34;Returns equivalent firm capacity of interconnector in one area
+
+    **Parameters**:
+
+    `obs` (`numpy.ndarray`): Observation matrix with a column per area
+    
+    `c` (`int`): interconnection capacity
+
+    `policy` (`str`): Either &#39;share&#39; or &#39;veto&#39;
+
+    `metric` (`string`): name of the instance&#39;s method that will be used to measure risk
+
+    `axis` (`int`): area for which risk will be calculated
+
+    `tol` (`float`): absolute error tolerance from true EFC value
+
+    `kwargs` : additional parameters to be passed to the risk metric function
+
+    &#34;&#34;&#34;
+    obs = obs.astype(dtype=np.float64)
+    with_itc = getattr(self,metric)(obs=obs,c=c,policy=policy,axis=axis,**kwargs)
+    #print(&#34;with_itc: {x}&#34;.format(x=with_itc))
+
+    def find_efc(x):
+      #print(&#34;x: {x}&#34;.format(x=x))
+      obs[:,axis] += x
+      without_itc = getattr(self,metric)(obs=obs,c=0,policy=policy,axis=axis,**kwargs)
+      obs[:,axis] -= x
+      return with_itc - without_itc
+
+    diff_to_null = find_efc(0)
+
+    if diff_to_null == 0: #itc is equivalent to null interconnection riskwise
+      return 0
+    else:
+      # find suitalbe search intervals that are reasonably small
+      if diff_to_null &gt; 0: #interconnector adds risk =&gt; negative firm capacity
+        rightmost = 0
+        leftmost = -c
+        while find_efc(leftmost) &gt; 0 :
+          leftmost -= c
+      else:
+        leftmost = 0
+        rightmost = c
+        while find_efc(rightmost) &lt; 0:
+          rightmost += c
+      #print(&#34;bisect  algorithm...&#34;)
+      efc, res = bisect(f=find_efc,a=leftmost,b=rightmost,full_output=True,xtol=tol/2,rtol=tol/(2*with_itc))
+      if not res.converged:
+        print(&#34;Warning: EFC estimator did not converge.&#34;)
+      #print(&#34;efc:{efc}&#34;.format(efc=efc))
+      return int(efc)
+
+  #@staticmethod
+  def convgen_efc(self, obs, cap, prob, gen_axis, fc_axis, c=1000,policy=&#34;veto&#34;,metric=&#34;lole&#34;,axis=0,tol=0.1,**kwargs):
+    &#34;&#34;&#34;Returns the amount of firm capacity that needs to be added to area `fc_axis` such that area `axis` has the same risk (as defined by `metric`) than if new conventional generation was installed in `gen_axis`.
+
+    **Parameters**:
+    
+    `obs` (`numpy.ndarray`): Observation matrix with a column per area
+
+    `cap` (`int`): maximum available capacity of new generator in MW
+
+    `prob` (`float`): availability probability for the new generator
+
+    `gen_axis` (`int`): Axis to which the new generator will be added
+
+    `fc_axis` (`int`): Area to which firm capacity will be added
+
+    `c` (`int`): interconnection capacity
+
+    `policy` (`str`): Either &#39;share&#39; or &#39;veto&#39;
+
+    `axis` (`int`): area for which risk will be calculated
+
+    `metric` (`string`): name of the instance&#39;s method that will be used to measure risk. Only &#39;LOLE&#39; and &#39;EEU&#39; are supported
+
+    `tol` (`float`): absolute error tolerance from target risk value
+
+    `kwargs` : additional parameters to be passed to the risk metric function
+
+    &#34;&#34;&#34;
+    if not (axis in [0,1]):
+      raise Exception(&#34;axis value must be 0 or 1&#34;)
+
+    if not (gen_axis in [0,1]):
+      raise Exception(&#34;gen_axis value must be 0 or 1&#34;)
+
+    if not (fc_axis in [0,1]):
+      raise Exception(&#34;fc_axis value must be 0 or 1&#34;)
+
+    if prob &gt; 1 or prob &lt; 0:
+      raise Exception(&#34;Availability value must be between 0 and 1&#34;)
+
+    if cap &lt; 0:
+      raise Exception(&#34;Generation must be positive&#34;)
+
+    obs = obs.astype(dtype=np.float64)
+    # get risk when adding new generator
+    new_gen_simulations = cap * np.random.binomial(n=1,p=prob,size=obs.shape[0])
+    #pint(new_gen_simulations)
+    obs[:,gen_axis] += new_gen_simulations
+    with_gen = getattr(self,metric)(obs = obs,c=c,policy=policy,axis=axis,**kwargs)
+    #print(&#34;with_gen: {x}&#34;.format(x=with_gen))
+
+    # get efc of new generator
+    obs[:,gen_axis] -= new_gen_simulations 
+    #print(&#34;without_gen: {x}&#34;.format(x=getattr(self,metric)(obs = obs,c=c,policy=policy,axis=axis,**kwargs)))
+
+    def find_efc(x):
+      obs[:,fc_axis] += x
+      with_fc = getattr(self,metric)(obs=obs,c=c,policy=policy,axis=axis,**kwargs)
+      obs[:,fc_axis] -= x
+      #print(&#34;x: {x}, with_fc: {with_fc}, with_gen: {with_gen}&#34;.format(x=x,with_fc=with_fc,with_gen=with_gen))
+      return with_gen - with_fc
+
+    efc, res = bisect(f=find_efc,a=0,b=cap,full_output=True,xtol=tol/2,rtol=tol/(2*with_gen))
+    if not res.converged:
+      print(&#34;Warning: EFC estimator did not converge.&#34;)
+    #print(&#34;efc:{efc}&#34;.format(efc=efc))
+    return int(efc)</code></pre>
+</details>
+</section>
+<section>
+</section>
+<section>
+</section>
+<section>
+</section>
+<section>
+<h2 class="section-title" id="header-classes">Classes</h2>
+<dl>
+<dt id="psrmodels.time_collapsed.MonteCarloEstimator.MonteCarloEstimator"><code class="flex name class">
+<span>class <span class="ident">MonteCarloEstimator</span></span>
+</code></dt>
+<dd>
+<div class="desc"><p>Class that contains method to calculate Monte Carlo estimates for reliability analysis from a sample of observed pre-interconnection power margin values</p></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">class MonteCarloEstimator(object):
+  &#34;&#34;&#34; Class that contains method to calculate Monte Carlo estimates for reliability analysis from a sample of observed pre-interconnection power margin values
+  &#34;&#34;&#34;
+
+  # @staticmethod
+  def find_shortfalls(self,obs,axis,c,policy):
+    if axis not in [0,1]:
+      raise Exception(&#34;axis value must be 0 or 1&#34;)
+    if policy not in [&#34;veto&#34;,&#34;share&#34;]:
+      raise Exception(&#34;Policy not recognised.&#34;)
+    other = 1 - axis
+    shortfall_region_limit = 0 if policy == &#34;veto&#34; else c
+    shortfalls = np.logical_or(obs[:,axis] &lt; -c,np.logical_and(obs[:,axis] &lt; shortfall_region_limit,obs[:,other] &lt; -obs[:,axis]))
+
+    return shortfalls
+
+  # @staticmethod
+  # def _lolp(self,shortfalls):
+  #   return np.mean(shortfalls)
+
+  #@staticmethod
+  def lole(self,obs,season_length=3360,c=1000,policy=&#34;veto&#34;,axis=0):
+    &#34;&#34;&#34;returns LOLE estimate
+
+    **Parameters**:
+    
+    `obs` (`numpy.ndarray`): Matrix with observations of power margin values, with a column per area
+
+    `season_length` (`int`): Length of season under consideration. Defaults to length of single UK peak season in hours.
+
+    `c` (`int`): Interconnector capacity
+
+    `policy` (`string`): either &#39;share&#39; or &#39;veto&#39;
+
+    `axis` (`int`): area for which this will be calculated
+
+    &#34;&#34;&#34;
+    shortfalls = self.find_shortfalls(obs,axis,c,policy)
+
+    return np.mean(shortfalls) * season_length
+
+  #@staticmethod
+  def _power_flow(self,obs,c,policy,to_axis,demand=None):
+    other = 1 - to_axis
+    if policy == &#34;veto&#34;:
+      flow = np.minimum(np.maximum(obs[:,other],0),c)
+    else:
+      if demand is not None:
+        r = demand[:,to_axis]/np.sum(demand,axis=1)
+        flow = np.minimum(np.maximum(r*obs[:,other] - (1-r)*obs[:,to_axis],-c),c)
+      else:
+        raise Exception(&#34;demand not supplied&#34;)
+
+    return flow
+
+  #@staticmethod
+  def _epu_vector(self,obs,c=1000,policy=&#34;veto&#34;,axis=0,demand=None):
+    &#34;&#34;&#34;returns vector of EPU values for each observed power margin value
+
+    **Parameters**:
+    
+    `obs` (`numpy.ndarray`): Matrix with observations of power margin values, with a column per area
+
+    `c` (`int`): Interconnector capacity
+
+    `policy` (`string`): either &#39;share&#39; or &#39;veto&#39;
+
+    `axis` (`int`): area for which this will be calculated
+
+    `demand` (`numpy.ndarray`): Matrix with observations of demand values, with a column per area
+
+    &#34;&#34;&#34;
+    if policy == &#34;share&#34; and demand is None:
+      raise Exception(&#34;share policy requires demand observations to be passed.&#34;)
+
+    shortfalls = self.find_shortfalls(obs,axis,c,policy)
+
+    obs_shortfall = obs[shortfalls,:]
+
+    pu = obs_shortfall[:,axis] + self._power_flow(obs=obs_shortfall,c=c,policy=policy,demand=demand[shortfalls,:] if demand is not None else None,to_axis=axis)
+    return pu
+
+  #@staticmethod 
+  def eeu(self,obs,season_length=3360,c=1000,policy=&#34;veto&#34;,axis=0,demand=None):
+    &#34;&#34;&#34;returns EEU estimate
+
+    **Parameters**:
+    
+    `obs` (`numpy.ndarray`): Matrix with observations of power margin values, with a column per area
+
+    `season_length` (`int`): Length of season under consideration. Defaults to length of single UK peak season in hours.
+
+    `c` (`int`): Interconnector capacity
+
+    `policy` (`string`): either &#39;share&#39; or &#39;veto&#39;
+
+    `axis` (`int`): area for which this will be calculated
+
+    `demand` (`numpy.ndarray`): Matrix with observations of demand values, with a column per area. Can be `None` if policy equals `veto`.
+
+    &#34;&#34;&#34;
+    return - np.sum(self._epu_vector(obs=obs,c=c,policy=policy,axis=axis,demand=demand))/obs.shape[0] * season_length
+
+  #@staticmethod
+  def system_lole(self,obs,season_length=3360,c=1000,policy=&#34;veto&#34;):
+    &#34;&#34;&#34;returns system-wide LOLE estimate, treating the system as a single area
+
+    **Parameters**:
+    
+    `obs` (`numpy.ndarray`): Observation matrix with a column per area
+
+    `season_length` (`int`): Length of season under consideration. Defaults to length of single UK peak season in hours.
+
+    `c` (`int`): Interconnector capacity
+
+    `policy` (`string`): either &#39;share&#39; or &#39;veto&#39;
+
+    `axis` (`int`): area for which this will be calculated
+
+    &#34;&#34;&#34;
+
+    shortfalls_a0 = self.find_shortfalls(obs,0,c,policy)
+    shortfalls_a1 = self.find_shortfalls(obs,1,c,policy)
+
+    return np.mean(np.logical_or(shortfalls_a0,shortfalls_a1)) * season_length
+
+  #@staticmethod
+  def system_eeu(self,obs,season_length=3360,c=1000,policy=&#34;veto&#34;,demand=None):
+    &#34;&#34;&#34;returns system-wide EEU estimate, treating the system as a single area
+
+    **Parameters**:
+    
+    `obs` (`numpy.ndarray`): Observation matrix with a column per area
+
+    `season_length` (`int`): Length of season under consideration. Defaults to length of single UK peak season in hours.
+
+    `c` (`int`): Interconnector capacity
+
+    `policy` (`string`): either &#39;share&#39; or &#39;veto&#39;
+
+    `axis` (`int`): area for which this will be calculated
+
+    &#34;&#34;&#34;
+    pu_a0 = - self._epu_vector(obs,c=c,policy=policy,axis=0,demand=demand)
+    pu_a1 = - self._epu_vector(obs,c=c,policy=policy,axis=1,demand=demand)
+
+    return (np.sum(pu_a0) + np.sum(pu_a1))/obs.shape[0] * season_length
+
+  #@staticmethod
+  def power_margin_cdf(self,x,obs,c=1000,policy=&#34;veto&#34;,axis=0):
+    &#34;&#34;&#34;returns empirical CDF
+
+    **Parameters**:
+    
+    `obs` (`numpy.ndarray`): Observation matrix with a column per area
+
+    `c` (`int`): Interconnector capacity
+
+    `policy` (`string`): either &#39;share&#39; or &#39;veto&#39;
+
+    `axis` (`int`): area for which this will be calculated
+
+    &#34;&#34;&#34;
+    m = obs.shape[0]
+    if c &gt; 0:
+      flow_to_0 = self._power_flow(obs=obs,c=c,policy=policy,to_axis=0)
+      obs = np.concatenate([(obs[:,0] + flow_to_0).reshape(m,1),(obs[:,1] - flow_to_0).reshape(m,1)],axis=1)
+    
+    return np.mean(np.logical_and(obs[:,0] &lt;= x[0],obs[:,1] &lt;= x[1]))
+
+
+
+
+  #@staticmethod
+  def itc_efc(self,obs,c=1000,policy=&#34;veto&#34;,metric=&#34;lole&#34;,axis=0,tol=0.1,**kwargs):
+    &#34;&#34;&#34;Returns equivalent firm capacity of interconnector in one area
+
+    **Parameters**:
+
+    `obs` (`numpy.ndarray`): Observation matrix with a column per area
+    
+    `c` (`int`): interconnection capacity
+
+    `policy` (`str`): Either &#39;share&#39; or &#39;veto&#39;
+
+    `metric` (`string`): name of the instance&#39;s method that will be used to measure risk
+
+    `axis` (`int`): area for which risk will be calculated
+
+    `tol` (`float`): absolute error tolerance from true EFC value
+
+    `kwargs` : additional parameters to be passed to the risk metric function
+
+    &#34;&#34;&#34;
+    obs = obs.astype(dtype=np.float64)
+    with_itc = getattr(self,metric)(obs=obs,c=c,policy=policy,axis=axis,**kwargs)
+    #print(&#34;with_itc: {x}&#34;.format(x=with_itc))
+
+    def find_efc(x):
+      #print(&#34;x: {x}&#34;.format(x=x))
+      obs[:,axis] += x
+      without_itc = getattr(self,metric)(obs=obs,c=0,policy=policy,axis=axis,**kwargs)
+      obs[:,axis] -= x
+      return with_itc - without_itc
+
+    diff_to_null = find_efc(0)
+
+    if diff_to_null == 0: #itc is equivalent to null interconnection riskwise
+      return 0
+    else:
+      # find suitalbe search intervals that are reasonably small
+      if diff_to_null &gt; 0: #interconnector adds risk =&gt; negative firm capacity
+        rightmost = 0
+        leftmost = -c
+        while find_efc(leftmost) &gt; 0 :
+          leftmost -= c
+      else:
+        leftmost = 0
+        rightmost = c
+        while find_efc(rightmost) &lt; 0:
+          rightmost += c
+      #print(&#34;bisect  algorithm...&#34;)
+      efc, res = bisect(f=find_efc,a=leftmost,b=rightmost,full_output=True,xtol=tol/2,rtol=tol/(2*with_itc))
+      if not res.converged:
+        print(&#34;Warning: EFC estimator did not converge.&#34;)
+      #print(&#34;efc:{efc}&#34;.format(efc=efc))
+      return int(efc)
+
+  #@staticmethod
+  def convgen_efc(self, obs, cap, prob, gen_axis, fc_axis, c=1000,policy=&#34;veto&#34;,metric=&#34;lole&#34;,axis=0,tol=0.1,**kwargs):
+    &#34;&#34;&#34;Returns the amount of firm capacity that needs to be added to area `fc_axis` such that area `axis` has the same risk (as defined by `metric`) than if new conventional generation was installed in `gen_axis`.
+
+    **Parameters**:
+    
+    `obs` (`numpy.ndarray`): Observation matrix with a column per area
+
+    `cap` (`int`): maximum available capacity of new generator in MW
+
+    `prob` (`float`): availability probability for the new generator
+
+    `gen_axis` (`int`): Axis to which the new generator will be added
+
+    `fc_axis` (`int`): Area to which firm capacity will be added
+
+    `c` (`int`): interconnection capacity
+
+    `policy` (`str`): Either &#39;share&#39; or &#39;veto&#39;
+
+    `axis` (`int`): area for which risk will be calculated
+
+    `metric` (`string`): name of the instance&#39;s method that will be used to measure risk. Only &#39;LOLE&#39; and &#39;EEU&#39; are supported
+
+    `tol` (`float`): absolute error tolerance from target risk value
+
+    `kwargs` : additional parameters to be passed to the risk metric function
+
+    &#34;&#34;&#34;
+    if not (axis in [0,1]):
+      raise Exception(&#34;axis value must be 0 or 1&#34;)
+
+    if not (gen_axis in [0,1]):
+      raise Exception(&#34;gen_axis value must be 0 or 1&#34;)
+
+    if not (fc_axis in [0,1]):
+      raise Exception(&#34;fc_axis value must be 0 or 1&#34;)
+
+    if prob &gt; 1 or prob &lt; 0:
+      raise Exception(&#34;Availability value must be between 0 and 1&#34;)
+
+    if cap &lt; 0:
+      raise Exception(&#34;Generation must be positive&#34;)
+
+    obs = obs.astype(dtype=np.float64)
+    # get risk when adding new generator
+    new_gen_simulations = cap * np.random.binomial(n=1,p=prob,size=obs.shape[0])
+    #pint(new_gen_simulations)
+    obs[:,gen_axis] += new_gen_simulations
+    with_gen = getattr(self,metric)(obs = obs,c=c,policy=policy,axis=axis,**kwargs)
+    #print(&#34;with_gen: {x}&#34;.format(x=with_gen))
+
+    # get efc of new generator
+    obs[:,gen_axis] -= new_gen_simulations 
+    #print(&#34;without_gen: {x}&#34;.format(x=getattr(self,metric)(obs = obs,c=c,policy=policy,axis=axis,**kwargs)))
+
+    def find_efc(x):
+      obs[:,fc_axis] += x
+      with_fc = getattr(self,metric)(obs=obs,c=c,policy=policy,axis=axis,**kwargs)
+      obs[:,fc_axis] -= x
+      #print(&#34;x: {x}, with_fc: {with_fc}, with_gen: {with_gen}&#34;.format(x=x,with_fc=with_fc,with_gen=with_gen))
+      return with_gen - with_fc
+
+    efc, res = bisect(f=find_efc,a=0,b=cap,full_output=True,xtol=tol/2,rtol=tol/(2*with_gen))
+    if not res.converged:
+      print(&#34;Warning: EFC estimator did not converge.&#34;)
+    #print(&#34;efc:{efc}&#34;.format(efc=efc))
+    return int(efc)</code></pre>
+</details>
+<h3>Methods</h3>
+<dl>
+<dt id="psrmodels.time_collapsed.MonteCarloEstimator.MonteCarloEstimator.convgen_efc"><code class="name flex">
+<span>def <span class="ident">convgen_efc</span></span>(<span>self, obs, cap, prob, gen_axis, fc_axis, c=1000, policy='veto', metric='lole', axis=0, tol=0.1, **kwargs)</span>
+</code></dt>
+<dd>
+<div class="desc"><p>Returns the amount of firm capacity that needs to be added to area <code>fc_axis</code> such that area <code>axis</code> has the same risk (as defined by <code>metric</code>) than if new conventional generation was installed in <code>gen_axis</code>.</p>
+<p><strong>Parameters</strong>:</p>
+<p><code>obs</code> (<code>numpy.ndarray</code>): Observation matrix with a column per area</p>
+<p><code>cap</code> (<code>int</code>): maximum available capacity of new generator in MW</p>
+<p><code>prob</code> (<code>float</code>): availability probability for the new generator</p>
+<p><code>gen_axis</code> (<code>int</code>): Axis to which the new generator will be added</p>
+<p><code>fc_axis</code> (<code>int</code>): Area to which firm capacity will be added</p>
+<p><code>c</code> (<code>int</code>): interconnection capacity</p>
+<p><code>policy</code> (<code>str</code>): Either 'share' or 'veto'</p>
+<p><code>axis</code> (<code>int</code>): area for which risk will be calculated</p>
+<p><code>metric</code> (<code>string</code>): name of the instance's method that will be used to measure risk. Only 'LOLE' and 'EEU' are supported</p>
+<p><code>tol</code> (<code>float</code>): absolute error tolerance from target risk value</p>
+<p><code>kwargs</code> : additional parameters to be passed to the risk metric function</p></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def convgen_efc(self, obs, cap, prob, gen_axis, fc_axis, c=1000,policy=&#34;veto&#34;,metric=&#34;lole&#34;,axis=0,tol=0.1,**kwargs):
+  &#34;&#34;&#34;Returns the amount of firm capacity that needs to be added to area `fc_axis` such that area `axis` has the same risk (as defined by `metric`) than if new conventional generation was installed in `gen_axis`.
+
+  **Parameters**:
+  
+  `obs` (`numpy.ndarray`): Observation matrix with a column per area
+
+  `cap` (`int`): maximum available capacity of new generator in MW
+
+  `prob` (`float`): availability probability for the new generator
+
+  `gen_axis` (`int`): Axis to which the new generator will be added
+
+  `fc_axis` (`int`): Area to which firm capacity will be added
+
+  `c` (`int`): interconnection capacity
+
+  `policy` (`str`): Either &#39;share&#39; or &#39;veto&#39;
+
+  `axis` (`int`): area for which risk will be calculated
+
+  `metric` (`string`): name of the instance&#39;s method that will be used to measure risk. Only &#39;LOLE&#39; and &#39;EEU&#39; are supported
+
+  `tol` (`float`): absolute error tolerance from target risk value
+
+  `kwargs` : additional parameters to be passed to the risk metric function
+
+  &#34;&#34;&#34;
+  if not (axis in [0,1]):
+    raise Exception(&#34;axis value must be 0 or 1&#34;)
+
+  if not (gen_axis in [0,1]):
+    raise Exception(&#34;gen_axis value must be 0 or 1&#34;)
+
+  if not (fc_axis in [0,1]):
+    raise Exception(&#34;fc_axis value must be 0 or 1&#34;)
+
+  if prob &gt; 1 or prob &lt; 0:
+    raise Exception(&#34;Availability value must be between 0 and 1&#34;)
+
+  if cap &lt; 0:
+    raise Exception(&#34;Generation must be positive&#34;)
+
+  obs = obs.astype(dtype=np.float64)
+  # get risk when adding new generator
+  new_gen_simulations = cap * np.random.binomial(n=1,p=prob,size=obs.shape[0])
+  #pint(new_gen_simulations)
+  obs[:,gen_axis] += new_gen_simulations
+  with_gen = getattr(self,metric)(obs = obs,c=c,policy=policy,axis=axis,**kwargs)
+  #print(&#34;with_gen: {x}&#34;.format(x=with_gen))
+
+  # get efc of new generator
+  obs[:,gen_axis] -= new_gen_simulations 
+  #print(&#34;without_gen: {x}&#34;.format(x=getattr(self,metric)(obs = obs,c=c,policy=policy,axis=axis,**kwargs)))
+
+  def find_efc(x):
+    obs[:,fc_axis] += x
+    with_fc = getattr(self,metric)(obs=obs,c=c,policy=policy,axis=axis,**kwargs)
+    obs[:,fc_axis] -= x
+    #print(&#34;x: {x}, with_fc: {with_fc}, with_gen: {with_gen}&#34;.format(x=x,with_fc=with_fc,with_gen=with_gen))
+    return with_gen - with_fc
+
+  efc, res = bisect(f=find_efc,a=0,b=cap,full_output=True,xtol=tol/2,rtol=tol/(2*with_gen))
+  if not res.converged:
+    print(&#34;Warning: EFC estimator did not converge.&#34;)
+  #print(&#34;efc:{efc}&#34;.format(efc=efc))
+  return int(efc)</code></pre>
+</details>
+</dd>
+<dt id="psrmodels.time_collapsed.MonteCarloEstimator.MonteCarloEstimator.eeu"><code class="name flex">
+<span>def <span class="ident">eeu</span></span>(<span>self, obs, season_length=3360, c=1000, policy='veto', axis=0, demand=None)</span>
+</code></dt>
+<dd>
+<div class="desc"><p>returns EEU estimate</p>
+<p><strong>Parameters</strong>:</p>
+<p><code>obs</code> (<code>numpy.ndarray</code>): Matrix with observations of power margin values, with a column per area</p>
+<p><code>season_length</code> (<code>int</code>): Length of season under consideration. Defaults to length of single UK peak season in hours.</p>
+<p><code>c</code> (<code>int</code>): Interconnector capacity</p>
+<p><code>policy</code> (<code>string</code>): either 'share' or 'veto'</p>
+<p><code>axis</code> (<code>int</code>): area for which this will be calculated</p>
+<p><code>demand</code> (<code>numpy.ndarray</code>): Matrix with observations of demand values, with a column per area. Can be <code>None</code> if policy equals <code>veto</code>.</p></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def eeu(self,obs,season_length=3360,c=1000,policy=&#34;veto&#34;,axis=0,demand=None):
+  &#34;&#34;&#34;returns EEU estimate
+
+  **Parameters**:
+  
+  `obs` (`numpy.ndarray`): Matrix with observations of power margin values, with a column per area
+
+  `season_length` (`int`): Length of season under consideration. Defaults to length of single UK peak season in hours.
+
+  `c` (`int`): Interconnector capacity
+
+  `policy` (`string`): either &#39;share&#39; or &#39;veto&#39;
+
+  `axis` (`int`): area for which this will be calculated
+
+  `demand` (`numpy.ndarray`): Matrix with observations of demand values, with a column per area. Can be `None` if policy equals `veto`.
+
+  &#34;&#34;&#34;
+  return - np.sum(self._epu_vector(obs=obs,c=c,policy=policy,axis=axis,demand=demand))/obs.shape[0] * season_length</code></pre>
+</details>
+</dd>
+<dt id="psrmodels.time_collapsed.MonteCarloEstimator.MonteCarloEstimator.find_shortfalls"><code class="name flex">
+<span>def <span class="ident">find_shortfalls</span></span>(<span>self, obs, axis, c, policy)</span>
+</code></dt>
+<dd>
+<div class="desc"></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def find_shortfalls(self,obs,axis,c,policy):
+  if axis not in [0,1]:
+    raise Exception(&#34;axis value must be 0 or 1&#34;)
+  if policy not in [&#34;veto&#34;,&#34;share&#34;]:
+    raise Exception(&#34;Policy not recognised.&#34;)
+  other = 1 - axis
+  shortfall_region_limit = 0 if policy == &#34;veto&#34; else c
+  shortfalls = np.logical_or(obs[:,axis] &lt; -c,np.logical_and(obs[:,axis] &lt; shortfall_region_limit,obs[:,other] &lt; -obs[:,axis]))
+
+  return shortfalls</code></pre>
+</details>
+</dd>
+<dt id="psrmodels.time_collapsed.MonteCarloEstimator.MonteCarloEstimator.itc_efc"><code class="name flex">
+<span>def <span class="ident">itc_efc</span></span>(<span>self, obs, c=1000, policy='veto', metric='lole', axis=0, tol=0.1, **kwargs)</span>
+</code></dt>
+<dd>
+<div class="desc"><p>Returns equivalent firm capacity of interconnector in one area</p>
+<p><strong>Parameters</strong>:</p>
+<p><code>obs</code> (<code>numpy.ndarray</code>): Observation matrix with a column per area</p>
+<p><code>c</code> (<code>int</code>): interconnection capacity</p>
+<p><code>policy</code> (<code>str</code>): Either 'share' or 'veto'</p>
+<p><code>metric</code> (<code>string</code>): name of the instance's method that will be used to measure risk</p>
+<p><code>axis</code> (<code>int</code>): area for which risk will be calculated</p>
+<p><code>tol</code> (<code>float</code>): absolute error tolerance from true EFC value</p>
+<p><code>kwargs</code> : additional parameters to be passed to the risk metric function</p></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def itc_efc(self,obs,c=1000,policy=&#34;veto&#34;,metric=&#34;lole&#34;,axis=0,tol=0.1,**kwargs):
+  &#34;&#34;&#34;Returns equivalent firm capacity of interconnector in one area
+
+  **Parameters**:
+
+  `obs` (`numpy.ndarray`): Observation matrix with a column per area
+  
+  `c` (`int`): interconnection capacity
+
+  `policy` (`str`): Either &#39;share&#39; or &#39;veto&#39;
+
+  `metric` (`string`): name of the instance&#39;s method that will be used to measure risk
+
+  `axis` (`int`): area for which risk will be calculated
+
+  `tol` (`float`): absolute error tolerance from true EFC value
+
+  `kwargs` : additional parameters to be passed to the risk metric function
+
+  &#34;&#34;&#34;
+  obs = obs.astype(dtype=np.float64)
+  with_itc = getattr(self,metric)(obs=obs,c=c,policy=policy,axis=axis,**kwargs)
+  #print(&#34;with_itc: {x}&#34;.format(x=with_itc))
+
+  def find_efc(x):
+    #print(&#34;x: {x}&#34;.format(x=x))
+    obs[:,axis] += x
+    without_itc = getattr(self,metric)(obs=obs,c=0,policy=policy,axis=axis,**kwargs)
+    obs[:,axis] -= x
+    return with_itc - without_itc
+
+  diff_to_null = find_efc(0)
+
+  if diff_to_null == 0: #itc is equivalent to null interconnection riskwise
+    return 0
+  else:
+    # find suitalbe search intervals that are reasonably small
+    if diff_to_null &gt; 0: #interconnector adds risk =&gt; negative firm capacity
+      rightmost = 0
+      leftmost = -c
+      while find_efc(leftmost) &gt; 0 :
+        leftmost -= c
+    else:
+      leftmost = 0
+      rightmost = c
+      while find_efc(rightmost) &lt; 0:
+        rightmost += c
+    #print(&#34;bisect  algorithm...&#34;)
+    efc, res = bisect(f=find_efc,a=leftmost,b=rightmost,full_output=True,xtol=tol/2,rtol=tol/(2*with_itc))
+    if not res.converged:
+      print(&#34;Warning: EFC estimator did not converge.&#34;)
+    #print(&#34;efc:{efc}&#34;.format(efc=efc))
+    return int(efc)</code></pre>
+</details>
+</dd>
+<dt id="psrmodels.time_collapsed.MonteCarloEstimator.MonteCarloEstimator.lole"><code class="name flex">
+<span>def <span class="ident">lole</span></span>(<span>self, obs, season_length=3360, c=1000, policy='veto', axis=0)</span>
+</code></dt>
+<dd>
+<div class="desc"><p>returns LOLE estimate</p>
+<p><strong>Parameters</strong>:</p>
+<p><code>obs</code> (<code>numpy.ndarray</code>): Matrix with observations of power margin values, with a column per area</p>
+<p><code>season_length</code> (<code>int</code>): Length of season under consideration. Defaults to length of single UK peak season in hours.</p>
+<p><code>c</code> (<code>int</code>): Interconnector capacity</p>
+<p><code>policy</code> (<code>string</code>): either 'share' or 'veto'</p>
+<p><code>axis</code> (<code>int</code>): area for which this will be calculated</p></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def lole(self,obs,season_length=3360,c=1000,policy=&#34;veto&#34;,axis=0):
+  &#34;&#34;&#34;returns LOLE estimate
+
+  **Parameters**:
+  
+  `obs` (`numpy.ndarray`): Matrix with observations of power margin values, with a column per area
+
+  `season_length` (`int`): Length of season under consideration. Defaults to length of single UK peak season in hours.
+
+  `c` (`int`): Interconnector capacity
+
+  `policy` (`string`): either &#39;share&#39; or &#39;veto&#39;
+
+  `axis` (`int`): area for which this will be calculated
+
+  &#34;&#34;&#34;
+  shortfalls = self.find_shortfalls(obs,axis,c,policy)
+
+  return np.mean(shortfalls) * season_length</code></pre>
+</details>
+</dd>
+<dt id="psrmodels.time_collapsed.MonteCarloEstimator.MonteCarloEstimator.power_margin_cdf"><code class="name flex">
+<span>def <span class="ident">power_margin_cdf</span></span>(<span>self, x, obs, c=1000, policy='veto', axis=0)</span>
+</code></dt>
+<dd>
+<div class="desc"><p>returns empirical CDF</p>
+<p><strong>Parameters</strong>:</p>
+<p><code>obs</code> (<code>numpy.ndarray</code>): Observation matrix with a column per area</p>
+<p><code>c</code> (<code>int</code>): Interconnector capacity</p>
+<p><code>policy</code> (<code>string</code>): either 'share' or 'veto'</p>
+<p><code>axis</code> (<code>int</code>): area for which this will be calculated</p></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def power_margin_cdf(self,x,obs,c=1000,policy=&#34;veto&#34;,axis=0):
+  &#34;&#34;&#34;returns empirical CDF
+
+  **Parameters**:
+  
+  `obs` (`numpy.ndarray`): Observation matrix with a column per area
+
+  `c` (`int`): Interconnector capacity
+
+  `policy` (`string`): either &#39;share&#39; or &#39;veto&#39;
+
+  `axis` (`int`): area for which this will be calculated
+
+  &#34;&#34;&#34;
+  m = obs.shape[0]
+  if c &gt; 0:
+    flow_to_0 = self._power_flow(obs=obs,c=c,policy=policy,to_axis=0)
+    obs = np.concatenate([(obs[:,0] + flow_to_0).reshape(m,1),(obs[:,1] - flow_to_0).reshape(m,1)],axis=1)
+  
+  return np.mean(np.logical_and(obs[:,0] &lt;= x[0],obs[:,1] &lt;= x[1]))</code></pre>
+</details>
+</dd>
+<dt id="psrmodels.time_collapsed.MonteCarloEstimator.MonteCarloEstimator.system_eeu"><code class="name flex">
+<span>def <span class="ident">system_eeu</span></span>(<span>self, obs, season_length=3360, c=1000, policy='veto', demand=None)</span>
+</code></dt>
+<dd>
+<div class="desc"><p>returns system-wide EEU estimate, treating the system as a single area</p>
+<p><strong>Parameters</strong>:</p>
+<p><code>obs</code> (<code>numpy.ndarray</code>): Observation matrix with a column per area</p>
+<p><code>season_length</code> (<code>int</code>): Length of season under consideration. Defaults to length of single UK peak season in hours.</p>
+<p><code>c</code> (<code>int</code>): Interconnector capacity</p>
+<p><code>policy</code> (<code>string</code>): either 'share' or 'veto'</p>
+<p><code>axis</code> (<code>int</code>): area for which this will be calculated</p></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def system_eeu(self,obs,season_length=3360,c=1000,policy=&#34;veto&#34;,demand=None):
+  &#34;&#34;&#34;returns system-wide EEU estimate, treating the system as a single area
+
+  **Parameters**:
+  
+  `obs` (`numpy.ndarray`): Observation matrix with a column per area
+
+  `season_length` (`int`): Length of season under consideration. Defaults to length of single UK peak season in hours.
+
+  `c` (`int`): Interconnector capacity
+
+  `policy` (`string`): either &#39;share&#39; or &#39;veto&#39;
+
+  `axis` (`int`): area for which this will be calculated
+
+  &#34;&#34;&#34;
+  pu_a0 = - self._epu_vector(obs,c=c,policy=policy,axis=0,demand=demand)
+  pu_a1 = - self._epu_vector(obs,c=c,policy=policy,axis=1,demand=demand)
+
+  return (np.sum(pu_a0) + np.sum(pu_a1))/obs.shape[0] * season_length</code></pre>
+</details>
+</dd>
+<dt id="psrmodels.time_collapsed.MonteCarloEstimator.MonteCarloEstimator.system_lole"><code class="name flex">
+<span>def <span class="ident">system_lole</span></span>(<span>self, obs, season_length=3360, c=1000, policy='veto')</span>
+</code></dt>
+<dd>
+<div class="desc"><p>returns system-wide LOLE estimate, treating the system as a single area</p>
+<p><strong>Parameters</strong>:</p>
+<p><code>obs</code> (<code>numpy.ndarray</code>): Observation matrix with a column per area</p>
+<p><code>season_length</code> (<code>int</code>): Length of season under consideration. Defaults to length of single UK peak season in hours.</p>
+<p><code>c</code> (<code>int</code>): Interconnector capacity</p>
+<p><code>policy</code> (<code>string</code>): either 'share' or 'veto'</p>
+<p><code>axis</code> (<code>int</code>): area for which this will be calculated</p></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def system_lole(self,obs,season_length=3360,c=1000,policy=&#34;veto&#34;):
+  &#34;&#34;&#34;returns system-wide LOLE estimate, treating the system as a single area
+
+  **Parameters**:
+  
+  `obs` (`numpy.ndarray`): Observation matrix with a column per area
+
+  `season_length` (`int`): Length of season under consideration. Defaults to length of single UK peak season in hours.
+
+  `c` (`int`): Interconnector capacity
+
+  `policy` (`string`): either &#39;share&#39; or &#39;veto&#39;
+
+  `axis` (`int`): area for which this will be calculated
+
+  &#34;&#34;&#34;
+
+  shortfalls_a0 = self.find_shortfalls(obs,0,c,policy)
+  shortfalls_a1 = self.find_shortfalls(obs,1,c,policy)
+
+  return np.mean(np.logical_or(shortfalls_a0,shortfalls_a1)) * season_length</code></pre>
+</details>
+</dd>
+</dl>
+</dd>
+</dl>
+</section>
+</article>
+<nav id="sidebar">
+<h1>Index</h1>
+<div class="toc">
+<ul></ul>
+</div>
+<ul id="index">
+<li><h3>Super-module</h3>
+<ul>
+<li><code><a title="psrmodels.time_collapsed" href="index.html">psrmodels.time_collapsed</a></code></li>
+</ul>
+</li>
+<li><h3><a href="#header-classes">Classes</a></h3>
+<ul>
+<li>
+<h4><code><a title="psrmodels.time_collapsed.MonteCarloEstimator.MonteCarloEstimator" href="#psrmodels.time_collapsed.MonteCarloEstimator.MonteCarloEstimator">MonteCarloEstimator</a></code></h4>
+<ul class="two-column">
+<li><code><a title="psrmodels.time_collapsed.MonteCarloEstimator.MonteCarloEstimator.convgen_efc" href="#psrmodels.time_collapsed.MonteCarloEstimator.MonteCarloEstimator.convgen_efc">convgen_efc</a></code></li>
+<li><code><a title="psrmodels.time_collapsed.MonteCarloEstimator.MonteCarloEstimator.eeu" href="#psrmodels.time_collapsed.MonteCarloEstimator.MonteCarloEstimator.eeu">eeu</a></code></li>
+<li><code><a title="psrmodels.time_collapsed.MonteCarloEstimator.MonteCarloEstimator.find_shortfalls" href="#psrmodels.time_collapsed.MonteCarloEstimator.MonteCarloEstimator.find_shortfalls">find_shortfalls</a></code></li>
+<li><code><a title="psrmodels.time_collapsed.MonteCarloEstimator.MonteCarloEstimator.itc_efc" href="#psrmodels.time_collapsed.MonteCarloEstimator.MonteCarloEstimator.itc_efc">itc_efc</a></code></li>
+<li><code><a title="psrmodels.time_collapsed.MonteCarloEstimator.MonteCarloEstimator.lole" href="#psrmodels.time_collapsed.MonteCarloEstimator.MonteCarloEstimator.lole">lole</a></code></li>
+<li><code><a title="psrmodels.time_collapsed.MonteCarloEstimator.MonteCarloEstimator.power_margin_cdf" href="#psrmodels.time_collapsed.MonteCarloEstimator.MonteCarloEstimator.power_margin_cdf">power_margin_cdf</a></code></li>
+<li><code><a title="psrmodels.time_collapsed.MonteCarloEstimator.MonteCarloEstimator.system_eeu" href="#psrmodels.time_collapsed.MonteCarloEstimator.MonteCarloEstimator.system_eeu">system_eeu</a></code></li>
+<li><code><a title="psrmodels.time_collapsed.MonteCarloEstimator.MonteCarloEstimator.system_lole" href="#psrmodels.time_collapsed.MonteCarloEstimator.MonteCarloEstimator.system_lole">system_lole</a></code></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</nav>
+</main>
+<footer id="footer">
+<p>Generated by <a href="https://pdoc3.github.io/pdoc"><cite>pdoc</cite> 0.9.1</a>.</p>
+</footer>
+</body>
+</html>

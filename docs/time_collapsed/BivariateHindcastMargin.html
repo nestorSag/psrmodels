@@ -37,6 +37,9 @@ from .UnivariateHindcastMargin import *
 
 from _c_ext_bivarmargins import ffi, lib as C_CALL
 
+from deprecated import deprecated
+from warnings import warn
+
 class BivariateHindcastMargin(object):
   &#34;&#34;&#34;Main class for risk calculations in a time-collapsed 2-area hindcast model.
   It receives demand and wind generation data as opposed to just net demand data, to make it posible to calculate
@@ -56,7 +59,7 @@ class BivariateHindcastMargin(object):
   def __init__(self,demand,renewables,gen_dists,**kwargs):
 
     self.net_demand = np.ascontiguousarray((demand - renewables),dtype=np.int64).clip(min=0) #no negative net demand
-    self.wind = renewables
+    self.renewables = renewables
     self.demand = np.ascontiguousarray(demand,dtype=np.int64)
     self.gen_dists = self._parse_gendists(gen_dists,**kwargs)
     self.n = self.net_demand.shape[0]
@@ -111,6 +114,8 @@ class BivariateHindcastMargin(object):
                       np.int64(origin[0]),
                       np.int64(origin[1]),
                       np.int64(length),
+                      np.int64(bigen.X1.min),
+                      np.int64(bigen.X2.min),
                       np.int64(bigen.X1.max),
                       np.int64(bigen.X2.max),
                       ffi.cast(&#34;double *&#34;,bigen.X1.cdf_vals.ctypes.data),
@@ -291,7 +296,8 @@ class BivariateHindcastMargin(object):
 
     self.demand = np.flip(self.demand,axis=1)
     self.net_demand = np.flip(self.net_demand,axis=1)
-    self.gen_dists = self.gen_dists[::-1]
+    self.gen_dists = [self.gen_dists[1],self.gen_dists[0]]
+    #self.gen_dists = self.gen_dists[::-1]
 
   def lole(self,c,policy,axis=0,get_pointwise_risk=False):
     &#34;&#34;&#34;calculate LOLE for one of the areas
@@ -304,24 +310,29 @@ class BivariateHindcastMargin(object):
 
     `axis (`int*): area index for which this will be calculated
 
+    `get_pointwise_risk (`bool`): If `True`, returns pandas dataframe with LOLE contributions historic observation
+
     &#34;&#34;&#34;
 
-    if axis == 1:
-      self._swap_axes()
+    # if axis == 1:
+    #   self._swap_axes()
 
-    m = (-1,np.Inf)
+    m = [np.Inf,np.Inf]
+    m[axis] = -1
+    #m = (-1,np.Inf)
     lolp_vals = self.cdf(m=m,c=c,policy=policy,get_pointwise_risk=get_pointwise_risk) 
     if get_pointwise_risk:
-      return lolp_vals
+      lole = lolp_vals
     else:
-      return self.n * lolp_vals
+      lole = self.n * lolp_vals
+
+    return lole
 
     #lole = self._lole(c=c,policy=policy,get_pointwise_risk=get_pointwise_risk)
 
-    if axis == 1:
-      self._swap_axes()
+    # if axis == 1:
+    #   self._swap_axes()
 
-    return lole
 
   # @deprecated(version=&#34;1.0.0&#34;,reason=&#34;use lole() instead&#34;)
   # def lole(self,c,policy,axis=0,get_pointwise_risk=False):
@@ -376,6 +387,8 @@ class BivariateHindcastMargin(object):
 
     `axis` (`int`): area index for which this will be calculated 
 
+    `get_pointwise_risk (`bool`): If `True`, returns pandas dataframe with EEU contributions for each historic observation
+
     &#34;&#34;&#34;
 
     if axis == 1:
@@ -421,11 +434,11 @@ class BivariateHindcastMargin(object):
 
     `policy` (`str`): Either &#39;share&#39; or &#39;veto&#39;
 
-    `get_pointwise_risk` (`str`): return pandas DataFrame with net demand values and corresponding pointwise risk measurements
+    `get_pointwise_risk` (`str`): return pandas DataFrame with EPU for each historic observation
 
     &#34;&#34;&#34;
     if c &gt; 0 or get_pointwise_risk:
-      self._check_null_fc()
+      #self._check_null_fc()
       X1 = self.gen_dists[0]
       X2 = self.gen_dists[1]
       n = self.n
@@ -493,7 +506,100 @@ class BivariateHindcastMargin(object):
 
     return self.net_demand[np.random.choice(range(self.n),size=n),:]
 
-  def efc(self,c,policy,metric=&#34;LOLE&#34;,axis=0,**kwargs):
+  def efc(self,**kwargs):
+    &#34;&#34;&#34;This method calculates the equivalent firm capacity of interconnection for a given power system. It has been deprecated; use the `itc_efc` method instead. When called, this function calls `itc_efc`, passing all arguments along.
+    &#34;&#34;&#34;
+    warn(&#34;This method is deprecated; use methods itc_efc or convgen_ifc instead.&#34;)
+    return self.itc_efc(**kwargs)
+
+  def convgen_efc(self, cap, prob, gen_axis, fc_axis, c,policy,metric=&#34;lole&#34;,axis=0,tol=0.1,**kwargs):
+    &#34;&#34;&#34;Returns the amount of firm capacity that needs to be added to area `fc_axis` such that area `axis` has the same risk (as defined by `metric`) than if new conventional generation was installed in `gen_axis`.
+
+    **Parameters**:
+    
+    `cap` (`int`): maximum available capacity of new generator in MW
+
+    `prob` (`float`): availability probability for the new generator
+
+    `gen_axis` (`int`): Axis to which the new generator will be added
+
+    `fc_axis` (`int`): Area to which firm capacity will be added
+
+    `c` (`int`): interconnection capacity
+
+    `policy` (`str`): Either &#39;share&#39; or &#39;veto&#39;
+
+    `axis` (`int`): area for which risk will be calculated
+
+    `metric` (`string`): name of the instance&#39;s method that will be used to measure risk. Only &#39;LOLE&#39; and &#39;EEU&#39; are supported
+
+    `tol` (`float`): absolute error tolerance from true target risk value
+
+    &#34;&#34;&#34;
+    if not (axis in [0,1]):
+      raise Exception(&#34;axis value must be 0 or 1&#34;)
+
+    if not (gen_axis in [0,1]):
+      raise Exception(&#34;gen_axis value must be 0 or 1&#34;)
+
+    if not (fc_axis in [0,1]):
+      raise Exception(&#34;fc_axis value must be 0 or 1&#34;)
+
+    if prob &gt; 1 or prob &lt; 0:
+      raise Exception(&#34;Availability value must be between 0 and 1&#34;)
+
+    other = 1 - gen_axis
+    gen_data = self.gen_dists[gen_axis].original_data
+
+    # create augmented conv gen distribution
+    new_row = pd.Series([cap,prob],index=[&#34;Capacity&#34;,&#34;Availability&#34;])
+    augmented_data = gen_data.append(new_row,ignore_index=True)
+    augmented_gen_dist = ConvGenDistribution(augmented_data)
+
+    # create augmented conv gen bivariate distribution and get risk metric in agumented system
+    new_bivariate_dist = [0,1] #place holder values
+    new_bivariate_dist[gen_axis] = augmented_gen_dist
+    new_bivariate_dist[other] = self.gen_dists[other]
+    new_margin_dist = BivariateHindcastMargin(self.demand,self.renewables,new_bivariate_dist)
+    new_metric_func = getattr(new_margin_dist,metric)
+    new_metric_val = new_metric_func(c=c,policy=policy,axis=axis)
+
+    print(&#34;new metric val: {x}&#34;.format(x=new_metric_val))
+    ### take original system and add firm capacity until we get new_metric_val
+    # define bisection algorithm&#39;s bounds
+    if cap &gt;= 0:
+      leftmost = 0
+      rightmost = cap
+    else:
+      rightmost = 0
+      leftmost = cap
+
+    # clone object to prevent any side effects
+    original_bivariate_dist = [ConvGenDistribution(self.gen_dists[area].original_data) for area in range(2)]
+    
+    # define objective for bisection algorithm
+    def find_efc(x):
+      # add firm capacity
+      original_bivariate_dist[fc_axis] += x
+      # create bivariate margin distribution object
+      dist = BivariateHindcastMargin(self.demand,self.renewables,original_bivariate_dist)
+      metric_func = getattr(dist,metric)
+      metric_val = metric_func(c=c,policy=policy,axis=axis)
+
+      # reset firm capacity to 0
+      original_bivariate_dist[fc_axis] += (-original_bivariate_dist[fc_axis].fc)
+
+      print(&#34;Adding {x}, getting val {v}&#34;.format(x=x,v=metric_val))
+      return metric_val - new_metric_val
+
+    efc, res = bisect(f=find_efc,a=leftmost,b=rightmost,full_output=True,xtol=tol/2,rtol=tol/(2*new_metric_val))
+    if not res.converged:
+      print(&#34;Warning: EFC estimator did not converge.&#34;)
+    #print(&#34;efc:{efc}&#34;.format(efc=efc))
+    return int(efc)
+
+
+  def itc_efc(self,c,policy,metric=&#34;lole&#34;,axis=0,tol=0.1,**kwargs):
     &#34;&#34;&#34;Returns equivalent firm capacity of interconnector in one area
 
     **Parameters**:
@@ -502,23 +608,27 @@ class BivariateHindcastMargin(object):
 
     `policy` (`str`): Either &#39;share&#39; or &#39;veto&#39;
 
-    `axis` (`int`): area for which this will be calculated
+    `axis` (`int`): area for which risk will be calculated
 
     `metric` (`string`): name of the instance&#39;s method that will be used to measure risk
 
+    `tol` (`float`): absolute error tolerance from true target risk value
+
     &#34;&#34;&#34;
-    if not metric in [&#34;LOLE&#34;,&#34;EEU&#34;]:
-      raise Exception(&#34;Only LOLE or EPU supported as risk metrics&#34;)
+    if not metric in [&#34;lole&#34;,&#34;eeu&#34;]:
+      raise Exception(&#34;Only &#39;lole&#39; or &#39;eeu&#39; supported as risk metrics&#34;)
     
+    #target value
     with_itc = getattr(self,metric)(c=c,axis=axis,policy=policy,**kwargs)
 
     def compare_itc_to_fc(k):
       self.gen_dists[axis] += k ## add firm capacity
       univar = UnivariateHindcastMargin(self.gen_dists[axis],self.net_demand[:,axis])
       #risk_metric = getattr(univar,metric)
-      k_fc_risk =  with_itc - getattr(univar,metric)()
+      without_itc = getattr(univar,metric)()
+      #k_fc_risk =  with_itc - without_itc
       self.gen_dists[axis] += (-k) #reset firm capacity to 0
-      return k_fc_risk
+      return with_itc - without_itc
 
     diff_to_null = compare_itc_to_fc(0)
 
@@ -541,11 +651,11 @@ class BivariateHindcastMargin(object):
           rightmost += c
       
       #print(&#34;finding efc in [{a},{b}]&#34;.format(a=leftmost,b=rightmost))
-      efc, res = bisect(f=compare_itc_to_fc,a=leftmost,b=rightmost,full_output=True)
+      efc, res = bisect(f=compare_itc_to_fc,a=leftmost,b=rightmost,full_output=True,xtol=tol/2,rtol=tol/(2*with_itc))
       if not res.converged:
         print(&#34;Warning: EFC estimator did not converge.&#34;)
       #print(&#34;efc:{efc}&#34;.format(efc=efc))
-      return efc
+      return int(efc)
 
   def _trapezoid_prob(self,X,ulc,c):
 
@@ -566,6 +676,8 @@ class BivariateHindcastMargin(object):
                         np.int64(ulc1),
                         np.int64(ulc2),
                         np.int64(c),
+                        np.int64(X.X1.min),
+                        np.int64(X.X2.min),
                         np.int64(X.X1.max),
                         np.int64(X.X2.max),
                         ffi.cast(&#34;double *&#34;,X.X1.cdf_vals.ctypes.data),
@@ -598,6 +710,8 @@ class BivariateHindcastMargin(object):
                     np.int64(v1),
                     np.int64(v2),
                     np.int64(c),
+                    np.int64(FX1.min),
+                    np.int64(FX2.min),
                     np.int64(FX1.max),
                     np.int64(FX2.max),
                     ffi.cast(&#34;double *&#34;,FX1.cdf_vals.ctypes.data),
@@ -625,6 +739,8 @@ class BivariateHindcastMargin(object):
                     np.int64(v1),
                     np.int64(v2),
                     np.int64(c),
+                    np.int64(FX1.min),
+                    np.int64(FX2.min),
                     np.int64(FX1.max),
                     np.int64(FX2.max),
                     ffi.cast(&#34;double *&#34;,FX1.cdf_vals.ctypes.data),
@@ -709,6 +825,8 @@ class BivariateHindcastMargin(object):
       C_CALL.region_simulation(
         np.int64(n),
         ffi.cast(&#34;long *&#34;,simulated.ctypes.data),
+        np.int64(X.X1.min),
+        np.int64(X.X2.min),
         np.int64(X.X1.max),
         np.int64(X.X2.max),
         ffi.cast(&#34;double *&#34;,X.X1.cdf_vals.ctypes.data),
@@ -790,6 +908,8 @@ class BivariateHindcastMargin(object):
       C_CALL.conditioned_simulation(
           np.int64(n),
           ffi.cast(&#34;long *&#34;,simulated.ctypes.data),
+          np.int64(X.X1.min),
+          np.int64(X.X2.min),
           np.int64(X.X1.max),
           np.int64(X.X2.max),
           ffi.cast(&#34;double *&#34;,X.X1.cdf_vals.ctypes.data),
@@ -820,18 +940,18 @@ class BivariateHindcastMargin(object):
 
     `policy` (`str`): Either &#39;share&#39; or &#39;veto&#39;
 
-    `get_pointwise_risk` (`str`): return pandas DataFrame with net demand values and corresponding point-wise risk measurements.
+    `get_pointwise_risk` (`str`): return pandas DataFrame with shortfall probabilities induced by each historic observation
 
     &#34;&#34;&#34;
 
     m = np.clip(m,a_min=-self.MARGIN_BOUND,a_max=self.MARGIN_BOUND)
     m1, m2 = m
-    self._check_null_fc()
+    #self._check_null_fc()
 
-    X1 = self.gen_dists[0]
-    X2 = self.gen_dists[1]
+    gendist1, gendist2 = self.gen_dists
+    #X2 = self.gen_dists[1]
 
-    X = BivariateConvGenDist(X1,X2) #system-wide conv. gen. distribution
+    #X = BivariateConvGenDist(X1,X2) #system-wide conv. gen. distribution
    
     n = self.n
 
@@ -849,10 +969,12 @@ class BivariateHindcastMargin(object):
       d1, d2 = self.demand[i,:]
 
       point_cdf = C_CALL.get_cond_cdf(
-                      np.int64(X.X1.max),
-                      np.int64(X.X2.max),
-                      ffi.cast(&#34;double *&#34;,X.X1.cdf_vals.ctypes.data),
-                      ffi.cast(&#34;double *&#34;,X.X2.cdf_vals.ctypes.data),
+                      np.int64(gendist1.min),
+                      np.int64(gendist2.min),
+                      np.int64(gendist1.max),
+                      np.int64(gendist2.max),
+                      ffi.cast(&#34;double *&#34;,gendist1.cdf_vals.ctypes.data),
+                      ffi.cast(&#34;double *&#34;,gendist2.cdf_vals.ctypes.data),
                       np.int64(m1),
                       np.int64(m2),
                       np.int64(v1),
@@ -862,6 +984,7 @@ class BivariateHindcastMargin(object):
                       np.int64(c),
                       np.int64(policy == &#34;share&#34;))
 
+      #print(&#34;point cdf: {x}, index: {i}&#34;.format(x=point_cdf, i=i))
       cdf += point_cdf
 
       #print(v1)
@@ -892,7 +1015,7 @@ class BivariateHindcastMargin(object):
 
     `policy` (`str`): Either &#39;share&#39; or &#39;veto&#39;
 
-    `get_pointwise_risk` (`str`): return pandas DataFrame with net demand values and corresponding pointwise risk measurements
+    `get_pointwise_risk` (`str`): return pandas DataFrame with LOLPs for each historic observation
 
     &#34;&#34;&#34;
 
@@ -974,7 +1097,7 @@ class BivariateHindcastMargin(object):
 
     `policy` (`str`): Either &#39;share&#39; or &#39;veto&#39;
 
-    `get_pointwise_risk` (`str`): return pandas DataFrame with net demand values and corresponding pointwise risk measurements
+    `get_pointwise_risk` (`str`): return pandas DataFrame with system LOLE contributions for each historic observation
     &#34;&#34;&#34;
     return self.n * self.system_lolp(c,get_pointwise_risk)
 
@@ -1079,7 +1202,7 @@ risk metrics under a share policy, in which available power flow depends on dema
   def __init__(self,demand,renewables,gen_dists,**kwargs):
 
     self.net_demand = np.ascontiguousarray((demand - renewables),dtype=np.int64).clip(min=0) #no negative net demand
-    self.wind = renewables
+    self.renewables = renewables
     self.demand = np.ascontiguousarray(demand,dtype=np.int64)
     self.gen_dists = self._parse_gendists(gen_dists,**kwargs)
     self.n = self.net_demand.shape[0]
@@ -1134,6 +1257,8 @@ risk metrics under a share policy, in which available power flow depends on dema
                       np.int64(origin[0]),
                       np.int64(origin[1]),
                       np.int64(length),
+                      np.int64(bigen.X1.min),
+                      np.int64(bigen.X2.min),
                       np.int64(bigen.X1.max),
                       np.int64(bigen.X2.max),
                       ffi.cast(&#34;double *&#34;,bigen.X1.cdf_vals.ctypes.data),
@@ -1314,7 +1439,8 @@ risk metrics under a share policy, in which available power flow depends on dema
 
     self.demand = np.flip(self.demand,axis=1)
     self.net_demand = np.flip(self.net_demand,axis=1)
-    self.gen_dists = self.gen_dists[::-1]
+    self.gen_dists = [self.gen_dists[1],self.gen_dists[0]]
+    #self.gen_dists = self.gen_dists[::-1]
 
   def lole(self,c,policy,axis=0,get_pointwise_risk=False):
     &#34;&#34;&#34;calculate LOLE for one of the areas
@@ -1327,24 +1453,29 @@ risk metrics under a share policy, in which available power flow depends on dema
 
     `axis (`int*): area index for which this will be calculated
 
+    `get_pointwise_risk (`bool`): If `True`, returns pandas dataframe with LOLE contributions historic observation
+
     &#34;&#34;&#34;
 
-    if axis == 1:
-      self._swap_axes()
+    # if axis == 1:
+    #   self._swap_axes()
 
-    m = (-1,np.Inf)
+    m = [np.Inf,np.Inf]
+    m[axis] = -1
+    #m = (-1,np.Inf)
     lolp_vals = self.cdf(m=m,c=c,policy=policy,get_pointwise_risk=get_pointwise_risk) 
     if get_pointwise_risk:
-      return lolp_vals
+      lole = lolp_vals
     else:
-      return self.n * lolp_vals
+      lole = self.n * lolp_vals
+
+    return lole
 
     #lole = self._lole(c=c,policy=policy,get_pointwise_risk=get_pointwise_risk)
 
-    if axis == 1:
-      self._swap_axes()
+    # if axis == 1:
+    #   self._swap_axes()
 
-    return lole
 
   # @deprecated(version=&#34;1.0.0&#34;,reason=&#34;use lole() instead&#34;)
   # def lole(self,c,policy,axis=0,get_pointwise_risk=False):
@@ -1399,6 +1530,8 @@ risk metrics under a share policy, in which available power flow depends on dema
 
     `axis` (`int`): area index for which this will be calculated 
 
+    `get_pointwise_risk (`bool`): If `True`, returns pandas dataframe with EEU contributions for each historic observation
+
     &#34;&#34;&#34;
 
     if axis == 1:
@@ -1444,11 +1577,11 @@ risk metrics under a share policy, in which available power flow depends on dema
 
     `policy` (`str`): Either &#39;share&#39; or &#39;veto&#39;
 
-    `get_pointwise_risk` (`str`): return pandas DataFrame with net demand values and corresponding pointwise risk measurements
+    `get_pointwise_risk` (`str`): return pandas DataFrame with EPU for each historic observation
 
     &#34;&#34;&#34;
     if c &gt; 0 or get_pointwise_risk:
-      self._check_null_fc()
+      #self._check_null_fc()
       X1 = self.gen_dists[0]
       X2 = self.gen_dists[1]
       n = self.n
@@ -1516,7 +1649,100 @@ risk metrics under a share policy, in which available power flow depends on dema
 
     return self.net_demand[np.random.choice(range(self.n),size=n),:]
 
-  def efc(self,c,policy,metric=&#34;LOLE&#34;,axis=0,**kwargs):
+  def efc(self,**kwargs):
+    &#34;&#34;&#34;This method calculates the equivalent firm capacity of interconnection for a given power system. It has been deprecated; use the `itc_efc` method instead. When called, this function calls `itc_efc`, passing all arguments along.
+    &#34;&#34;&#34;
+    warn(&#34;This method is deprecated; use methods itc_efc or convgen_ifc instead.&#34;)
+    return self.itc_efc(**kwargs)
+
+  def convgen_efc(self, cap, prob, gen_axis, fc_axis, c,policy,metric=&#34;lole&#34;,axis=0,tol=0.1,**kwargs):
+    &#34;&#34;&#34;Returns the amount of firm capacity that needs to be added to area `fc_axis` such that area `axis` has the same risk (as defined by `metric`) than if new conventional generation was installed in `gen_axis`.
+
+    **Parameters**:
+    
+    `cap` (`int`): maximum available capacity of new generator in MW
+
+    `prob` (`float`): availability probability for the new generator
+
+    `gen_axis` (`int`): Axis to which the new generator will be added
+
+    `fc_axis` (`int`): Area to which firm capacity will be added
+
+    `c` (`int`): interconnection capacity
+
+    `policy` (`str`): Either &#39;share&#39; or &#39;veto&#39;
+
+    `axis` (`int`): area for which risk will be calculated
+
+    `metric` (`string`): name of the instance&#39;s method that will be used to measure risk. Only &#39;LOLE&#39; and &#39;EEU&#39; are supported
+
+    `tol` (`float`): absolute error tolerance from true target risk value
+
+    &#34;&#34;&#34;
+    if not (axis in [0,1]):
+      raise Exception(&#34;axis value must be 0 or 1&#34;)
+
+    if not (gen_axis in [0,1]):
+      raise Exception(&#34;gen_axis value must be 0 or 1&#34;)
+
+    if not (fc_axis in [0,1]):
+      raise Exception(&#34;fc_axis value must be 0 or 1&#34;)
+
+    if prob &gt; 1 or prob &lt; 0:
+      raise Exception(&#34;Availability value must be between 0 and 1&#34;)
+
+    other = 1 - gen_axis
+    gen_data = self.gen_dists[gen_axis].original_data
+
+    # create augmented conv gen distribution
+    new_row = pd.Series([cap,prob],index=[&#34;Capacity&#34;,&#34;Availability&#34;])
+    augmented_data = gen_data.append(new_row,ignore_index=True)
+    augmented_gen_dist = ConvGenDistribution(augmented_data)
+
+    # create augmented conv gen bivariate distribution and get risk metric in agumented system
+    new_bivariate_dist = [0,1] #place holder values
+    new_bivariate_dist[gen_axis] = augmented_gen_dist
+    new_bivariate_dist[other] = self.gen_dists[other]
+    new_margin_dist = BivariateHindcastMargin(self.demand,self.renewables,new_bivariate_dist)
+    new_metric_func = getattr(new_margin_dist,metric)
+    new_metric_val = new_metric_func(c=c,policy=policy,axis=axis)
+
+    print(&#34;new metric val: {x}&#34;.format(x=new_metric_val))
+    ### take original system and add firm capacity until we get new_metric_val
+    # define bisection algorithm&#39;s bounds
+    if cap &gt;= 0:
+      leftmost = 0
+      rightmost = cap
+    else:
+      rightmost = 0
+      leftmost = cap
+
+    # clone object to prevent any side effects
+    original_bivariate_dist = [ConvGenDistribution(self.gen_dists[area].original_data) for area in range(2)]
+    
+    # define objective for bisection algorithm
+    def find_efc(x):
+      # add firm capacity
+      original_bivariate_dist[fc_axis] += x
+      # create bivariate margin distribution object
+      dist = BivariateHindcastMargin(self.demand,self.renewables,original_bivariate_dist)
+      metric_func = getattr(dist,metric)
+      metric_val = metric_func(c=c,policy=policy,axis=axis)
+
+      # reset firm capacity to 0
+      original_bivariate_dist[fc_axis] += (-original_bivariate_dist[fc_axis].fc)
+
+      print(&#34;Adding {x}, getting val {v}&#34;.format(x=x,v=metric_val))
+      return metric_val - new_metric_val
+
+    efc, res = bisect(f=find_efc,a=leftmost,b=rightmost,full_output=True,xtol=tol/2,rtol=tol/(2*new_metric_val))
+    if not res.converged:
+      print(&#34;Warning: EFC estimator did not converge.&#34;)
+    #print(&#34;efc:{efc}&#34;.format(efc=efc))
+    return int(efc)
+
+
+  def itc_efc(self,c,policy,metric=&#34;lole&#34;,axis=0,tol=0.1,**kwargs):
     &#34;&#34;&#34;Returns equivalent firm capacity of interconnector in one area
 
     **Parameters**:
@@ -1525,23 +1751,27 @@ risk metrics under a share policy, in which available power flow depends on dema
 
     `policy` (`str`): Either &#39;share&#39; or &#39;veto&#39;
 
-    `axis` (`int`): area for which this will be calculated
+    `axis` (`int`): area for which risk will be calculated
 
     `metric` (`string`): name of the instance&#39;s method that will be used to measure risk
 
+    `tol` (`float`): absolute error tolerance from true target risk value
+
     &#34;&#34;&#34;
-    if not metric in [&#34;LOLE&#34;,&#34;EEU&#34;]:
-      raise Exception(&#34;Only LOLE or EPU supported as risk metrics&#34;)
+    if not metric in [&#34;lole&#34;,&#34;eeu&#34;]:
+      raise Exception(&#34;Only &#39;lole&#39; or &#39;eeu&#39; supported as risk metrics&#34;)
     
+    #target value
     with_itc = getattr(self,metric)(c=c,axis=axis,policy=policy,**kwargs)
 
     def compare_itc_to_fc(k):
       self.gen_dists[axis] += k ## add firm capacity
       univar = UnivariateHindcastMargin(self.gen_dists[axis],self.net_demand[:,axis])
       #risk_metric = getattr(univar,metric)
-      k_fc_risk =  with_itc - getattr(univar,metric)()
+      without_itc = getattr(univar,metric)()
+      #k_fc_risk =  with_itc - without_itc
       self.gen_dists[axis] += (-k) #reset firm capacity to 0
-      return k_fc_risk
+      return with_itc - without_itc
 
     diff_to_null = compare_itc_to_fc(0)
 
@@ -1564,11 +1794,11 @@ risk metrics under a share policy, in which available power flow depends on dema
           rightmost += c
       
       #print(&#34;finding efc in [{a},{b}]&#34;.format(a=leftmost,b=rightmost))
-      efc, res = bisect(f=compare_itc_to_fc,a=leftmost,b=rightmost,full_output=True)
+      efc, res = bisect(f=compare_itc_to_fc,a=leftmost,b=rightmost,full_output=True,xtol=tol/2,rtol=tol/(2*with_itc))
       if not res.converged:
         print(&#34;Warning: EFC estimator did not converge.&#34;)
       #print(&#34;efc:{efc}&#34;.format(efc=efc))
-      return efc
+      return int(efc)
 
   def _trapezoid_prob(self,X,ulc,c):
 
@@ -1589,6 +1819,8 @@ risk metrics under a share policy, in which available power flow depends on dema
                         np.int64(ulc1),
                         np.int64(ulc2),
                         np.int64(c),
+                        np.int64(X.X1.min),
+                        np.int64(X.X2.min),
                         np.int64(X.X1.max),
                         np.int64(X.X2.max),
                         ffi.cast(&#34;double *&#34;,X.X1.cdf_vals.ctypes.data),
@@ -1621,6 +1853,8 @@ risk metrics under a share policy, in which available power flow depends on dema
                     np.int64(v1),
                     np.int64(v2),
                     np.int64(c),
+                    np.int64(FX1.min),
+                    np.int64(FX2.min),
                     np.int64(FX1.max),
                     np.int64(FX2.max),
                     ffi.cast(&#34;double *&#34;,FX1.cdf_vals.ctypes.data),
@@ -1648,6 +1882,8 @@ risk metrics under a share policy, in which available power flow depends on dema
                     np.int64(v1),
                     np.int64(v2),
                     np.int64(c),
+                    np.int64(FX1.min),
+                    np.int64(FX2.min),
                     np.int64(FX1.max),
                     np.int64(FX2.max),
                     ffi.cast(&#34;double *&#34;,FX1.cdf_vals.ctypes.data),
@@ -1732,6 +1968,8 @@ risk metrics under a share policy, in which available power flow depends on dema
       C_CALL.region_simulation(
         np.int64(n),
         ffi.cast(&#34;long *&#34;,simulated.ctypes.data),
+        np.int64(X.X1.min),
+        np.int64(X.X2.min),
         np.int64(X.X1.max),
         np.int64(X.X2.max),
         ffi.cast(&#34;double *&#34;,X.X1.cdf_vals.ctypes.data),
@@ -1813,6 +2051,8 @@ risk metrics under a share policy, in which available power flow depends on dema
       C_CALL.conditioned_simulation(
           np.int64(n),
           ffi.cast(&#34;long *&#34;,simulated.ctypes.data),
+          np.int64(X.X1.min),
+          np.int64(X.X2.min),
           np.int64(X.X1.max),
           np.int64(X.X2.max),
           ffi.cast(&#34;double *&#34;,X.X1.cdf_vals.ctypes.data),
@@ -1843,18 +2083,18 @@ risk metrics under a share policy, in which available power flow depends on dema
 
     `policy` (`str`): Either &#39;share&#39; or &#39;veto&#39;
 
-    `get_pointwise_risk` (`str`): return pandas DataFrame with net demand values and corresponding point-wise risk measurements.
+    `get_pointwise_risk` (`str`): return pandas DataFrame with shortfall probabilities induced by each historic observation
 
     &#34;&#34;&#34;
 
     m = np.clip(m,a_min=-self.MARGIN_BOUND,a_max=self.MARGIN_BOUND)
     m1, m2 = m
-    self._check_null_fc()
+    #self._check_null_fc()
 
-    X1 = self.gen_dists[0]
-    X2 = self.gen_dists[1]
+    gendist1, gendist2 = self.gen_dists
+    #X2 = self.gen_dists[1]
 
-    X = BivariateConvGenDist(X1,X2) #system-wide conv. gen. distribution
+    #X = BivariateConvGenDist(X1,X2) #system-wide conv. gen. distribution
    
     n = self.n
 
@@ -1872,10 +2112,12 @@ risk metrics under a share policy, in which available power flow depends on dema
       d1, d2 = self.demand[i,:]
 
       point_cdf = C_CALL.get_cond_cdf(
-                      np.int64(X.X1.max),
-                      np.int64(X.X2.max),
-                      ffi.cast(&#34;double *&#34;,X.X1.cdf_vals.ctypes.data),
-                      ffi.cast(&#34;double *&#34;,X.X2.cdf_vals.ctypes.data),
+                      np.int64(gendist1.min),
+                      np.int64(gendist2.min),
+                      np.int64(gendist1.max),
+                      np.int64(gendist2.max),
+                      ffi.cast(&#34;double *&#34;,gendist1.cdf_vals.ctypes.data),
+                      ffi.cast(&#34;double *&#34;,gendist2.cdf_vals.ctypes.data),
                       np.int64(m1),
                       np.int64(m2),
                       np.int64(v1),
@@ -1885,6 +2127,7 @@ risk metrics under a share policy, in which available power flow depends on dema
                       np.int64(c),
                       np.int64(policy == &#34;share&#34;))
 
+      #print(&#34;point cdf: {x}, index: {i}&#34;.format(x=point_cdf, i=i))
       cdf += point_cdf
 
       #print(v1)
@@ -1915,7 +2158,7 @@ risk metrics under a share policy, in which available power flow depends on dema
 
     `policy` (`str`): Either &#39;share&#39; or &#39;veto&#39;
 
-    `get_pointwise_risk` (`str`): return pandas DataFrame with net demand values and corresponding pointwise risk measurements
+    `get_pointwise_risk` (`str`): return pandas DataFrame with LOLPs for each historic observation
 
     &#34;&#34;&#34;
 
@@ -1997,7 +2240,7 @@ risk metrics under a share policy, in which available power flow depends on dema
 
     `policy` (`str`): Either &#39;share&#39; or &#39;veto&#39;
 
-    `get_pointwise_risk` (`str`): return pandas DataFrame with net demand values and corresponding pointwise risk measurements
+    `get_pointwise_risk` (`str`): return pandas DataFrame with system LOLE contributions for each historic observation
     &#34;&#34;&#34;
     return self.n * self.system_lolp(c,get_pointwise_risk)
 
@@ -2071,7 +2314,7 @@ def bivar_ecdf(X):
 <p><code>m</code> (<code>tuple</code>, <code>list</code>, or <code>numpy.ndarray</code>) point to evaluate in power margin space</p>
 <p><code>c</code> (<code>int</code>): Interconnector capacity</p>
 <p><code>policy</code> (<code>str</code>): Either 'share' or 'veto'</p>
-<p><code>get_pointwise_risk</code> (<code>str</code>): return pandas DataFrame with net demand values and corresponding point-wise risk measurements.</p></div>
+<p><code>get_pointwise_risk</code> (<code>str</code>): return pandas DataFrame with shortfall probabilities induced by each historic observation</p></div>
 <details class="source">
 <summary>
 <span>Expand source code</span>
@@ -2088,18 +2331,18 @@ def bivar_ecdf(X):
 
   `policy` (`str`): Either &#39;share&#39; or &#39;veto&#39;
 
-  `get_pointwise_risk` (`str`): return pandas DataFrame with net demand values and corresponding point-wise risk measurements.
+  `get_pointwise_risk` (`str`): return pandas DataFrame with shortfall probabilities induced by each historic observation
 
   &#34;&#34;&#34;
 
   m = np.clip(m,a_min=-self.MARGIN_BOUND,a_max=self.MARGIN_BOUND)
   m1, m2 = m
-  self._check_null_fc()
+  #self._check_null_fc()
 
-  X1 = self.gen_dists[0]
-  X2 = self.gen_dists[1]
+  gendist1, gendist2 = self.gen_dists
+  #X2 = self.gen_dists[1]
 
-  X = BivariateConvGenDist(X1,X2) #system-wide conv. gen. distribution
+  #X = BivariateConvGenDist(X1,X2) #system-wide conv. gen. distribution
  
   n = self.n
 
@@ -2117,10 +2360,12 @@ def bivar_ecdf(X):
     d1, d2 = self.demand[i,:]
 
     point_cdf = C_CALL.get_cond_cdf(
-                    np.int64(X.X1.max),
-                    np.int64(X.X2.max),
-                    ffi.cast(&#34;double *&#34;,X.X1.cdf_vals.ctypes.data),
-                    ffi.cast(&#34;double *&#34;,X.X2.cdf_vals.ctypes.data),
+                    np.int64(gendist1.min),
+                    np.int64(gendist2.min),
+                    np.int64(gendist1.max),
+                    np.int64(gendist2.max),
+                    ffi.cast(&#34;double *&#34;,gendist1.cdf_vals.ctypes.data),
+                    ffi.cast(&#34;double *&#34;,gendist2.cdf_vals.ctypes.data),
                     np.int64(m1),
                     np.int64(m2),
                     np.int64(v1),
@@ -2130,6 +2375,7 @@ def bivar_ecdf(X):
                     np.int64(c),
                     np.int64(policy == &#34;share&#34;))
 
+    #print(&#34;point cdf: {x}, index: {i}&#34;.format(x=point_cdf, i=i))
     cdf += point_cdf
 
     #print(v1)
@@ -2146,6 +2392,112 @@ def bivar_ecdf(X):
     return cdf/n</code></pre>
 </details>
 </dd>
+<dt id="psrmodels.time_collapsed.BivariateHindcastMargin.BivariateHindcastMargin.convgen_efc"><code class="name flex">
+<span>def <span class="ident">convgen_efc</span></span>(<span>self, cap, prob, gen_axis, fc_axis, c, policy, metric='lole', axis=0, tol=0.1, **kwargs)</span>
+</code></dt>
+<dd>
+<div class="desc"><p>Returns the amount of firm capacity that needs to be added to area <code>fc_axis</code> such that area <code>axis</code> has the same risk (as defined by <code>metric</code>) than if new conventional generation was installed in <code>gen_axis</code>.</p>
+<p><strong>Parameters</strong>:</p>
+<p><code>cap</code> (<code>int</code>): maximum available capacity of new generator in MW</p>
+<p><code>prob</code> (<code>float</code>): availability probability for the new generator</p>
+<p><code>gen_axis</code> (<code>int</code>): Axis to which the new generator will be added</p>
+<p><code>fc_axis</code> (<code>int</code>): Area to which firm capacity will be added</p>
+<p><code>c</code> (<code>int</code>): interconnection capacity</p>
+<p><code>policy</code> (<code>str</code>): Either 'share' or 'veto'</p>
+<p><code>axis</code> (<code>int</code>): area for which risk will be calculated</p>
+<p><code>metric</code> (<code>string</code>): name of the instance's method that will be used to measure risk. Only 'LOLE' and 'EEU' are supported</p>
+<p><code>tol</code> (<code>float</code>): absolute error tolerance from true target risk value</p></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def convgen_efc(self, cap, prob, gen_axis, fc_axis, c,policy,metric=&#34;lole&#34;,axis=0,tol=0.1,**kwargs):
+  &#34;&#34;&#34;Returns the amount of firm capacity that needs to be added to area `fc_axis` such that area `axis` has the same risk (as defined by `metric`) than if new conventional generation was installed in `gen_axis`.
+
+  **Parameters**:
+  
+  `cap` (`int`): maximum available capacity of new generator in MW
+
+  `prob` (`float`): availability probability for the new generator
+
+  `gen_axis` (`int`): Axis to which the new generator will be added
+
+  `fc_axis` (`int`): Area to which firm capacity will be added
+
+  `c` (`int`): interconnection capacity
+
+  `policy` (`str`): Either &#39;share&#39; or &#39;veto&#39;
+
+  `axis` (`int`): area for which risk will be calculated
+
+  `metric` (`string`): name of the instance&#39;s method that will be used to measure risk. Only &#39;LOLE&#39; and &#39;EEU&#39; are supported
+
+  `tol` (`float`): absolute error tolerance from true target risk value
+
+  &#34;&#34;&#34;
+  if not (axis in [0,1]):
+    raise Exception(&#34;axis value must be 0 or 1&#34;)
+
+  if not (gen_axis in [0,1]):
+    raise Exception(&#34;gen_axis value must be 0 or 1&#34;)
+
+  if not (fc_axis in [0,1]):
+    raise Exception(&#34;fc_axis value must be 0 or 1&#34;)
+
+  if prob &gt; 1 or prob &lt; 0:
+    raise Exception(&#34;Availability value must be between 0 and 1&#34;)
+
+  other = 1 - gen_axis
+  gen_data = self.gen_dists[gen_axis].original_data
+
+  # create augmented conv gen distribution
+  new_row = pd.Series([cap,prob],index=[&#34;Capacity&#34;,&#34;Availability&#34;])
+  augmented_data = gen_data.append(new_row,ignore_index=True)
+  augmented_gen_dist = ConvGenDistribution(augmented_data)
+
+  # create augmented conv gen bivariate distribution and get risk metric in agumented system
+  new_bivariate_dist = [0,1] #place holder values
+  new_bivariate_dist[gen_axis] = augmented_gen_dist
+  new_bivariate_dist[other] = self.gen_dists[other]
+  new_margin_dist = BivariateHindcastMargin(self.demand,self.renewables,new_bivariate_dist)
+  new_metric_func = getattr(new_margin_dist,metric)
+  new_metric_val = new_metric_func(c=c,policy=policy,axis=axis)
+
+  print(&#34;new metric val: {x}&#34;.format(x=new_metric_val))
+  ### take original system and add firm capacity until we get new_metric_val
+  # define bisection algorithm&#39;s bounds
+  if cap &gt;= 0:
+    leftmost = 0
+    rightmost = cap
+  else:
+    rightmost = 0
+    leftmost = cap
+
+  # clone object to prevent any side effects
+  original_bivariate_dist = [ConvGenDistribution(self.gen_dists[area].original_data) for area in range(2)]
+  
+  # define objective for bisection algorithm
+  def find_efc(x):
+    # add firm capacity
+    original_bivariate_dist[fc_axis] += x
+    # create bivariate margin distribution object
+    dist = BivariateHindcastMargin(self.demand,self.renewables,original_bivariate_dist)
+    metric_func = getattr(dist,metric)
+    metric_val = metric_func(c=c,policy=policy,axis=axis)
+
+    # reset firm capacity to 0
+    original_bivariate_dist[fc_axis] += (-original_bivariate_dist[fc_axis].fc)
+
+    print(&#34;Adding {x}, getting val {v}&#34;.format(x=x,v=metric_val))
+    return metric_val - new_metric_val
+
+  efc, res = bisect(f=find_efc,a=leftmost,b=rightmost,full_output=True,xtol=tol/2,rtol=tol/(2*new_metric_val))
+  if not res.converged:
+    print(&#34;Warning: EFC estimator did not converge.&#34;)
+  #print(&#34;efc:{efc}&#34;.format(efc=efc))
+  return int(efc)</code></pre>
+</details>
+</dd>
 <dt id="psrmodels.time_collapsed.BivariateHindcastMargin.BivariateHindcastMargin.eeu"><code class="name flex">
 <span>def <span class="ident">eeu</span></span>(<span>self, c, policy, axis=0, get_pointwise_risk=False)</span>
 </code></dt>
@@ -2154,7 +2506,8 @@ def bivar_ecdf(X):
 <p><strong>Parameters</strong>:</p>
 <p><code>c</code> (<code>int</code>): Interconnector capacity</p>
 <p><code>policy</code> (<code>str</code>): either 'veto' or 'share'</p>
-<p><code>axis</code> (<code>int</code>): area index for which this will be calculated</p></div>
+<p><code>axis</code> (<code>int</code>): area index for which this will be calculated </p>
+<p><code>get_pointwise_risk (</code>bool<code>): If</code>True`, returns pandas dataframe with EEU contributions for each historic observation</p></div>
 <details class="source">
 <summary>
 <span>Expand source code</span>
@@ -2169,6 +2522,8 @@ def bivar_ecdf(X):
   `policy` (`str`): either &#39;veto&#39; or &#39;share&#39;
 
   `axis` (`int`): area index for which this will be calculated 
+
+  `get_pointwise_risk (`bool`): If `True`, returns pandas dataframe with EEU contributions for each historic observation
 
   &#34;&#34;&#34;
 
@@ -2187,72 +2542,19 @@ def bivar_ecdf(X):
 </details>
 </dd>
 <dt id="psrmodels.time_collapsed.BivariateHindcastMargin.BivariateHindcastMargin.efc"><code class="name flex">
-<span>def <span class="ident">efc</span></span>(<span>self, c, policy, metric='LOLE', axis=0, **kwargs)</span>
+<span>def <span class="ident">efc</span></span>(<span>self, **kwargs)</span>
 </code></dt>
 <dd>
-<div class="desc"><p>Returns equivalent firm capacity of interconnector in one area</p>
-<p><strong>Parameters</strong>:</p>
-<p><code>c</code> (<code>int</code>): interconnection capacity</p>
-<p><code>policy</code> (<code>str</code>): Either 'share' or 'veto'</p>
-<p><code>axis</code> (<code>int</code>): area for which this will be calculated</p>
-<p><code>metric</code> (<code>string</code>): name of the instance's method that will be used to measure risk</p></div>
+<div class="desc"><p>This method calculates the equivalent firm capacity of interconnection for a given power system. It has been deprecated; use the <code>itc_efc</code> method instead. When called, this function calls <code>itc_efc</code>, passing all arguments along.</p></div>
 <details class="source">
 <summary>
 <span>Expand source code</span>
 </summary>
-<pre><code class="python">def efc(self,c,policy,metric=&#34;LOLE&#34;,axis=0,**kwargs):
-  &#34;&#34;&#34;Returns equivalent firm capacity of interconnector in one area
-
-  **Parameters**:
-  
-  `c` (`int`): interconnection capacity
-
-  `policy` (`str`): Either &#39;share&#39; or &#39;veto&#39;
-
-  `axis` (`int`): area for which this will be calculated
-
-  `metric` (`string`): name of the instance&#39;s method that will be used to measure risk
-
+<pre><code class="python">def efc(self,**kwargs):
+  &#34;&#34;&#34;This method calculates the equivalent firm capacity of interconnection for a given power system. It has been deprecated; use the `itc_efc` method instead. When called, this function calls `itc_efc`, passing all arguments along.
   &#34;&#34;&#34;
-  if not metric in [&#34;LOLE&#34;,&#34;EEU&#34;]:
-    raise Exception(&#34;Only LOLE or EPU supported as risk metrics&#34;)
-  
-  with_itc = getattr(self,metric)(c=c,axis=axis,policy=policy,**kwargs)
-
-  def compare_itc_to_fc(k):
-    self.gen_dists[axis] += k ## add firm capacity
-    univar = UnivariateHindcastMargin(self.gen_dists[axis],self.net_demand[:,axis])
-    #risk_metric = getattr(univar,metric)
-    k_fc_risk =  with_itc - getattr(univar,metric)()
-    self.gen_dists[axis] += (-k) #reset firm capacity to 0
-    return k_fc_risk
-
-  diff_to_null = compare_itc_to_fc(0)
-
-  # now find the root of compare_itc_to_fc by bisection
-
-  # is the interconnector adding risk?
-  if diff_to_null == 0: #itc is equivalent to null interconnection riskwise
-    return 0.0
-  else:
-    # find suitalbe search intervals that are reasonably small
-    if diff_to_null &gt; 0: #interconnector adds risk =&gt; negative firm capacity
-      rightmost = 0
-      leftmost = -c
-      while compare_itc_to_fc(leftmost) &gt; 0 :
-        leftmost -= c
-    else:
-      leftmost = 0
-      rightmost = c
-      while compare_itc_to_fc(rightmost) &lt; 0:
-        rightmost += c
-    
-    #print(&#34;finding efc in [{a},{b}]&#34;.format(a=leftmost,b=rightmost))
-    efc, res = bisect(f=compare_itc_to_fc,a=leftmost,b=rightmost,full_output=True)
-    if not res.converged:
-      print(&#34;Warning: EFC estimator did not converge.&#34;)
-    #print(&#34;efc:{efc}&#34;.format(efc=efc))
-    return efc</code></pre>
+  warn(&#34;This method is deprecated; use methods itc_efc or convgen_ifc instead.&#34;)
+  return self.itc_efc(**kwargs)</code></pre>
 </details>
 </dd>
 <dt id="psrmodels.time_collapsed.BivariateHindcastMargin.BivariateHindcastMargin.epu"><code class="name flex">
@@ -2263,7 +2565,7 @@ def bivar_ecdf(X):
 <p><strong>Parameters</strong>:</p>
 <p><code>c</code> (<code>int</code>): Interconnector capacity</p>
 <p><code>policy</code> (<code>str</code>): Either 'share' or 'veto'</p>
-<p><code>get_pointwise_risk</code> (<code>str</code>): return pandas DataFrame with net demand values and corresponding pointwise risk measurements</p></div>
+<p><code>get_pointwise_risk</code> (<code>str</code>): return pandas DataFrame with EPU for each historic observation</p></div>
 <details class="source">
 <summary>
 <span>Expand source code</span>
@@ -2277,11 +2579,11 @@ def bivar_ecdf(X):
 
   `policy` (`str`): Either &#39;share&#39; or &#39;veto&#39;
 
-  `get_pointwise_risk` (`str`): return pandas DataFrame with net demand values and corresponding pointwise risk measurements
+  `get_pointwise_risk` (`str`): return pandas DataFrame with EPU for each historic observation
 
   &#34;&#34;&#34;
   if c &gt; 0 or get_pointwise_risk:
-    self._check_null_fc()
+    #self._check_null_fc()
     X1 = self.gen_dists[0]
     X2 = self.gen_dists[1]
     n = self.n
@@ -2324,6 +2626,80 @@ def bivar_ecdf(X):
     return margin.epu()</code></pre>
 </details>
 </dd>
+<dt id="psrmodels.time_collapsed.BivariateHindcastMargin.BivariateHindcastMargin.itc_efc"><code class="name flex">
+<span>def <span class="ident">itc_efc</span></span>(<span>self, c, policy, metric='lole', axis=0, tol=0.1, **kwargs)</span>
+</code></dt>
+<dd>
+<div class="desc"><p>Returns equivalent firm capacity of interconnector in one area</p>
+<p><strong>Parameters</strong>:</p>
+<p><code>c</code> (<code>int</code>): interconnection capacity</p>
+<p><code>policy</code> (<code>str</code>): Either 'share' or 'veto'</p>
+<p><code>axis</code> (<code>int</code>): area for which risk will be calculated</p>
+<p><code>metric</code> (<code>string</code>): name of the instance's method that will be used to measure risk</p>
+<p><code>tol</code> (<code>float</code>): absolute error tolerance from true target risk value</p></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def itc_efc(self,c,policy,metric=&#34;lole&#34;,axis=0,tol=0.1,**kwargs):
+  &#34;&#34;&#34;Returns equivalent firm capacity of interconnector in one area
+
+  **Parameters**:
+  
+  `c` (`int`): interconnection capacity
+
+  `policy` (`str`): Either &#39;share&#39; or &#39;veto&#39;
+
+  `axis` (`int`): area for which risk will be calculated
+
+  `metric` (`string`): name of the instance&#39;s method that will be used to measure risk
+
+  `tol` (`float`): absolute error tolerance from true target risk value
+
+  &#34;&#34;&#34;
+  if not metric in [&#34;lole&#34;,&#34;eeu&#34;]:
+    raise Exception(&#34;Only &#39;lole&#39; or &#39;eeu&#39; supported as risk metrics&#34;)
+  
+  #target value
+  with_itc = getattr(self,metric)(c=c,axis=axis,policy=policy,**kwargs)
+
+  def compare_itc_to_fc(k):
+    self.gen_dists[axis] += k ## add firm capacity
+    univar = UnivariateHindcastMargin(self.gen_dists[axis],self.net_demand[:,axis])
+    #risk_metric = getattr(univar,metric)
+    without_itc = getattr(univar,metric)()
+    #k_fc_risk =  with_itc - without_itc
+    self.gen_dists[axis] += (-k) #reset firm capacity to 0
+    return with_itc - without_itc
+
+  diff_to_null = compare_itc_to_fc(0)
+
+  # now find the root of compare_itc_to_fc by bisection
+
+  # is the interconnector adding risk?
+  if diff_to_null == 0: #itc is equivalent to null interconnection riskwise
+    return 0.0
+  else:
+    # find suitalbe search intervals that are reasonably small
+    if diff_to_null &gt; 0: #interconnector adds risk =&gt; negative firm capacity
+      rightmost = 0
+      leftmost = -c
+      while compare_itc_to_fc(leftmost) &gt; 0 :
+        leftmost -= c
+    else:
+      leftmost = 0
+      rightmost = c
+      while compare_itc_to_fc(rightmost) &lt; 0:
+        rightmost += c
+    
+    #print(&#34;finding efc in [{a},{b}]&#34;.format(a=leftmost,b=rightmost))
+    efc, res = bisect(f=compare_itc_to_fc,a=leftmost,b=rightmost,full_output=True,xtol=tol/2,rtol=tol/(2*with_itc))
+    if not res.converged:
+      print(&#34;Warning: EFC estimator did not converge.&#34;)
+    #print(&#34;efc:{efc}&#34;.format(efc=efc))
+    return int(efc)</code></pre>
+</details>
+</dd>
 <dt id="psrmodels.time_collapsed.BivariateHindcastMargin.BivariateHindcastMargin.lole"><code class="name flex">
 <span>def <span class="ident">lole</span></span>(<span>self, c, policy, axis=0, get_pointwise_risk=False)</span>
 </code></dt>
@@ -2332,7 +2708,8 @@ def bivar_ecdf(X):
 <p><strong>Parameters</strong>:</p>
 <p><code>c</code> (<code>numpy.ndarray</code>): interconnector capacity</p>
 <p><code>policy</code> (<code>str</code>): either 'veto' or 'share'</p>
-<p><code>axis (</code>int*): area index for which this will be calculated</p></div>
+<p><code>axis (</code>int*): area index for which this will be calculated</p>
+<p><code>get_pointwise_risk (</code>bool<code>): If</code>True`, returns pandas dataframe with LOLE contributions historic observation</p></div>
 <details class="source">
 <summary>
 <span>Expand source code</span>
@@ -2348,22 +2725,21 @@ def bivar_ecdf(X):
 
   `axis (`int*): area index for which this will be calculated
 
+  `get_pointwise_risk (`bool`): If `True`, returns pandas dataframe with LOLE contributions historic observation
+
   &#34;&#34;&#34;
 
-  if axis == 1:
-    self._swap_axes()
+  # if axis == 1:
+  #   self._swap_axes()
 
-  m = (-1,np.Inf)
+  m = [np.Inf,np.Inf]
+  m[axis] = -1
+  #m = (-1,np.Inf)
   lolp_vals = self.cdf(m=m,c=c,policy=policy,get_pointwise_risk=get_pointwise_risk) 
   if get_pointwise_risk:
-    return lolp_vals
+    lole = lolp_vals
   else:
-    return self.n * lolp_vals
-
-  #lole = self._lole(c=c,policy=policy,get_pointwise_risk=get_pointwise_risk)
-
-  if axis == 1:
-    self._swap_axes()
+    lole = self.n * lolp_vals
 
   return lole</code></pre>
 </details>
@@ -2556,6 +2932,8 @@ def bivar_ecdf(X):
     C_CALL.conditioned_simulation(
         np.int64(n),
         ffi.cast(&#34;long *&#34;,simulated.ctypes.data),
+        np.int64(X.X1.min),
+        np.int64(X.X2.min),
         np.int64(X.X1.max),
         np.int64(X.X2.max),
         ffi.cast(&#34;double *&#34;,X.X1.cdf_vals.ctypes.data),
@@ -2665,6 +3043,8 @@ def bivar_ecdf(X):
     C_CALL.region_simulation(
       np.int64(n),
       ffi.cast(&#34;long *&#34;,simulated.ctypes.data),
+      np.int64(X.X1.min),
+      np.int64(X.X2.min),
       np.int64(X.X1.max),
       np.int64(X.X2.max),
       ffi.cast(&#34;double *&#34;,X.X1.cdf_vals.ctypes.data),
@@ -2714,7 +3094,7 @@ def bivar_ecdf(X):
 <p><strong>Parameters</strong>:</p>
 <p><code>c</code> (<code>int</code>): Interconnector capacity</p>
 <p><code>policy</code> (<code>str</code>): Either 'share' or 'veto'</p>
-<p><code>get_pointwise_risk</code> (<code>str</code>): return pandas DataFrame with net demand values and corresponding pointwise risk measurements</p></div>
+<p><code>get_pointwise_risk</code> (<code>str</code>): return pandas DataFrame with system LOLE contributions for each historic observation</p></div>
 <details class="source">
 <summary>
 <span>Expand source code</span>
@@ -2728,7 +3108,7 @@ def bivar_ecdf(X):
 
   `policy` (`str`): Either &#39;share&#39; or &#39;veto&#39;
 
-  `get_pointwise_risk` (`str`): return pandas DataFrame with net demand values and corresponding pointwise risk measurements
+  `get_pointwise_risk` (`str`): return pandas DataFrame with system LOLE contributions for each historic observation
   &#34;&#34;&#34;
   return self.n * self.system_lolp(c,get_pointwise_risk)</code></pre>
 </details>
@@ -2741,7 +3121,7 @@ def bivar_ecdf(X):
 <p><strong>Parameters</strong>:</p>
 <p><code>c</code> (<code>int</code>): Interconnector capacity</p>
 <p><code>policy</code> (<code>str</code>): Either 'share' or 'veto'</p>
-<p><code>get_pointwise_risk</code> (<code>str</code>): return pandas DataFrame with net demand values and corresponding pointwise risk measurements</p></div>
+<p><code>get_pointwise_risk</code> (<code>str</code>): return pandas DataFrame with LOLPs for each historic observation</p></div>
 <details class="source">
 <summary>
 <span>Expand source code</span>
@@ -2755,7 +3135,7 @@ def bivar_ecdf(X):
 
   `policy` (`str`): Either &#39;share&#39; or &#39;veto&#39;
 
-  `get_pointwise_risk` (`str`): return pandas DataFrame with net demand values and corresponding pointwise risk measurements
+  `get_pointwise_risk` (`str`): return pandas DataFrame with LOLPs for each historic observation
 
   &#34;&#34;&#34;
 
@@ -2817,9 +3197,11 @@ def bivar_ecdf(X):
 <ul class="">
 <li><code><a title="psrmodels.time_collapsed.BivariateHindcastMargin.BivariateHindcastMargin.bivar_ecdf" href="#psrmodels.time_collapsed.BivariateHindcastMargin.BivariateHindcastMargin.bivar_ecdf">bivar_ecdf</a></code></li>
 <li><code><a title="psrmodels.time_collapsed.BivariateHindcastMargin.BivariateHindcastMargin.cdf" href="#psrmodels.time_collapsed.BivariateHindcastMargin.BivariateHindcastMargin.cdf">cdf</a></code></li>
+<li><code><a title="psrmodels.time_collapsed.BivariateHindcastMargin.BivariateHindcastMargin.convgen_efc" href="#psrmodels.time_collapsed.BivariateHindcastMargin.BivariateHindcastMargin.convgen_efc">convgen_efc</a></code></li>
 <li><code><a title="psrmodels.time_collapsed.BivariateHindcastMargin.BivariateHindcastMargin.eeu" href="#psrmodels.time_collapsed.BivariateHindcastMargin.BivariateHindcastMargin.eeu">eeu</a></code></li>
 <li><code><a title="psrmodels.time_collapsed.BivariateHindcastMargin.BivariateHindcastMargin.efc" href="#psrmodels.time_collapsed.BivariateHindcastMargin.BivariateHindcastMargin.efc">efc</a></code></li>
 <li><code><a title="psrmodels.time_collapsed.BivariateHindcastMargin.BivariateHindcastMargin.epu" href="#psrmodels.time_collapsed.BivariateHindcastMargin.BivariateHindcastMargin.epu">epu</a></code></li>
+<li><code><a title="psrmodels.time_collapsed.BivariateHindcastMargin.BivariateHindcastMargin.itc_efc" href="#psrmodels.time_collapsed.BivariateHindcastMargin.BivariateHindcastMargin.itc_efc">itc_efc</a></code></li>
 <li><code><a title="psrmodels.time_collapsed.BivariateHindcastMargin.BivariateHindcastMargin.lole" href="#psrmodels.time_collapsed.BivariateHindcastMargin.BivariateHindcastMargin.lole">lole</a></code></li>
 <li><code><a title="psrmodels.time_collapsed.BivariateHindcastMargin.BivariateHindcastMargin.margin_cdf" href="#psrmodels.time_collapsed.BivariateHindcastMargin.BivariateHindcastMargin.margin_cdf">margin_cdf</a></code></li>
 <li><code><a title="psrmodels.time_collapsed.BivariateHindcastMargin.BivariateHindcastMargin.margin_quantile" href="#psrmodels.time_collapsed.BivariateHindcastMargin.BivariateHindcastMargin.margin_quantile">margin_quantile</a></code></li>

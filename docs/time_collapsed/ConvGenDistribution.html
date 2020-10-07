@@ -56,6 +56,10 @@ class ConvGenDistribution(object):
     capacities = np.array(data[&#34;Capacity&#34;])
     availabilities = np.array(data[&#34;Availability&#34;])
 
+    if np.any(availabilities &lt; 0) or np.any(availabilities &gt; 1):
+      raise Exception(&#34;Availabilities bust between 0 and 1&#34;)
+      
+    self.original_data = data
     self.original_capacities = capacities #this is stored to avoid rounding error mounting up after rescaling
     self.rescaling_factor = 1
     self._setup(capacities,availabilities,bin_size)
@@ -450,6 +454,10 @@ class ClippedGenDist(ConvGenDistribution):
     capacities = np.array(data[&#34;Capacity&#34;])
     availabilities = np.array(data[&#34;Availability&#34;])
 
+    if np.any(availabilities &lt; 0) or np.any(availabilities &gt; 1):
+      raise Exception(&#34;Availabilities bust between 0 and 1&#34;)
+      
+    self.original_data = data
     self.original_capacities = capacities #this is stored to avoid rounding error mounting up after rescaling
     self.rescaling_factor = 1
     self._setup(capacities,availabilities,bin_size)
