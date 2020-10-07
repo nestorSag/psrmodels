@@ -10,6 +10,7 @@ from .UnivariateHindcastMargin import *
 from _c_ext_bivarmargins import ffi, lib as C_CALL
 
 from deprecated import deprecated
+from warnings import warn
 
 class BivariateHindcastMargin(object):
   """Main class for risk calculations in a time-collapsed 2-area hindcast model.
@@ -477,8 +478,10 @@ class BivariateHindcastMargin(object):
 
     return self.net_demand[np.random.choice(range(self.n),size=n),:]
 
-  @deprecated(version='1.1.5', reason="Use methods itc_efc or convgen_ifc instead.")
   def efc(self,**kwargs):
+    """This method calculates the equivalent firm capacity of interconnection for a given power system. It has been deprecated; use the `itc_efc` method instead. When called, this function calls `itc_efc`, passing all arguments along.
+    """
+    warn("This method is deprecated; use methods itc_efc or convgen_ifc instead.")
     return self.itc_efc(**kwargs)
 
   def convgen_efc(self, cap, prob, gen_axis, fc_axis, c,policy,metric="lole",axis=0,tol=0.1,**kwargs):

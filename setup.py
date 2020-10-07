@@ -1,7 +1,7 @@
 import setuptools
 from distutils.core import Extension
 
-LATEST = "1.0.5"
+LATEST = "1.1.5"
 
 with open("README.md", "r") as fh:
 
@@ -26,7 +26,6 @@ setuptools.setup(
      setup_requires = ['cffi>=1.0.0'],
 
      install_requires=[
-        'deprecated',
         'numpy',
         'scipy',
         'pandas',
