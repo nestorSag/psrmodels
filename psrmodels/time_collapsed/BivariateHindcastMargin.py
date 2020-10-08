@@ -9,7 +9,6 @@ from .UnivariateHindcastMargin import *
 
 from _c_ext_bivarmargins import ffi, lib as C_CALL
 
-from deprecated import deprecated
 from warnings import warn
 
 class BivariateHindcastMargin(object):
