@@ -483,7 +483,7 @@ class BivariateHindcastMargin(object):
     warn("This method is deprecated; use methods itc_efc or convgen_ifc instead.")
     return self.itc_efc(**kwargs)
 
-  def convgen_efc(self, cap, prob, gen_axis, fc_axis, c,policy,metric="lole",axis=0,tol=0.1,**kwargs):
+  def convgen_efc(self, cap, prob, gen_axis, fc_axis, c,policy, metric="lole",axis=0,tol=0.1,**kwargs):
     """Returns the amount of firm capacity that needs to be added to area `fc_axis` such that area `axis` has the same risk (as defined by `metric`) than if new conventional generation was installed in `gen_axis`.
 
     **Parameters**:
