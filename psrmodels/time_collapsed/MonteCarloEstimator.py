@@ -4,6 +4,14 @@ from scipy.optimize import bisect
 class MonteCarloEstimator(object):
   """ Class that contains method to calculate Monte Carlo estimates for reliability analysis from a sample of observed pre-interconnection power margin values
   """
+  @staticmethod
+  def get_efc_metric_function(metric,obj,**kwargs):
+      if isinstance(metric,str):
+        return getattr(obj,metric)
+      elif callable(metric):
+        return lambda obs,c,policy,axis: metric(obj=obj,obs=obs,c=c,policy=policy,axis=axis,**kwargs) #return curried metric set_metric_function
+      else:
+        raise Exception("'metric' has to be either a function or a string")
 
   # @staticmethod
   def find_shortfalls(self,obs,axis,c,policy):
@@ -186,7 +194,7 @@ class MonteCarloEstimator(object):
 
     `policy` (`str`): Either 'share' or 'veto'
 
-    `metric` (`string`): name of the instance's method that will be used to measure risk
+    `metric` (`string` or function): Baseline risk metric that will be used to calculate EFC. If a `string`, use matching method from the appropriate `BivariateHindcastMargin` instance (for example, "`1lole`" or "`eeu`"); if a function, it needs to take as parameters a `BivariateHindcastMargin` instance `obj`, interconnection capacity `c`, axis `axis` and  policy `policy`, and optionally additional arguments. This is useful for using more complex metrics such as quantiles.
 
     `axis` (`int`): area for which risk will be calculated
 
@@ -196,13 +204,13 @@ class MonteCarloEstimator(object):
 
     """
     obs = obs.astype(dtype=np.float64)
-    with_itc = getattr(self,metric)(obs=obs,c=c,policy=policy,axis=axis,**kwargs)
+    with_itc = MonteCarloEstimator.get_efc_metric_function(metric,self,**kwargs)(obs=obs,c=c,policy=policy,axis=axis)
     #print("with_itc: {x}".format(x=with_itc))
 
     def find_efc(x):
       #print("x: {x}".format(x=x))
       obs[:,axis] += x
-      without_itc = getattr(self,metric)(obs=obs,c=0,policy=policy,axis=axis,**kwargs)
+      without_itc = MonteCarloEstimator.get_efc_metric_function(metric,self,**kwargs)(obs=obs,c=0,policy=policy,axis=axis)
       obs[:,axis] -= x
       return with_itc - without_itc
 
@@ -251,7 +259,7 @@ class MonteCarloEstimator(object):
 
     `axis` (`int`): area for which risk will be calculated
 
-    `metric` (`string`): name of the instance's method that will be used to measure risk. Only 'LOLE' and 'EEU' are supported
+    `metric` (`string` or function): Baseline risk metric that will be used to calculate EFC. If a `string`, use matching method from the appropriate `BivariateHindcastMargin` instance (for example, "`1lole`" or "`eeu`"); if a function, it needs to take as parameters a `BivariateHindcastMargin` instance `obj`, interconnection capacity `c`, axis `axis` and  policy `policy`, and optionally additional arguments. This is useful for using more complex metrics such as quantiles.
 
     `tol` (`float`): absolute error tolerance from target risk value
 
@@ -278,7 +286,7 @@ class MonteCarloEstimator(object):
     new_gen_simulations = cap * np.random.binomial(n=1,p=prob,size=obs.shape[0])
     #pint(new_gen_simulations)
     obs[:,gen_axis] += new_gen_simulations
-    with_gen = getattr(self,metric)(obs = obs,c=c,policy=policy,axis=axis,**kwargs)
+    with_gen = MonteCarloEstimator.get_efc_metric_function(metric,self,**kwargs)(obs = obs,c=c,policy=policy,axis=axis)
     #print("with_gen: {x}".format(x=with_gen))
 
     # get efc of new generator
@@ -287,7 +295,8 @@ class MonteCarloEstimator(object):
 
     def find_efc(x):
       obs[:,fc_axis] += x
-      with_fc = getattr(self,metric)(obs=obs,c=c,policy=policy,axis=axis,**kwargs)
+      with_fc = MonteCarloEstimator.get_efc_metric_function(metric,self,**kwargs)(obs = obs,c=c,policy=policy,axis=axis)
+      #with_fc = getattr(self,metric)(obs=obs,c=c,policy=policy,axis=axis,**kwargs)
       obs[:,fc_axis] -= x
       #print("x: {x}, with_fc: {with_fc}, with_gen: {with_gen}".format(x=x,with_fc=with_fc,with_gen=with_gen))
       return with_gen - with_fc

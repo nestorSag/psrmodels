@@ -54,6 +54,15 @@ class BivariateHindcastMargin(object):
     return gen_dists
 
   @staticmethod
+  def get_efc_metric_function(metric,obj,**kwargs):
+      if isinstance(metric,str):
+        return getattr(obj,metric)
+      elif callable(metric):
+        return lambda c,policy,axis: metric(obj=obj,c=c,policy=policy,axis=axis,**kwargs) #return curried metric set_metric_function
+      else:
+        raise Exception("'metric' has to be either a function or a string")
+
+  @staticmethod
   def bivar_ecdf(X):
     n = X.shape[0]
     ecdf = np.ascontiguousarray(np.empty((n,)),dtype=np.float64)
@@ -502,11 +511,12 @@ class BivariateHindcastMargin(object):
 
     `axis` (`int`): area for which risk will be calculated
 
-    `metric` (`string`): name of the instance's method that will be used to measure risk. Only 'LOLE' and 'EEU' are supported
+    `metric` (`string` or function): Baseline risk metric that will be used to calculate EFC. If a `string`, use matching method from the appropriate `BivariateHindcastMargin` instance (for example, "`1lole`" or "`eeu`"); if a function, it needs to take as parameters a `BivariateHindcastMargin` instance `obj`, interconnection capacity `c`, axis `axis` and  policy `policy`, and optionally additional arguments. This is useful for using more complex metrics such as quantiles.
 
     `tol` (`float`): absolute error tolerance from true target risk value
 
     """
+
     if not (axis in [0,1]):
       raise Exception("axis value must be 0 or 1")
 
@@ -532,7 +542,8 @@ class BivariateHindcastMargin(object):
     new_bivariate_dist[gen_axis] = augmented_gen_dist
     new_bivariate_dist[other] = self.gen_dists[other]
     new_margin_dist = BivariateHindcastMargin(self.demand,self.renewables,new_bivariate_dist)
-    new_metric_func = getattr(new_margin_dist,metric)
+    
+    new_metric_func = BivariateHindcastMargin.get_efc_metric_function(metric,new_margin_dist,**kwargs)
     new_metric_val = new_metric_func(c=c,policy=policy,axis=axis)
 
     print("new metric val: {x}".format(x=new_metric_val))
@@ -554,7 +565,7 @@ class BivariateHindcastMargin(object):
       original_bivariate_dist[fc_axis] += x
       # create bivariate margin distribution object
       dist = BivariateHindcastMargin(self.demand,self.renewables,original_bivariate_dist)
-      metric_func = getattr(dist,metric)
+      metric_func = BivariateHindcastMargin.get_efc_metric_function(metric,dist,**kwargs)
       metric_val = metric_func(c=c,policy=policy,axis=axis)
 
       # reset firm capacity to 0
@@ -581,28 +592,32 @@ class BivariateHindcastMargin(object):
 
     `axis` (`int`): area for which risk will be calculated
 
-    `metric` (`string`): name of the instance's method that will be used to measure risk
+    `metric` (`string` or function): Baseline risk metric that will be used to calculate EFC. If a `string`, use matching method from the appropriate `BivariateHindcastMargin` instance (for example, "`1lole`" or "`eeu`"); if a function, it needs to take as parameters a `BivariateHindcastMargin` instance `obj`, interconnection capacity `c`, axis `axis` and  policy `policy`, and optionally additional arguments. This is useful for using more complex metrics such as quantiles.
 
     `tol` (`float`): absolute error tolerance from true target risk value
 
     """
-    if not metric in ["lole","eeu"]:
-      raise Exception("Only 'lole' or 'eeu' supported as risk metrics")
+    # if not metric in ["lole","eeu"]:
+    #   raise Exception("Only 'lole' or 'eeu' supported as risk metrics")
     
     #target value
-    with_itc = getattr(self,metric)(c=c,axis=axis,policy=policy,**kwargs)
+    metric_func = BivariateHindcastMargin.get_efc_metric_function(metric,self,**kwargs)
+    with_itc = metric_func(c=c,axis=axis,policy=policy,**kwargs)
+
+    print("with_itc: {x}".format(x=with_itc))
 
     def compare_itc_to_fc(k):
       self.gen_dists[axis] += k ## add firm capacity
-      univar = UnivariateHindcastMargin(self.gen_dists[axis],self.net_demand[:,axis])
-      #risk_metric = getattr(univar,metric)
-      without_itc = getattr(univar,metric)()
+      #univar = UnivariateHindcastMargin(self.gen_dists[axis],self.net_demand[:,axis])
+      #without_itc = getattr(univar,metric)()
+      without_itc = BivariateHindcastMargin.get_efc_metric_function(metric,self,**kwargs)(policy=policy,axis=axis,c=0)
       #k_fc_risk =  with_itc - without_itc
+      print("k: {k}, without_itc: {y}, delta: {x}".format(k=k, y=without_itc,x=with_itc - without_itc))
       self.gen_dists[axis] += (-k) #reset firm capacity to 0
       return with_itc - without_itc
 
     diff_to_null = compare_itc_to_fc(0)
-
+    print("diff to null: {x}".format(x=diff_to_null))
     # now find the root of compare_itc_to_fc by bisection
 
     # is the interconnector adding risk?

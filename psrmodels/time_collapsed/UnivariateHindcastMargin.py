@@ -13,7 +13,7 @@ class UnivariateHindcastMargin(object):
 
     `nd_data` (`numpy.npdarray`): vector of net demand values
 
-    """
+  """
   def __init__(self,gen,nd_data):
 
     if not isinstance(gen,ConvGenDistribution):
@@ -25,7 +25,53 @@ class UnivariateHindcastMargin(object):
 
     self.min = -np.max(self.nd_vals)
     self.max = self.gen.max - np.min(self.nd_vals)
-        
+
+  def renewables_efc(self,demand,renewables,metric="lole",tol=0.1):
+    """calculate efc of wind fleer
+
+    **Parameters**:
+    
+    `demand` (`numpy.ndarray`): array of demand observations
+
+    `renewables` (`numpy.ndarray`): vector of renewable generation observations
+
+    `metric` (`str` or function): baseline risk metric to perform the calculations; if `str`, the instance's method with matching name will be used; of a function, it needs to take a `UnivariateHindcastMargin` object as a parameter
+
+    `tol` (`float`): absolute error tolerance with respect to true baseline risk metric for bisection function
+    """
+
+    if np.any(renewables < 0):
+      raise Exception("renewable generation observations contain negative values.")
+
+    def get_risk_function(metric):
+
+      if isinstance(metric,str):
+        return lambda x: getattr(x,metric)()
+      elif callable(metric):
+        return metric
+
+    with_wind_obj = UnivariateHindcastMargin(self.gen,demand - renewables)
+    with_wind_risk = get_risk_function(metric)(with_wind_obj)
+
+    def bisection_target(x):
+      self.gen += x
+      with_fc_obj = UnivariateHindcastMargin(self.gen,demand)
+      with_fc_risk = get_risk_function(metric)(with_fc_obj)
+      self.gen += (-x)
+      return with_fc_risk - with_wind_risk
+
+    delta = 500 
+    leftmost = 0
+    rightmost = 0
+    while bisection_target(rightmost) < 0:
+      rightmost += delta
+
+    efc, res = bisect(f=bisection_target,a=leftmost,b=rightmost,full_output=True,xtol=tol/2,rtol=tol/(2*with_wind_risk))
+    if not res.converged:
+      print("Warning: EFC estimator did not converge.")
+    #print("efc:{efc}".format(efc=efc))
+    return int(efc)
+ 
   def cdf(self,x):
     """calculate margin CDF values
 
