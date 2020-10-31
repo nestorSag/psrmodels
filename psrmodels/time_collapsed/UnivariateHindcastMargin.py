@@ -6,6 +6,8 @@ from .ConvGenDistribution import *
 
 import warnings
 
+from scipy.optimize import bisect
+
 class UnivariateHindcastMargin(object):
   """Univariate time-collapsed hindcast model
 
@@ -68,7 +70,7 @@ class UnivariateHindcastMargin(object):
     delta = 500 
     leftmost = 0
     rightmost = 0
-    while bisection_target(rightmost) < 0:
+    while bisection_target(rightmost) > 0:
       rightmost += delta
 
     efc, res = bisect(f=bisection_target,a=leftmost,b=rightmost,full_output=True,xtol=tol/2,rtol=tol/(2*with_wind_risk))
@@ -177,7 +179,7 @@ class UnivariateHindcastMargin(object):
     while bisection(upper) <= 0:
       upper += delta
 
-    return bisect(f=bisection,a=lower,b=upper)
+    return int(bisect(f=bisection,a=lower,b=upper))
 
   def simulate(self,n,seed=1):
     """Simulate from hindcast distribution
