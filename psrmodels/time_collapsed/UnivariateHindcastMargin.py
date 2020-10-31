@@ -4,6 +4,8 @@ from _c_ext_univarmargins import ffi, lib as C_CALL
 
 from .ConvGenDistribution import *
 
+import warnings
+
 class UnivariateHindcastMargin(object):
   """Univariate time-collapsed hindcast model
 
@@ -42,6 +44,9 @@ class UnivariateHindcastMargin(object):
 
     if np.any(renewables < 0):
       raise Exception("renewable generation observations contain negative values.")
+
+    if self.gen.fc != 0:
+      warnings.warn("available generation's firm capacity is nonzero.")
 
     def get_risk_function(metric):
 
@@ -147,6 +152,32 @@ class UnivariateHindcastMargin(object):
     row_idx = np.random.choice(row_range,size=n)
 
     return self.nd_vals[row_idx]
+
+  def quantile(self,q):
+
+    """Returns quantiles of the power margin distribution
+
+    **Parameters**:
+    
+    `q` (`float`): quantile
+
+
+    """
+    def bisection(x):
+      return self.cdf(x) - q
+    
+    delta = 1000
+
+    lower = 0
+    upper = 0
+
+    while bisection(lower) >= 0:
+      lower -= delta
+
+    while bisection(upper) <= 0:
+      upper += delta
+
+    return bisect(f=bisection,a=lower,b=upper)
 
   def simulate(self,n,seed=1):
     """Simulate from hindcast distribution
