@@ -1,339 +1,273 @@
 //#ifndef UNIVAR_MARGINS_H_INCLUDED
 //#define UNIVAR_MARGINS_H_INCLUDED
 
-/**
- * @brief calculate maximum of two numbers
- */
-
-long max(long num1, long num2);
 
 /**
- * @brief Evaluate available conventional generation CDF or expectation
+ * @brief This object represents the discrete probability distribution of available conventional generation
  *
- * @param y CDF argument
- * @param cdf_array pre-computed array of CDF values
- * @param gen_min minimum conventional generation capacity; can take a negative value under some circumstances
- * @param gen_max maximum conventional generation capacity
+ * @param min minimum possible value of available generation; can be non-zero if firm capacity is added or subtracted
+ * @param max maximum possible value of available generation
+ * @param cdf array with CDF values
+ * @param expectation array with cumulative expectation values: expectation[k] = p_min*min + ... + p_k * k
  */
 
-double get_gen_array_val(
-	long y, 
-	double* cdf_array, 
-	long gen_min,
-	long gen_max);
+typedef struct DiscreteDistribution{
+	int min;
+	int max;
+	double* cdf;
+	double* expectation;
+} DiscreteDistribution;
 
 /**
- * @brief calculate Hindcast power margin CDF
+ * @brief This object represents a vector of double observations
  *
- * @param x CDF argument
- * @param nd_length number of net demand data points 
- * @param gen_min minimum conventional generation capacity; can take a negative value under some circumstances
- * @param gen_max maximum conventional generation capacity
- * @param nd_vals array of net demand values
- * @param gen_cdf array of conventional generation CDF values
+ * @param value data
+ * @param size data size (length)
  */
-double h_margin_cdf(
-	long x, 
-	long nd_length,
-	long gen_min,
-	long gen_max,
-	long* nd_vals, 
-	double* gen_cdf);
-
-/**
- * @brief calculate EPU under hindcast model
- *
- * @param nd_length number of net demand data points 
- * @param gen_min minimum conventional generation capacity; can take a negative value under some circumstances
- * @param gen_max maximum conventional generation capacity
- * @param nd_vals array of net demand values
- * @param gen_cdf array of conventional generation CDF values
- * @param gen_expectation array of partial expectation values for conventional generation CDF
- */
-double h_epu(
-	long nd_length,
-	long gen_min,
-	long gen_max,
-	long* nd_vals, 
-	double* gen_cdf,
-	double* gen_expectation);
-
-/**
- * @brief evaluate a Generalized Pareto CDF function
- *
- * @param x CDF argument
- * @param u location parameter
- * @param sigma scale parameter
- * @param xi shape parameter
- */
-double gpdist_cdf(
-	double x,
-	double u,
-	double sigma,
-	double xi);
-
-/**
- * @brief evaluate a exponential distribution CDF function
- *
- * @param x CDF argument
- * @param u location parameter
- * @param sigma scale parameter
- */
-double expdist_cdf(
-	double x,
-	double u,
-	double sigma);
-
-/**
- * @brief evaluate CDF of the GP approximation of the tail of net demand under an extreme values approach
- *
- * @param x CDF argument
- * @param u location parameter
- * @param sigma scale parameter
- * @param xi shape parameter
- */
-
-double ev_nd_tail_cdf(
-	long x,
-	double u,
-	double sigma,
-	double xi);
-
-/**
- * @brief evaluate CDF of the GP approximation of the tail of net demand under a Bayesian extreme values approach
- *
- * @param x CDF argument
- * @param u location parameter
- * @param sigma array of scale parameters
- * @param xi array of shape parameters
- */
-
-double bev_nd_tail_cdf(
-	long x,
-	double u,
-	long n_posterior,
-	double* sigma,
-	double* xi);
-
-/**
- * @brief evaluate CDF of net demand under a Hindcast approach
- *
- * @param x CDF argument
- * @param nd_length number of net demand values
- * @param nd_vals array of net demand values
- */
-
-double h_nd_cdf(
-	double x,
-	long nd_length,
-	long* nd_vals);
-
-/**
- * @brief evaluate CDF of net demand under an extreme values approach
- *
- * @param x CDF argument
- * @param u model threshold of GP approximation
- * @param p quantile of model threshold
- * @param sigma scale parameter of GP approximation
- * @param xi shape parameter of GP approximation
- * @param nd_length number of net demand values
- * @param nd_vals array of net demand values
-
- */
-double ev_nd_cdf(
-	long x,
-	double u,
-	double p,
-	double sigma,
-	double xi,
-	long nd_length,
-	long* nd_vals);
-
-/**
- * @brief evaluate PDF of net demand under an extreme values approach
- *
- * @param x PDF argument
- * @param u model threshold of GP approximation
- * @param p quantile of model threshold
- * @param sigma scale parameter of GP approximation
- * @param xi shape parameter of GP approximation
- * @param nd_length number of net demand values
- * @param nd_vals array of net demand values
-
- */
-double ev_nd_pdf(
-	long x,
-	double u,
-	double p,
-	double sigma,
-	double xi,
-	long nd_length,
-	long* nd_vals);
-
-/**
- * @brief evaluate CDF of net demand under a Bayesian extreme values approach
- *
- * @param x CDF argument
- * @param u model threshold of GP approximation
- * @param p quantile of model threshold
- * @param n_posterior number of posterior parameter simulations
- * @param sigma posterior samples for scale parameter
- * @param xi posterior samples for shape parameter
- * @param nd_length number of net demand values
- * @param nd_vals array of net demand values
-
- */
-double bev_nd_cdf(
-	long x,
-	double u,
-	double p,
-	long n_posterior,
-	double* sigma,
-	double* xi,
-	long nd_length,
-	long* nd_vals);
-
-/**
- * @brief evaluate PDF of net demand under a Bayesian extreme values approach
- *
- * @param x PDF argument
- * @param u model threshold of GP approximation
- * @param p quantile of model threshold
- * @param n_posterior number of posterior parameter simulations
- * @param sigma posterior samples for scale parameter
- * @param xi posterior samples for shape parameter
- * @param nd_length number of net demand values
- * @param nd_vals array of net demand values
-
- */
-
-double bev_nd_pdf(
-	long x,
-	double u,
-	double p,
-	long n_posterior,
-	double* sigma,
-	double* xi,
-	long nd_length,
-	long* nd_vals);
-
-/**
- * @brief evaluate CDF of power margins under an extreme values approach
- *
- * @param m CDF argument
- * @param u model threshold of GP net demand approximation
- * @param p quantile of model threshold
- * @param sigma location parameter of GP net demand tail approximation
- * @param xi shape parameter of GP net demand tail approximation
- * @param nd_length number of net demand values
- * @param gen_min minimum conventional generation capacity; can take a negative value under some circumstances
- * @param gen_max maximum conventional generation capacity
- * @param nd_vals array of net demand values
- * @param gen_cdf array of available conventional generation CDF
-
- */
-
-double ev_margin_cdf(
-	long m,
-	double u,
-	double p,
-	double sigma,
-	double xi,
-	long nd_length,
-	long gen_min,
-	long gen_max,
-	long* nd_vals,
-	double* gen_cdf
-	);
-
-/**
- * @brief evaluate CDF of power margins under a Bayesian extreme values approach
- *
- * @param m CDF argument
- * @param u model threshold of GP net demand approximation
- * @param p quantile of model threshold
- * @param n_posterior number of posterior parameter samples
- * @param sigma posterior samples of scale parameter for net demand GP approximation
- * @param xi posterior samples of shape parameter for net demand GP approximation
- * @param nd_length number of net demand values
- * @param gen_min minimum conventional generation capacity; can take a negative value under some circumstances
- * @param gen_max maximum conventional generation capacity
- * @param nd_vals array of net demand values
- * @param gen_cdf array of available conventional generation CDF
-
- */
-
-double bev_margin_cdf(
-	long m,
-	double u,
-	double p,
-	long n_posterior,
-	double* sigma,
-	double* xi,
-	long nd_length,
-	long gen_min,
-	long gen_max,
-	long* nd_vals,
-	double* gen_cdf
-	);
-
-/**
- * @brief calculate EPU for an EV model of net demand
- *
- * @param u model threshold of GP net demand approximation
- * @param p quantile of model threshold
- * @param sigma posterior samples of scale parameter for net demand GP approximation
- * @param xi posterior samples of shape parameter for net demand GP approximation
- * @param nd_length number of net demand values
- * @param gen_min minimum conventional generation capacity; can take a negative value under some circumstances
- * @param gen_max maximum conventional generation capacity
- * @param nd_vals array of net demand values
- * @param gen_cdf array of available conventional generation CDF values
- * @param gen_expectation array of available conventional generation's partial expectation values
-
- */
-double ev_epu(
-	double u,
-	double p,
-	double sigma,
-	double xi,
-	long nd_length,
-	long gen_min,
-	long gen_max,
-	long* nd_vals,
-	double* gen_cdf,
-	double* gen_expectation);
+typedef struct IntVector{
+  int* value;
+  int size;
+} IntVector;
 
 
 /**
- * @brief calculate EPU for a Bayesian EV model of net demand
+ * @brief This object represents a fitted Generalised Pareto tail model
  *
- * @param u model threshold of GP net demand approximation
- * @param p quantile of model threshold
- * @param n_posterior number of posterior parameter samples
- * @param sigma posterior samples of scale parameter for net demand GP approximation
- * @param xi posterior samples of shape parameter for net demand GP approximation
- * @param nd_length number of net demand values
- * @param gen_min minimum conventional generation capacity; can take a negative value under some circumstances
- * @param gen_max maximum conventional generation capacity
- * @param nd_vals array of net demand values
- * @param gen_cdf array of available conventional generation CDF values
- * @param gen_expectation array of available conventional generation's partial expectation values
-
+ * @param xi fitted shape parameter
+ * @param sigma fitted scale parameter
+ * @param u model threshold
+ * @param p model threshold's quantile
  */
-double bev_epu(
-	double u,
-	double p,
-	long n_posterior,
-	double *sigma,
-	double *xi,
-	long nd_length,
-	long gen_min,
-	long gen_max,
-	long* nd_vals,
-	double* gen_cdf,
-	double* gen_expectation);
+typedef struct GPModel{
+	double xi;
+	double sigma;
+	double u;
+	double p;
+} GPModel;
+
+/**
+ * @brief This object represents a fitted Bayesian Generalised Pareto tail model
+ *
+ * @param u model threshold
+ * @param p model threshold's quantile
+ * @param xi posterior trace of shape parameter
+ * @param sigma posterior trace of scale parameter
+ * @param size trace length
+ */
+
+typedef struct PosteriorGPTrace{
+	double u;
+	double p;
+	double* xi;
+	double* sigma;
+	int size;
+} PosteriorGPTrace;
+
+/**
+ * @brief Wrapper that gets a value from the specified DiscreteDistribution's arrays
+ *
+ * @param F DiscreteDistribution
+ * @param array array in the same DiscreteDistribution
+ * @param x entry to fetch
+ */
+
+double cumulative_value(DiscreteDistribution* F, double* array, int x);
+
+/**
+ * @brief Returns CDF evaluated at x
+ *
+ */
+double cdf(DiscreteDistribution* F, int x);
+
+/**
+ * @brief Returns PDF evaluated at x
+ *
+ */
+double pdf(DiscreteDistribution* F, int x);
+
+/**
+ * @brief Returns cumulative expectation evaluated at x
+ *
+ */
+double cumulative_expectation(DiscreteDistribution* F, int x);
+
+double max(double num1, double num2);
+
+double min(double num1, double num2);
+/**
+ * @brief Returns empirical CDF estimate from an available generation probability model, a net demand sample, and a value x to evaluate at
+ *
+ */
+
+double empirical_power_margin_cdf(DiscreteDistribution* F, IntVector* net_demand, int x);
+
+/**
+ * @brief Returns expected energy unserved estimate from an available generation probability model and a net demand sample
+ *
+ */
+double empirical_eeu(DiscreteDistribution* F, IntVector* net_demand);
+
+/**
+ * @brief Returns a Generalised Pareto CDF evaluated at x
+ *
+ */
+
+double gpdist_cdf(GPModel* gp, double x);
+/**
+ * @brief Returns an exponential CDF evaluated at x
+ *
+ */
+double expdist_cdf(GPModel* gp, double x);
+
+/**
+ * @brief Returns the CDF of the fitted tail model evaluated at x; wraps gp_cdf and expdist_cdf
+ *
+ */
+double tail_model_cdf(GPModel* gp, double x);
+
+/**
+ * @brief Returns the CDF of the fitted posterior Bayesian tail model evaluated at x
+ *
+ */
+double bayesian_tail_model_cdf(PosteriorGPTrace* gpt, double x);
+
+/**
+ * @brief Returns the empirical CDF of a net demand sample evaluated at x 
+ *
+ */
+double empirical_net_demand_cdf(IntVector* net_demand, double x);
+
+/**
+ * @brief Returns the CDF of a net demand model with a GP tail component evaluated at x 
+ *
+ */
+double semiparametric_net_demand_cdf(GPModel* gp, IntVector* net_demand, double x);
+
+/**
+ * @brief Returns the PDF of a net demand model with a GP tail component evaluated at x 
+ *
+ */
+double semiparametric_net_demand_pdf(GPModel* gp, IntVector* net_demand, double x);
+
+/**
+ * @brief Returns the CDF of a net demand model with a Bayesian GP tail component evaluated at x 
+ *
+ */
+double bayesian_semiparametric_net_demand_cdf(PosteriorGPTrace* gpt, IntVector* net_demand, double x);
+
+/**
+ * @brief Returns the PDF of a net demand model with a Bayesian GP tail component evaluated at x 
+ *
+ */
+double bayesian_semiparametric_net_demand_pdf(PosteriorGPTrace* gpt, IntVector* net_demand, double x);
+
+/**
+ * @brief Returns the CDF of a power margin model whose net demand has a GP tail component, evaluated at x 
+ *
+ */
+double semiparametric_power_margin_cdf(GPModel* gp, IntVector* net_demand, DiscreteDistribution* F, double x);
+
+/**
+ * @brief Returns the CDF of a power margin model whose net demand has a Bayesian GP tail component, evaluated at x 
+ *
+ */
+double bayesian_semiparametric_power_margin_cdf(PosteriorGPTrace* gpt, IntVector* net_demand, DiscreteDistribution* F, double x);
+//double bayesian_semiparametric_power_margin_cdf(PosteriorGPTrace* gpt, DiscreteDistribution* F, double x);
+
+/**
+ * @brief Returns the EEU estimate of a power margin model whose net demand has GP tail component
+ *
+ */
+double semiparametric_eeu(GPModel* gp, IntVector* net_demand, DiscreteDistribution* F);
+
+/**
+ * @brief Returns the EEU estimate of a power margin model whose net demand has a Bayesian GP tail component
+ *
+ */
+double bayesian_semiparametric_eeu(PosteriorGPTrace* gpt, IntVector* net_demand, DiscreteDistribution* F);
 
 
-//#endif
 
+// python interfaces
+
+
+void get_discrete_dist_from_py_objs(DiscreteDistribution* F, double* cdf, double* expectation, int min, int max);
+
+void get_int_vector_from_py_objs(IntVector* vector, int* value, int size);
+
+void get_gp_from_py_objs(GPModel* gp, double xi, double sigma, double u, double p);
+
+void get_gpt_from_py_objs(PosteriorGPTrace* gpt, double* xi, double* sigma, double u, double p, int size);
+
+double empirical_power_margin_cdf_py_interface(
+  int x, 
+  int nd_length,
+  int gen_min,
+  int gen_max,
+  int* nd_vals, 
+  double* gen_cdf);
+
+double empirical_net_demand_cdf_py_interface(
+  double x,
+  int nd_length,
+  int* nd_vals);
+
+double semiparametric_power_margin_cdf_py_interface(
+  int x,
+  double u,
+  double p,
+  double sigma,
+  double xi,
+  int nd_length,
+  int gen_min,
+  int gen_max,
+  int* nd_vals,
+  double* gen_cdf
+  );
+
+double bayesian_semiparametric_power_margin_cdf_py_interface(
+  int x,
+  double u,
+  double p,
+  int n_posterior,
+  double* sigma,
+  double* xi,
+  int nd_length,
+  int gen_min,
+  int gen_max,
+  int* nd_vals,
+  double* gen_cdf
+  );
+
+double empirical_eeu_py_interface(
+  int nd_length,
+  int gen_min,
+  int gen_max,
+  int* nd_vals, 
+  double* gen_cdf,
+  double* gen_expectation);
+
+double semiparametric_eeu_py_interface(
+  double u,
+  double p,
+  double sigma,
+  double xi,
+  int nd_length,
+  int gen_min,
+  int gen_max,
+  int* nd_vals,
+  double* gen_cdf,
+  double* gen_expectation);
+
+double bayesian_semiparametric_eeu_py_interface(
+  double u,
+  double p,
+  int n_posterior,
+  double *sigma,
+  double *xi,
+  int nd_length,
+  int gen_min,
+  int gen_max,
+  int* nd_vals,
+  double* gen_cdf,
+  double* gen_expectation);

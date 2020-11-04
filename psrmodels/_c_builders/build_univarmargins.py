@@ -4,79 +4,79 @@ import os
 ffibuilder = FFI()
 
 ffibuilder.cdef(""" 
-	double h_margin_cdf(
-		long x, 
-		long nd_length,
-		long gen_min,
-		long gen_max,
-		long* nd_vals, 
-		double* gen_cdf);
+	double empirical_power_margin_cdf_py_interface(
+  int x, 
+  int nd_length,
+  int gen_min,
+  int gen_max,
+  int* nd_vals, 
+  double* gen_cdf);
 
-	double h_nd_cdf(
-		double x,
-		long nd_length,
-		long* nd_vals);
+	double empirical_net_demand_cdf_py_interface(
+	  double x,
+	  int nd_length,
+	  int* nd_vals);
 
-	double ev_margin_cdf(
-		long m,
-		double u,
-		double p,
-		double sigma,
-		double xi,
-		long nd_length,
-		long gen_min,
-		long gen_max,
-		long* nd_vals,
-		double* gen_cdf
-		);
+	double semiparametric_power_margin_cdf_py_interface(
+  int x,
+  double u,
+  double p,
+  double sigma,
+  double xi,
+  int nd_length,
+  int gen_min,
+  int gen_max,
+  int* nd_vals,
+  double* gen_cdf
+  );
 
-	double bev_margin_cdf(
-		long m,
-		double u,
-		double p,
-		long n_posterior,
-		double* sigma,
-		double* xi,
-		long nd_length,
-		long gen_min,
-		long gen_max,
-		long* nd_vals,
-		double* gen_cdf
-		);
+  double bayesian_semiparametric_power_margin_cdf_py_interface(
+    int m,
+    double u,
+    double p,
+    int n_posterior,
+    double* sigma,
+    double* xi,
+    int nd_length,
+    int gen_min,
+    int gen_max,
+    int* nd_vals,
+    double* gen_cdf
+    );
 
-	double h_epu(
-		long nd_length,
-		long gen_min,
-		long gen_max,
-		long* nd_vals, 
-		double* gen_cdf,
-		double* gen_expectation);
 
-	double ev_epu(
-		double u,
-		double p,
-		double sigma,
-		double xi,
-		long nd_length,
-		long gen_min,
-		long gen_max,
-		long* nd_vals,
-		double* gen_cdf,
-		double* gen_expectation);
+	double empirical_eeu_py_interface(
+	  int nd_length,
+	  int gen_min,
+	  int gen_max,
+	  int* nd_vals, 
+	  double* gen_cdf,
+	  double* gen_expectation);
 
-	double bev_epu(
-		double u,
-		double p,
-		long n_posterior,
-		double *sigma,
-		double *xi,
-		long nd_length,
-		long gen_min,
-		long gen_max,
-		long* nd_vals,
-		double* gen_cdf,
-		double* gen_expectation);
+	double semiparametric_eeu_py_interface(
+	  double u,
+	  double p,
+	  double sigma,
+	  double xi,
+	  int nd_length,
+	  int gen_min,
+	  int gen_max,
+	  int* nd_vals,
+	  double* gen_cdf,
+	  double* gen_expectation);
 
+	double bayesian_semiparametric_eeu_py_interface(
+	  double u,
+	  double p,
+	  int n_posterior,
+	  double *sigma,
+	  double *xi,
+	  int nd_length,
+	  int gen_min,
+	  int gen_max,
+	  int* nd_vals,
+	  double* gen_cdf,
+	  double* gen_expectation);
 	""")
 
 header = "#include \"" + os.path.dirname(os.path.abspath(__file__)) + "/../_c/libunivarmargins.h\""

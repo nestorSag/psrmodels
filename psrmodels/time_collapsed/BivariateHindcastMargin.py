@@ -29,13 +29,13 @@ class BivariateHindcastMargin(object):
 
   def __init__(self,demand,renewables,gen_dists,**kwargs):
 
-    self.net_demand = np.ascontiguousarray((demand - renewables),dtype=np.int64).clip(min=0) #no negative net demand
+    self.net_demand = np.ascontiguousarray((demand - renewables),dtype=np.int32).clip(min=0) #no negative net demand
     self.renewables = renewables
-    self.demand = np.ascontiguousarray(demand,dtype=np.int64)
+    self.demand = np.ascontiguousarray(demand,dtype=np.int32)
     self.gen_dists = self._parse_gendists(gen_dists,**kwargs)
     self.n = self.net_demand.shape[0]
 
-    self.MARGIN_BOUND = int(np.iinfo(np.int64).max / 2)
+    self.MARGIN_BOUND = int(np.iinfo(np.int32).max / 2)
 
   def _parse_gendists(self,data,**kwargs):
     gen_dists = []
@@ -66,10 +66,10 @@ class BivariateHindcastMargin(object):
   def bivar_ecdf(X):
     n = X.shape[0]
     ecdf = np.ascontiguousarray(np.empty((n,)),dtype=np.float64)
-    C_CALL.bivar_ecdf(
+    C_CALL.bivar_ecdf_py_interface(
       ffi.cast("double *",ecdf.ctypes.data),
       ffi.cast("double *",np.ascontiguousarray(X,dtype=np.float64).ctypes.data),
-      np.int64(n))
+      np.int32(n))
 
     return ecdf
 
@@ -88,16 +88,16 @@ class BivariateHindcastMargin(object):
     `length` (`int`): length of triangle legs
 
     """
-    origin = np.ascontiguousarray(origin,dtype=np.int64)
+    origin = np.ascontiguousarray(origin,dtype=np.int32)
 
-    return C_CALL.triangle_prob(
-                      np.int64(origin[0]),
-                      np.int64(origin[1]),
-                      np.int64(length),
-                      np.int64(bigen.X1.min),
-                      np.int64(bigen.X2.min),
-                      np.int64(bigen.X1.max),
-                      np.int64(bigen.X2.max),
+    return C_CALL.triangle_prob_py_interface(
+                      np.int32(origin[0]),
+                      np.int32(origin[1]),
+                      np.int32(length),
+                      np.int32(bigen.X1.min),
+                      np.int32(bigen.X2.min),
+                      np.int32(bigen.X1.max),
+                      np.int32(bigen.X2.max),
                       ffi.cast("double *",bigen.X1.cdf_vals.ctypes.data),
                       ffi.cast("double *",bigen.X2.cdf_vals.ctypes.data))
 
@@ -220,7 +220,7 @@ class BivariateHindcastMargin(object):
 
     """
 
-    x = np.int64(x)
+    x = np.int32(x)
     return self.cdf(x,**kwargs) - (self.cdf(x - (1,0),**kwargs) - self.cdf(x - (0,1),**kwargs) + self.cdf(x - (1,1),**kwargs))
 
 
@@ -658,14 +658,14 @@ class BivariateHindcastMargin(object):
     `c` (`int`): width of trapezoid
 
     """
-    return C_CALL.trapezoid_prob(
-                        np.int64(ulc1),
-                        np.int64(ulc2),
-                        np.int64(c),
-                        np.int64(X.X1.min),
-                        np.int64(X.X2.min),
-                        np.int64(X.X1.max),
-                        np.int64(X.X2.max),
+    return C_CALL.trapezoid_prob_py_interface(
+                        np.int32(ulc1),
+                        np.int32(ulc2),
+                        np.int32(c),
+                        np.int32(X.X1.min),
+                        np.int32(X.X2.min),
+                        np.int32(X.X1.max),
+                        np.int32(X.X2.max),
                         ffi.cast("double *",X.X1.cdf_vals.ctypes.data),
                         ffi.cast("double *",X.X2.cdf_vals.ctypes.data))
 
@@ -690,16 +690,16 @@ class BivariateHindcastMargin(object):
 
     """
 
-    return C_CALL.cond_epu_share(
-                    np.int64(d1),
-                    np.int64(d2),
-                    np.int64(v1),
-                    np.int64(v2),
-                    np.int64(c),
-                    np.int64(FX1.min),
-                    np.int64(FX2.min),
-                    np.int64(FX1.max),
-                    np.int64(FX2.max),
+    return C_CALL.cond_eeu_share_py_interface(
+                    np.int32(d1),
+                    np.int32(d2),
+                    np.int32(v1),
+                    np.int32(v2),
+                    np.int32(c),
+                    np.int32(FX1.min),
+                    np.int32(FX2.min),
+                    np.int32(FX1.max),
+                    np.int32(FX2.max),
                     ffi.cast("double *",FX1.cdf_vals.ctypes.data),
                     ffi.cast("double *",FX2.cdf_vals.ctypes.data),
                     ffi.cast("double *",FX1.expectation_vals.ctypes.data))
@@ -721,14 +721,14 @@ class BivariateHindcastMargin(object):
 
     """
 
-    return C_CALL.cond_epu_veto(
-                    np.int64(v1),
-                    np.int64(v2),
-                    np.int64(c),
-                    np.int64(FX1.min),
-                    np.int64(FX2.min),
-                    np.int64(FX1.max),
-                    np.int64(FX2.max),
+    return C_CALL.cond_eeu_veto_py_interface(
+                    np.int32(v1),
+                    np.int32(v2),
+                    np.int32(c),
+                    np.int32(FX1.min),
+                    np.int32(FX2.min),
+                    np.int32(FX1.max),
+                    np.int32(FX2.max),
                     ffi.cast("double *",FX1.cdf_vals.ctypes.data),
                     ffi.cast("double *",FX2.cdf_vals.ctypes.data),
                     ffi.cast("double *",FX1.expectation_vals.ctypes.data))
@@ -786,7 +786,7 @@ class BivariateHindcastMargin(object):
 
     X = BivariateConvGenDist(X1,X2) #system-wide conv. gen. distribution
 
-    simulated = np.ascontiguousarray(np.zeros((n,2)),dtype=np.int64)
+    simulated = np.ascontiguousarray(np.zeros((n,2)),dtype=np.int32)
 
     ### calculate conditional probability of each historical observation given
     ### margin value tuple m
@@ -802,28 +802,28 @@ class BivariateHindcastMargin(object):
       ## only pass rows which induce at least one simulated value
       df = df.query("row_weights > 0")
 
-      row_weights = np.ascontiguousarray(df["row_weights"],dtype=np.int64)
+      row_weights = np.ascontiguousarray(df["row_weights"],dtype=np.int32)
 
-      net_demand = np.ascontiguousarray(df[["nd0","nd1"]],dtype=np.int64)
+      net_demand = np.ascontiguousarray(df[["nd0","nd1"]],dtype=np.int32)
 
-      demand = np.ascontiguousarray(df[["d0","d1"]],dtype=np.int64)
+      demand = np.ascontiguousarray(df[["d0","d1"]],dtype=np.int32)
 
-      C_CALL.region_simulation(
-        np.int64(n),
+      C_CALL.region_simulation_py_interface(
+        np.int32(n),
         ffi.cast("long *",simulated.ctypes.data),
-        np.int64(X.X1.min),
-        np.int64(X.X2.min),
-        np.int64(X.X1.max),
-        np.int64(X.X2.max),
+        np.int32(X.X1.min),
+        np.int32(X.X2.min),
+        np.int32(X.X1.max),
+        np.int32(X.X2.max),
         ffi.cast("double *",X.X1.cdf_vals.ctypes.data),
         ffi.cast("double *",X.X2.cdf_vals.ctypes.data),
         ffi.cast("long *",net_demand.ctypes.data),
         ffi.cast("long *",demand.ctypes.data),
         ffi.cast("long *",row_weights.ctypes.data),
-        np.int64(net_demand.shape[0]),
-        np.int64(m1),
-        np.int64(m2),
-        np.int64(c),
+        np.int32(net_demand.shape[0]),
+        np.int32(m1),
+        np.int32(m2),
+        np.int32(c),
         int(seed),
         int(intersection),
         int(policy == "share"))
@@ -860,7 +860,7 @@ class BivariateHindcastMargin(object):
 
     X = BivariateConvGenDist(X1,X2) #system-wide conv. gen. distribution
 
-    simulated = np.ascontiguousarray(np.zeros((n,2)),dtype=np.int64)
+    simulated = np.ascontiguousarray(np.zeros((n,2)),dtype=np.int32)
 
     ### calculate conditional probability of each historical observation given
     ### margin value tuple m
@@ -885,27 +885,27 @@ class BivariateHindcastMargin(object):
       ## only pass rows which induce at least one simulated value
       df = df.query("row_weights > 0")
 
-      row_weights = np.ascontiguousarray(df["row_weights"],dtype=np.int64)
+      row_weights = np.ascontiguousarray(df["row_weights"],dtype=np.int32)
 
-      net_demand = np.ascontiguousarray(df[["nd0","nd1"]],dtype=np.int64)
+      net_demand = np.ascontiguousarray(df[["nd0","nd1"]],dtype=np.int32)
 
-      demand = np.ascontiguousarray(df[["d0","d1"]],dtype=np.int64)
+      demand = np.ascontiguousarray(df[["d0","d1"]],dtype=np.int32)
 
-      C_CALL.conditioned_simulation(
-          np.int64(n),
+      C_CALL.conditioned_simulation_py_interface(
+          np.int32(n),
           ffi.cast("long *",simulated.ctypes.data),
-          np.int64(X.X1.min),
-          np.int64(X.X2.min),
-          np.int64(X.X1.max),
-          np.int64(X.X2.max),
+          np.int32(X.X1.min),
+          np.int32(X.X2.min),
+          np.int32(X.X1.max),
+          np.int32(X.X2.max),
           ffi.cast("double *",X.X1.cdf_vals.ctypes.data),
           ffi.cast("double *",X.X2.cdf_vals.ctypes.data),
           ffi.cast("long *",net_demand.ctypes.data),
           ffi.cast("long *",demand.ctypes.data),
           ffi.cast("long *",row_weights.ctypes.data),
-          np.int64(net_demand.shape[0]),
-          np.int64(m1),
-          np.int64(c),
+          np.int32(net_demand.shape[0]),
+          np.int32(m1),
+          np.int32(c),
           int(seed),
           int(policy == "share"))
 
@@ -954,21 +954,21 @@ class BivariateHindcastMargin(object):
 
       d1, d2 = self.demand[i,:]
 
-      point_cdf = C_CALL.get_cond_cdf(
-                      np.int64(gendist1.min),
-                      np.int64(gendist2.min),
-                      np.int64(gendist1.max),
-                      np.int64(gendist2.max),
+      point_cdf = C_CALL.get_cond_cdf_py_interface(
+                      np.int32(gendist1.min),
+                      np.int32(gendist2.min),
+                      np.int32(gendist1.max),
+                      np.int32(gendist2.max),
                       ffi.cast("double *",gendist1.cdf_vals.ctypes.data),
                       ffi.cast("double *",gendist2.cdf_vals.ctypes.data),
-                      np.int64(m1),
-                      np.int64(m2),
-                      np.int64(v1),
-                      np.int64(v2),
-                      np.int64(d1),
-                      np.int64(d2),
-                      np.int64(c),
-                      np.int64(policy == "share"))
+                      np.int32(m1),
+                      np.int32(m2),
+                      np.int32(v1),
+                      np.int32(v2),
+                      np.int32(d1),
+                      np.int32(d2),
+                      np.int32(c),
+                      np.int32(policy == "share"))
 
       #print("point cdf: {x}, index: {i}".format(x=point_cdf, i=i))
       cdf += point_cdf

@@ -24,7 +24,7 @@ class UnivariateHindcastMargin(object):
       raise Exception("gen is not an instance of ConvGenDistribution")
       
     self.gen = gen
-    self.nd_vals = np.ascontiguousarray(nd_data).clip(min=0).astype(np.int64)
+    self.nd_vals = np.ascontiguousarray(nd_data).clip(min=0).astype(np.int32)
     self.n = len(self.nd_vals)
 
     self.min = -np.max(self.nd_vals)
@@ -65,15 +65,18 @@ class UnivariateHindcastMargin(object):
       with_fc_obj = UnivariateHindcastMargin(self.gen,demand)
       with_fc_risk = get_risk_function(metric)(with_fc_obj)
       self.gen += (-x)
+      #print("fc: {x}, with_fc_risk:{wfcr}, with_wind_risk: {wwr}".format(x=x,wfcr=with_fc_risk,wwr=with_wind_risk))
       return with_fc_risk - with_wind_risk
 
-    delta = 500 
+    delta = 300 
     leftmost = 0
     rightmost = 0
     while bisection_target(rightmost) > 0:
       rightmost += delta
 
+    #print("leftmost: {l}, rightmost: {r}".format(l=leftmost,r=rightmost))
     efc, res = bisect(f=bisection_target,a=leftmost,b=rightmost,full_output=True,xtol=tol/2,rtol=tol/(2*with_wind_risk))
+    #print("EFC: {efc}".format(efc=efc))
     if not res.converged:
       print("Warning: EFC estimator did not converge.")
     #print("efc:{efc}".format(efc=efc))
@@ -92,11 +95,11 @@ class UnivariateHindcastMargin(object):
     elif x < self.min:
       return 0.0
     else:
-      return C_CALL.h_margin_cdf(
-        np.int64(x),
-        np.int64(self.n),
-        np.int64(self.gen.min),
-        np.int64(self.gen.max),
+      return C_CALL.empirical_power_margin_cdf(
+        np.int32(x),
+        np.int32(self.n),
+        np.int32(self.gen.min),
+        np.int32(self.gen.max),
         ffi.cast("long *",self.nd_vals.ctypes.data),
         ffi.cast("double *",self.gen.cdf_vals.ctypes.data)
         )
@@ -133,10 +136,10 @@ class UnivariateHindcastMargin(object):
     `x` (`numpy.ndarray`): point to evaluate on
 
     """
-    return  C_CALL.h_epu(
-              np.int64(self.n),
-              np.int64(self.gen.min),
-              np.int64(self.gen.max),
+    return  C_CALL.empirical_eeu(
+              np.int32(self.n),
+              np.int32(self.gen.min),
+              np.int32(self.gen.max),
               ffi.cast("long *",self.nd_vals.ctypes.data),
               ffi.cast("double *",self.gen.cdf_vals.ctypes.data),
               ffi.cast("double *",self.gen.expectation_vals.ctypes.data))

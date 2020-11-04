@@ -3,9 +3,25 @@
 #include <math.h>
 #include <limits.h>
 #include "mtwist-1.5/mtwist.h"
-#include "libunivarmargins.h"
+#include "libbivarmargins.h"
 
 // documentation is in .h files 
+
+int imin(int a, int b){
+  return (a > b ) ? b : a;
+}
+
+int imax(int a, int b){
+  return (a > b ) ? a : b;
+}
+
+int get_element(IntMatrix* m, int i, int j){
+  return m->value[i*m->n_cols + j];
+}
+
+void set_element(IntMatrix* m, int i, int j, int x){
+  m->value[i*m->n_cols + j] = x;
+}
 
 double sign(double x){
   if(x > 0){
@@ -17,123 +33,26 @@ double sign(double x){
   }
 }
 
-long min(long num1, long num2){
-    return (num1 > num2 ) ? num2 : num1;
+double bivariate_cdf(BivariateDiscreteDistribution* F, int x, int y){
+  return cdf(F->x,x)*cdf(F->y,y);
 }
 
-double x1_stripe_pdf(
-  long x1,
-  long x2,
-  long min_gen1,
-  long min_gen2,
-  long max_gen1,
-  long max_gen2,
-  double* gen1_cdf_array,
-  double* gen2_cdf_array){
-
-  double prob = (get_gen_array_val(x1,gen1_cdf_array,min_gen1,max_gen1) - \
-    get_gen_array_val(x1-1,gen1_cdf_array,min_gen1,max_gen1)) * \
-    get_gen_array_val(x2,gen2_cdf_array,min_gen2,max_gen2);
-
-  return prob;
+double bivariate_pdf(BivariateDiscreteDistribution* F, int x, int y){
+  return bivariate_cdf(F,x,y) + bivariate_cdf(F,x-1,y-1) - bivariate_cdf(F,x-1,y) - bivariate_cdf(F,x,y-1);
 }
 
-double bigen_cdf(
-  long x1,
-  long x2,
-  long min_gen1,
-  long min_gen2,
-  long max_gen1,
-  long max_gen2,
-  double* gen1_cdf_array,
-  double* gen2_cdf_array){
-
-  //double aux1, aux2; 
-  //printf("x1: %ld, x2: %ld, min_gen1: %ld, min_gen2: %ld, max_gen1: %ld, max_gen2: %ld \n", x1,x2,min_gen1,min_gen2,max_gen1,max_gen2);
-  //aux1 = get_gen_array_val(x1,gen1_cdf_array,min_gen1,max_gen1);
-  //printf("F(x1): %.10e \n",aux1);
-  //aux2 = get_gen_array_val(x2,gen2_cdf_array,min_gen2,max_gen2);
-  //printf("F(x2): %.10e \n",aux2);
-
-  double prob = get_gen_array_val(x1,gen1_cdf_array,min_gen1,max_gen1) * \
-  get_gen_array_val(x2,gen2_cdf_array,min_gen2,max_gen2);
-
-  return prob;
-}
-
-double bigen_pdf(
-  long x1,
-  long x2,
-  long min_gen1,
-  long min_gen2,
-  long max_gen1,
-  long max_gen2,
-  double* gen1_cdf_array,
-  double* gen2_cdf_array){
-
-  double r;
-  r = bigen_cdf(
-    x1,
-    x2,
-    min_gen1,
-    min_gen2,
-    max_gen1,
-    max_gen2,
-    gen1_cdf_array,
-    gen2_cdf_array) -\
-  bigen_cdf(
-    x1-1,
-    x2,
-    min_gen1,
-    min_gen2,
-    max_gen1,
-    max_gen2,
-    gen1_cdf_array,
-    gen2_cdf_array) -\
-  bigen_cdf(
-    x1,
-    x2-1,
-    min_gen1,
-    min_gen2,
-    max_gen1,
-    max_gen2,
-    gen1_cdf_array,
-    gen2_cdf_array) +\
-  bigen_cdf(
-    x1-1,
-    x2-1,
-    min_gen1,
-    min_gen2,
-    max_gen1,
-    max_gen2,
-    gen1_cdf_array,
-    gen2_cdf_array);
-
-  return r;
-}
-
-double triangle_prob(
-  long origin_x,
-  long origin_y,
-  long triangle_length,
-  long min_gen1,
-  long min_gen2,
-  long max_gen1,
-  long max_gen2,
-  double* gen1_cdf_array,
-  double* gen2_cdf_array){
-
+double triangle_prob(BivariateDiscreteDistribution* F,int x,int y, int triangle_length){
   // by interior lattice below, I mean points not in any triangle side
   // except maybe the hypotenuse
 
   double val, gen1_pdf, gen2_pdf, square_prob;
 
-  long l = (long) floor(triangle_length/2);
+  int l = (int) floor(triangle_length/2);
 
-  long displaces_righthand_x = origin_x + l, displaced_righthand_y = origin_y;
-  long displaces_upper_x = origin_x, displaced_upper_y = origin_y + l;
-  //#long displaced_triangle_origin_h[2] = {origin_x + l, origin_y};
-  //long displaced_triangle_origin_v[2] = {origin_x, origin_y + l};
+  int displaced_righthand_x = x + l, displaced_righthand_y = y;
+  int displaced_upper_x = x, displaced_upper_y = y + l;
+  //#int displaced_triangle_origin_h[2] = {origin_x + l, origin_y};
+  //int displaced_triangle_origin_v[2] = {origin_x, origin_y + l};
   
   if(triangle_length <= 1){
     // interior lattice of length-1 triangle is empty
@@ -141,242 +60,113 @@ double triangle_prob(
   }else{
     // interior lattice of length 2 triangle consist in a single point
     if(triangle_length == 2){
-      gen1_pdf = get_gen_array_val(origin_x+1,gen1_cdf_array,min_gen1,max_gen1) - \
-      get_gen_array_val(origin_x,gen1_cdf_array,min_gen1,max_gen1);
 
-      gen2_pdf = get_gen_array_val(origin_y+1,gen2_cdf_array,min_gen2,max_gen2) - \
-      get_gen_array_val(origin_y,gen2_cdf_array,min_gen2,max_gen2);
+      gen1_pdf = pdf(F->x,x+1);
+      gen2_pdf = pdf(F->y,y+1);
 
       val = gen1_pdf * gen2_pdf;
     }else{
 
-      square_prob = bigen_cdf(
-        origin_x+l,
-        origin_y+l,
-        min_gen1,
-        min_gen2,
-        max_gen1,
-        max_gen2,
-        gen1_cdf_array,
-        gen2_cdf_array) -
-        bigen_cdf(
-        origin_x,
-        origin_y+l,
-        min_gen1,
-        min_gen2,
-        max_gen1,
-        max_gen2,
-        gen1_cdf_array,
-        gen2_cdf_array) -\
-        bigen_cdf(
-        origin_x+l,
-        origin_y,
-        min_gen1,
-        min_gen2,
-        max_gen1,
-        max_gen2,
-        gen1_cdf_array,
-        gen2_cdf_array) +\
-        bigen_cdf(
-        origin_x,
-        origin_y,
-        min_gen1,
-        min_gen2,
-        max_gen1,
-        max_gen2,
-        gen1_cdf_array,
-        gen2_cdf_array);
-
-
-      val = square_prob + triangle_prob(
-        displaces_upper_x,
-        displaced_upper_y,
-        triangle_length - l,
-        min_gen1,
-        min_gen2,
-        max_gen1,
-        max_gen2,
-        gen1_cdf_array,
-        gen2_cdf_array) + \
-        triangle_prob(
-        displaces_righthand_x,
-        displaced_righthand_y,
-        triangle_length - l,
-        min_gen1,
-        min_gen2,
-        max_gen1,
-        max_gen2,
-        gen1_cdf_array,
-        gen2_cdf_array);
-
+      square_prob = bivariate_cdf(F,x+l,y+l) + bivariate_cdf(F,x,y) - bivariate_cdf(F,x,y+l) - bivariate_cdf(F,x+l,y);
+      
+      val = square_prob +  triangle_prob(F,displaced_upper_x,displaced_upper_y,triangle_length - l) + triangle_prob(F,displaced_righthand_x,displaced_righthand_y,triangle_length - l);
     }
   }
 
   return val;
 }
 
-double trapezoid_prob(
-  long ul_x,
-  long ul_y,
-  long width,
-  long min_gen1,
-  long min_gen2,
-  long max_gen1,
-  long max_gen2,
-  double* gen1_cdf_array,
-  double* gen2_cdf_array){
+
+double trapezoid_prob(BivariateDiscreteDistribution* F, int ul_x, int ul_y, int width){
   // ulc = upper left
-  long ur_x = ul_x + width, ur_y = ul_y - width;
+  int ur_x = ul_x + width, ur_y = ul_y - width;
 
   double prob = 0;
 
-  prob = \
-  bigen_cdf(
-    ur_x,
-    ur_y,
-    min_gen1,
-    min_gen2,
-    max_gen1,
-    max_gen2,
-    gen1_cdf_array,
-    gen2_cdf_array) -\
-  bigen_cdf(
-    ul_x,
-    ur_y,
-    min_gen1,
-    min_gen2,
-    max_gen1,
-    max_gen2,
-    gen1_cdf_array,
-    gen2_cdf_array) +\
-  triangle_prob(
-    ul_x,
-    ur_y,
-    width,
-    min_gen1,
-    min_gen2,
-    max_gen1,
-    max_gen2,
-    gen1_cdf_array,
-    gen2_cdf_array);
+  prob =  bivariate_cdf(F,ur_x,ur_y) - bivariate_cdf(F,ul_x,ur_y) + triangle_prob(F,ul_x,ur_y,width);
 
   return prob;
 
 }
 
-double cond_epu_share(
-  long d1, 
-  long d2,
-  long v1,
-  long v2,
-  long c,
-  long min_gen1,
-  long min_gen2,
-  long max_gen1,
-  long max_gen2,
-  double* gen1_cdf_array,
-  double* gen2_cdf_array,
-  double* gen1_expectation){
+double cond_eeu_share(BivariateDiscreteDistribution* F, ObservedData* obs, int c){
 
-  double epu = 0;
+  int v1 = obs->net_demand1, v2 = obs->net_demand2, d1 = obs->demand1, d2=obs->demand2;
+  double eeu = 0;
   double d1_div_d2 = ((double)d1)/d2;
   double beta0 =  (double) v1 - d1_div_d2*v2 + ((double)d1+d2)/d2*c;
   double alpha0 = (double) v1 - d1_div_d2*v2 - ((double)d1+d2)/d2*c;
-    double r = ((double) d1)/(d1+d2);
+  double r = ((double) d1)/(d1+d2);
 
-    long x2, beta, alpha ;
-    double gen2_pdf;
+  int x2, beta, alpha ;
+  double gen2_pdf;
 
-    for(x2=min_gen2;x2<v2+c;++x2){
+  for(x2=F->y->min;x2<v2+c;++x2){
 
-      //EPU += -r*FX2.pdf(x2)*((x2-v1-v2)*(FX1.cdf(beta)-FX1.cdf(alpha-1)) + FX1.expectation(fro=alpha,to=beta ) )
-      
-      beta = (long) min(beta0 + d1_div_d2*x2,v1+v2-x2);
-      alpha = (long) ceil(alpha0 + d1_div_d2*x2);
-      gen2_pdf = (get_gen_array_val(x2,gen2_cdf_array,min_gen2,max_gen2) - get_gen_array_val(x2-1,gen2_cdf_array,min_gen2,max_gen2));
-      epu += -r*gen2_pdf*\
-         ((x2-v1-v2)*(get_gen_array_val(beta,gen1_cdf_array,min_gen1,max_gen1) - get_gen_array_val(alpha-1,gen1_cdf_array,min_gen1,max_gen1)) + \
-         (get_gen_array_val(beta,gen1_expectation,min_gen1,max_gen1) - get_gen_array_val(alpha-1,gen1_expectation,min_gen1,max_gen1)));
-    }
+    //EPU += -r*FX2.pdf(x2)*((x2-v1-v2)*(FX1.cdf(beta)-FX1.cdf(alpha-1)) + FX1.expectation(fro=alpha,to=beta ) )
+    
+    beta = (int) min(beta0 + d1_div_d2*x2,v1+v2-x2);
+    alpha = (int) ceil(alpha0 + d1_div_d2*x2);
+    //gen2_pdf = (get_gen_array_val(x2,gen2_cdf_array,min_gen2,max_gen2) - get_gen_array_val(x2-1,gen2_cdf_array,min_gen2,max_gen2));
+    gen2_pdf = pdf(F->y,x2);
+    eeu += -r*gen2_pdf*((x2-v1-v2)*(cdf(F->x,beta) - cdf(F->x,alpha-1)) + cumulative_expectation(F->x,beta) - cumulative_expectation(F->x,alpha-1));
+  }
 
-    for(x2=min_gen2;x2<v2-c;++x2){
+  for(x2=F->y->min;x2<v2-c;++x2){
 
-      beta = (long) floor(beta0 + d1_div_d2*x2);
+    beta = (int) floor(beta0 + d1_div_d2*x2);
 
-      //EPU += FX2.pdf(x2)*((v1+c)*(FX1.cdf(v1+c)-FX1.cdf(beta))-FX1.expectation(fro=beta+1,to=v1+c))
-      gen2_pdf = (get_gen_array_val(x2,gen2_cdf_array,min_gen2,max_gen2) - get_gen_array_val(x2-1,gen2_cdf_array,min_gen2,max_gen2));
-      epu += gen2_pdf*\
-         ((v1+c)*(get_gen_array_val(v1+c,gen1_cdf_array,min_gen1,max_gen1) - get_gen_array_val(beta,gen1_cdf_array,min_gen1,max_gen1)) - \
-         (get_gen_array_val(v1+c,gen1_expectation,min_gen1,max_gen1) - get_gen_array_val(beta,gen1_expectation,min_gen1,max_gen1)));
-    }
+    //EPU += FX2.pdf(x2)*((v1+c)*(FX1.cdf(v1+c)-FX1.cdf(beta))-FX1.expectation(fro=beta+1,to=v1+c))
+    gen2_pdf = pdf(F->y,x2);
+    eeu += gen2_pdf*((v1+c)*(cdf(F->x,v1+c) - cdf(F->x,beta)) - (cumulative_expectation(F->x,v1+c) - cumulative_expectation(F->x,beta)));
+  }
 
-    for(x2=(long) ceil(v2+c-((double)d2)/d1*(v1-c));x2<v2+c;++x2){
-      alpha = (long) ceil(alpha0 + d1_div_d2*x2);
+  for(x2=(int) ceil(v2+c-((double)d2)/d1*(v1-c));x2<v2+c;++x2){
+    alpha = (int) ceil(alpha0 + d1_div_d2*x2);
 
-      //EPU += FX2.pdf(x2)*((v1-c)*FX1.cdf(alpha-1)-FX1.expectation(to=alpha-1))
+    //EPU += FX2.pdf(x2)*((v1-c)*FX1.cdf(alpha-1)-FX1.expectation(to=alpha-1))
+    gen2_pdf = pdf(F->y,x2);
+    eeu += gen2_pdf*((v1-c)*cdf(F->x,alpha-1) - cumulative_expectation(F->x,alpha-1));
+  }
 
-      gen2_pdf = (get_gen_array_val(x2,gen2_cdf_array,min_gen2,max_gen2) - get_gen_array_val(x2-1,gen2_cdf_array,min_gen2,max_gen2));
-      epu += gen2_pdf*\
-         ((v1-c)*get_gen_array_val(alpha-1,gen1_cdf_array,min_gen1,max_gen1) - get_gen_array_val(alpha-1,gen1_expectation,min_gen1,max_gen1));
-    }
+  if(v1-c >= F->x->min){
+    //EPU += (1-FX2.cdf(v2+c-1))*((v1-c)*FX1.cdf(v1-c)-FX1.expectation(to=v1-c))
+    eeu += (1-cdf(F->y,v2+c))*((v1-c)*cdf(F->x,v1-c)-cumulative_expectation(F->x,v1-c));
+  }
 
-    if(v1-c >= min_gen1){
-      //EPU += (1-FX2.cdf(v2+c-1))*((v1-c)*FX1.cdf(v1-c)-FX1.expectation(to=v1-c))
-      epu += (1-get_gen_array_val(v2+c-1,gen2_cdf_array,min_gen2,max_gen2))*((v1-c)*get_gen_array_val(v1-c,gen1_cdf_array,min_gen1,max_gen1)-get_gen_array_val(v1-c,gen1_expectation,min_gen1,max_gen1));
-    }
-
-    return epu;
+  return eeu;
 }
 
-double cond_epu_veto(
-  long v1,
-  long v2,
-  long c,
-  long min_gen1,
-  long min_gen2,
-  long max_gen1,
-  long max_gen2,
-  double* gen1_cdf_array,
-  double* gen2_cdf_array,
-  double* gen1_expectation){
+double cond_eeu_veto(BivariateDiscreteDistribution* F, ObservedData* obs, int c){
 
-  double epu = 0;
-  long x2;
-    double gen2_pdf;
+  int v1 = obs->net_demand1, v2 = obs->net_demand2;
+  double eeu = 0;
+  int x2;
+  double gen2_pdf;
 
-    //EPU = (1 - FX2.cdf(v2+c))*((v1-c)*FX1.cdf(v1-c) - FX1.expectation(to=v1-c)) + FX2.cdf(v2-1)*(v1*FX1.cdf(v1) - FX1.expectation(to=v1))
+  //EPU = (1 - FX2.cdf(v2+c))*((v1-c)*FX1.cdf(v1-c) - FX1.expectation(to=v1-c)) + FX2.cdf(v2-1)*(v1*FX1.cdf(v1) - FX1.expectation(to=v1))
+  eeu = (1 - cdf(F->y,v2+c))*((v1-c)*cdf(F->x,v1-c) - cumulative_expectation(F->x,v1-c)) + cdf(F->y,v2-1)*(v1*cdf(F->x,v1)-cumulative_expectation(F->x,v1));
+  
+  for(x2=v2;x2<v2+c+1;++x2){
 
-    epu = (1 - get_gen_array_val(v2+c,gen2_cdf_array,min_gen2,max_gen2))*\
-    ((v1-c)*get_gen_array_val(v1-c,gen1_cdf_array,min_gen1,max_gen1) - get_gen_array_val(v1-c,gen1_expectation,min_gen1,max_gen1)) + \
-    get_gen_array_val(v2-1,gen2_cdf_array,min_gen2,max_gen2)*(v1*get_gen_array_val(v1,gen1_cdf_array,min_gen1,max_gen1)-get_gen_array_val(v1,gen1_expectation,min_gen1,max_gen1));
+    //EPU += FX2.pdf(x2) * ((v1+v2-x2)*FX1.cdf(v1+v2-x2) - FX1.expectation(to=v1+v2-x2))
+    gen2_pdf = pdf(F->y,x2);
+    eeu += gen2_pdf*((v1+v2-x2)*cdf(F->x,v1+v2-x2) - cumulative_expectation(F->x,v1+v2-x2));
+  }
 
-    for(x2=v2;x2<v2+c+1;++x2){
-
-      //EPU += FX2.pdf(x2) * ((v1+v2-x2)*FX1.cdf(v1+v2-x2) - FX1.expectation(to=v1+v2-x2))
-      gen2_pdf = (get_gen_array_val(x2,gen2_cdf_array,min_gen2,max_gen2) - get_gen_array_val(x2-1,gen2_cdf_array,min_gen2,max_gen2));
-      epu += gen2_pdf*\
-         ((v1+v2-x2)*get_gen_array_val(v1+v2-x2,gen1_cdf_array,min_gen1,max_gen1) - get_gen_array_val(v1+v2-x2,gen1_expectation,min_gen1,max_gen1));
-    }
-
-    return epu;
+  return eeu;
 }
 
-void get_share_polygon_points(
-  long* p_array,
-  long m,
-  long v1,
-  long v2,
-  long d1,
-  long d2,
-  long c,
-  int i){
 
-  long nd1, nd2, q1, q2;
-  long p11, p12, p11_r, p12_r;
-  long delta;
-  double r, res;
+void get_share_polygon_points(Polygon* p, ObservedData* obs, int x, int c, int area){
 
-  if(i==1){
+  int v1 = obs->net_demand1, v2 = obs->net_demand2, d1 = obs->demand1, d2 = obs->demand2;
+  int nd1, nd2, q1, q2;
+  int x1, x2, y1, y2;
+  int delta;
+  double res;
+
+  if(area==1){
     nd1 = v2;
     nd2 = v1;
     q1 = d2;
@@ -388,12 +178,12 @@ void get_share_polygon_points(
     q2 = d2;
   }
 
-  if(m >= 0){
-    p11 = nd1 + m;
-    p12 = nd2;
+  if(x >= 0){
+    x1 = nd1 + x;
+    x2 = nd2;
     delta = c;
   }else{
-    p11 = nd1 - c + m;
+    x1 = nd1 - c + x;
     // this commented line fix a woird behaviour due to rounding to 1MW:
     // as c -> inf, the risk in the two areas do not fully converge because 
     // rounding causes that some cases go unacounted for, for example: if the systemwide
@@ -402,37 +192,32 @@ void get_share_polygon_points(
     
 
     // floor function is necessary to prune lattice correctly
-    res = ((double) q2)/q1*m;
-    p12 = (long) (nd2 + c + res);
+    res = ((double) q2)/q1*x;
+    x2 = (int) (nd2 + c + res);
     delta = 2*c;
   }
-  p11_r = p11 + delta;
-  p12_r = p12 - delta;
-  if(i==1){
-    p_array[0] = p12_r;
-    p_array[1] = p11_r;
-    p_array[2] = p12;
-    p_array[3] = p11;
+  y1 = x1 + delta;
+  y2 = x2 - delta;
+  if(area==1){
+    p->p1->x = y2;
+    p->p1->y = y1;
+    p->p2->x = x2;
+    p->p2->y = x1;
   }else{
-    p_array[0] = p11;
-    p_array[1] = p12;
-    p_array[2] = p11_r;
-    p_array[3] = p12_r;
+    p->p1->x = x1;
+    p->p1->y = x2;
+    p->p2->x = y1;
+    p->p2->y = y2;
   }
 }
 
-void get_veto_polygon_points(
-  long* p_array,
-  long m,
-  long v1,
-  long v2,
-  long c,
-  int i){
+void get_veto_polygon_points(Polygon* p, ObservedData* obs, int x, int c, int area){
 
-  long nd1, nd2;
-  long p11, p12, p11_r, p12_r;
+  int v1 = obs->net_demand1, v2 = obs->net_demand2;
+  int nd1, nd2;
+  int x1, x2, y1, y2;
 
-  if(i==1){
+  if(area == 1){
     nd1 = v2;
     nd2 = v1;
   }else{
@@ -440,101 +225,86 @@ void get_veto_polygon_points(
     nd2 = v2;
   }
 
-  if(m >= 0){
-    p11 = nd1 + m;
-    p12 = nd2;
+  if(x >= 0){
+    x1 = nd1 + x;
+    x2 = nd2;
   }else{
-    p11 = nd1 - c + m;
-    p12 = nd2 + c;
+    x1 = nd1 - c + x;
+    x2 = nd2 + c;
   }
-  p11_r = p11 + c;
-  p12_r = p12 - c;
+  y1 = x1 + c;
+  y2 = x2 - c;
 
-  if(i==1){
-    p_array[0] = p12_r;
-    p_array[1] = p11_r;
-    p_array[2] = p12;
-    p_array[3] = p11;
+  if(area == 1){
+    p->p1->x = y2;
+    p->p1->y = y1;
+    p->p2->x = x2;
+    p->p2->y = x1;
   }else{
-    p_array[0] = p11;
-    p_array[1] = p12;
-    p_array[2] = p11_r;
-    p_array[3] = p12_r;
+    p->p1->x = x1;
+    p->p1->y = x2;
+    p->p2->x = y1;
+    p->p2->y = y2;
   }
 }
 
-long axis1_polygon_upper_bound(
-  long x,
-  long* P1){
+int axis1_polygon_upper_bound(Polygon* p, int x){
 
-  long res;
-  if(x <= P1[0]){
-    res = (long) (LONG_MAX/2);
-  }else if(x <= P1[2]){
-    res = P1[1] - (x - P1[0]);
+  int res;
+  if(x <= p->p1->x){
+    res = (int) (INT_MAX/2);
+  }else if(x <= p->p2->x){
+    res = p->p1->y - (x - p->p1->x);
   }else{
-    res = (long) (-LONG_MAX/2);
+    res = (int) (-INT_MAX/2);
   }
   return res;
 }
 
-long axis2_polygon_upper_bound(
-  long x,
-  long* P2){
+int axis2_polygon_upper_bound(Polygon* p, int x){
 
-  long res;
-  if(x <= P2[0]){
-    res = P2[1];
-  }else if(x <= P2[2]){
-    res = P2[1] - (x - P2[0]);
+  int res;
+  if(x <= p->p1->x){
+    res = p->p1->y;
+  }else if(x <= p->p2->x){
+    res = p->p1->y - (x - p->p1->x);
   }else{
-    res = P2[3];
+    res = p->p2->y;
   }
   return res;
 }
 
-long boxed_gen_simulation(
-  double u,
-  long upper_bound,
-  long min_gen,
-  long max_gen,
-  double* gen_cdf_array){
+int boxed_gen_simulation(DiscreteDistribution* F, int upper_bound){
 
-  long lb = min_gen, i=0;
-  long ub = (long) min(upper_bound,max_gen);
+  double u = mt_drand();
+  int lb = F->min, i=0;
+  int ub = (int) imin(upper_bound,F->max);
 
-  double p_lb = get_gen_array_val(lb-1,gen_cdf_array,min_gen,max_gen);
-  double box_prob = get_gen_array_val(ub,gen_cdf_array,min_gen,max_gen) - p_lb;
+  double p_lb = cdf(F,lb-1);
+  double box_prob = cdf(F,ub);
 
-  while(u > (get_gen_array_val(lb+i,gen_cdf_array,min_gen,max_gen) - p_lb)/box_prob) {
+  while(u > (cdf(F,lb+i) - p_lb)/box_prob) {
     i +=1;
   }
 
   return lb+i;
 }
 
-long veto_flow(
-  long m1,
-  long m2,
-  long c){
 
-  long res;
+int veto_flow(int m1,int m2,int c){
+
+  int res;
   if(m1 > 0 && m2 < 0){
-      res = -min(c,min(m1,-m2));
+      res = -imin(c,imin(m1,-m2));
   }else if(m1 < 0 && m2 > 0){
-      res = min(c,min(m2,-m1));
+      res = imin(c,imin(m2,-m1));
   }else{
       res = 0;
   }
   return res;
 }
 
-double share_flow(
-  long m1,
-  long m2,
-  long d1,
-  long d2,
-  long c){
+double share_flow(int m1,int m2,int d1,int d2,int c){
 
   double flow;
   if(m1+m2 < 0 && m1 < c && m2 < c){
@@ -547,492 +317,207 @@ double share_flow(
   return flow;
 }
 
-double cond_cdf(
-  long min_gen1,
-  long min_gen2,
-  long max_gen1,
-  long max_gen2,
-  double* gen1_cdf_array,
-  double* gen2_cdf_array,
-  long* p_array_a1,
-  long* p_array_a2,
-  long c1,
-  long c2) { 
-   
-  long p11 = p_array_a1[0];
-  long p12 = p_array_a1[1];
-  long p11_r = p_array_a1[2];
-  long p12_r = p_array_a1[3];
-
-  long p21 = p_array_a2[0];
-  long p22 = p_array_a2[1];
-  long p21_r = p_array_a2[2];
-  long p22_r = p_array_a2[3];
-
-  double cdf = 0;
-  long diff = 0;
-
-  double aux;
+double cond_cdf(BivariateDiscreteDistribution* F, Polygon* plg1, Polygon* plg2){ 
+  
+  double cdf_vals = 0;
+  int diff = 0;
+  int c1 = plg1->p2->x - plg1->p1->x, c2 = plg2->p2->x - plg2->p1->x;
   //#if P2 segment is inside marginal polygon of area 1
-  if(p21_r <= p11 || (p21_r <= p11_r && p22_r <= p12 + p11 - p21_r)) {
+  if(plg2->p2->x <= plg1->p1->x || (plg2->p2->x <= plg1->p2->x && plg2->p2->y <= plg1->p1->y + plg1->p1->x - plg2->p2->x)) {
 
-    cdf = \
-    bigen_cdf(
-      p21,
-      p22,
-      min_gen1,
-      min_gen2,
-      max_gen1,
-      max_gen2,
-      gen1_cdf_array,
-      gen2_cdf_array) +\
-    trapezoid_prob(
-      p21,
-      p22,
-      c2,
-      min_gen1,
-      min_gen2,
-      max_gen1,
-      max_gen2,
-      gen1_cdf_array,
-      gen2_cdf_array);
+    cdf_vals = bivariate_cdf(F,plg2->p1->x,plg2->p1->y) + trapezoid_prob(F,plg2->p1->x,plg2->p1->y,c2);
+
     //# if segment is inside lower rectangle
-    if(p22_r <= p12_r){
+    if(plg2->p2->y <= plg1->p2->y){
 
-      cdf +=\
-      bigen_cdf(
-        p11_r,
-        p22_r,
-        min_gen1,
-        min_gen2,
-        max_gen1,
-        max_gen2,
-        gen1_cdf_array,
-        gen2_cdf_array) -\
-      bigen_cdf(
-        p21_r,
-        p22_r,
-        min_gen1,
-        min_gen2,
-        max_gen1,
-        max_gen2,
-        gen1_cdf_array,
-        gen2_cdf_array);
-
+      cdf_vals += bivariate_cdf(F,plg1->p2->x,plg2->p2->y) - bivariate_cdf(F,plg2->p2->x,plg2->p2->y);
+     
     //# if it's in middle trapezoidal section
-    }else if(p22_r <= p12){
+    }else if(plg2->p2->y <= plg1->p1->y){
 
-      diff = p12 - p22_r;
+      diff = plg1->p1->y - plg2->p2->y;
 
-      cdf +=\
-      bigen_cdf(
-        p11 + diff,
-        p22_r,
-        min_gen1,
-        min_gen2,
-        max_gen1,
-        max_gen2,
-        gen1_cdf_array,
-        gen2_cdf_array) -\
-      bigen_cdf(
-        p21_r,
-        p22_r,
-        min_gen1,
-        min_gen2,
-        max_gen1,
-        max_gen2,
-        gen1_cdf_array,
-        gen2_cdf_array) +\
-      trapezoid_prob(
-        p11 + diff,
-        p12 - diff,
-        c1 - diff,
-        min_gen1,
-        min_gen2,
-        max_gen1,
-        max_gen2,
-        gen1_cdf_array,
-        gen2_cdf_array);
-
+      cdf_vals += bivariate_cdf(F,plg1->p1->x - diff,plg2->p2->y) - \
+        bivariate_cdf(F,plg2->p2->x,plg2->p2->y) + \
+        trapezoid_prob(F,plg1->p1->x + diff,plg1->p1->y - diff,c1-diff);
 
     }else{
       //# if it's in uppermost rectangle
-      cdf +=\
-      bigen_cdf(
-        p11,
-        p22_r,
-        min_gen1,
-        min_gen2,
-        max_gen1,
-        max_gen2,
-        gen1_cdf_array,
-        gen2_cdf_array) -\
-      bigen_cdf(
-        p21_r,
-        p22_r,
-        min_gen1,
-        min_gen2,
-        max_gen1,
-        max_gen2,
-        gen1_cdf_array,
-        gen2_cdf_array) +\
-      trapezoid_prob(
-        p11,
-        p12,
-        c1,
-        min_gen1,
-        min_gen2,
-        max_gen1,
-        max_gen2,
-        gen1_cdf_array,
-        gen2_cdf_array);
+
+      cdf_vals += bivariate_cdf(F,plg1->p1->x,plg2->p2->y) - \
+      bivariate_cdf(F,plg2->p2->x,plg2->p2->y) + \
+      trapezoid_prob(F,plg1->p1->x,plg1->p1->y,c1);
 
     }
   //#if P2 segment is completely outside of marginal polygon of area 1
-  }else if(p21 >= p11_r || (p21 >= p11 && p22 >= p12 + p11 - p21)){
+  }else if(plg2->p1->x >= plg1->p2->x || (plg2->p1->x >= plg1->p1->x && plg2->p1->y >= plg1->p1->y + plg1->p1->x - plg2->p1->x)){
     
-    if(p22 <= p12_r){
+    if(plg2->p1->y <= plg1->p2->y){
       //# if it's not higher than lowermost quadrant
-      cdf +=\
-      bigen_cdf(
-        p11_r,
-        p22,
-        min_gen1,
-        min_gen2,
-        max_gen1,
-        max_gen2,
-        gen1_cdf_array,
-        gen2_cdf_array);
 
-    }else if(p22 <= p12){
+      cdf_vals += bivariate_cdf(F,plg1->p2->x, plg2->p1->y);
+
+    }else if(plg2->p1->y <= plg1->p1->y){
       //# if it's no higher than middle trapezoid
-      diff = p12 - p22;
+      diff = plg1->p1->y - plg2->p1->y;
 
-      cdf +=\
-      bigen_cdf(
-        p11+diff,
-        p22,
-        min_gen1,
-        min_gen2,
-        max_gen1,
-        max_gen2,
-        gen1_cdf_array,
-        gen2_cdf_array) +\
-      trapezoid_prob(
-        p11 + diff,
-        p22,
-        c1 - diff,
-        min_gen1,
-        min_gen2,
-        max_gen1,
-        max_gen2,
-        gen1_cdf_array,
-        gen2_cdf_array);
+      cdf_vals += bivariate_cdf(F,plg1->p1->x+diff,plg2->p1->y) + trapezoid_prob(F,plg1->p1->x + diff,plg2->p1->y,c1-diff);
 
     }else{
       // if it's higher than trapezoid
-      cdf +=\
-      bigen_cdf(
-        p11,
-        p22,
-        min_gen1,
-        min_gen2,
-        max_gen1,
-        max_gen2,
-        gen1_cdf_array,
-        gen2_cdf_array) +\
-      trapezoid_prob(
-        p11,
-        p12,
-        c1,
-        min_gen1,
-        min_gen2,
-        max_gen1,
-        max_gen2,
-        gen1_cdf_array,
-        gen2_cdf_array);
+      cdf_vals += bivariate_cdf(F,plg1->p1->x,plg2->p1->y) + trapezoid_prob(F,plg1->p1->x,plg1->p1->y,c1);
     }
     
   }else{
 
-    if(p21 <= p11){
+    if(plg2->p1->x <= plg1->p1->x){
       //# if the crossing is at the upper rectangle
-      cdf +=\
-      bigen_cdf(
-        p21,
-        p22,
-        min_gen1,
-        min_gen2,
-        max_gen1,
-        max_gen2,
-        gen1_cdf_array,
-        gen2_cdf_array) +\
-      trapezoid_prob(
-        p21,
-        p22,
-        p11-p21,
-        min_gen1,
-        min_gen2,
-        max_gen1,
-        max_gen2,
-        gen1_cdf_array,
-        gen2_cdf_array) +\
-      trapezoid_prob(
-        p11,
-        p12,
-        c1,
-        min_gen1,
-        min_gen2,
-        max_gen1,
-        max_gen2,
-        gen1_cdf_array,
-        gen2_cdf_array);
+
+      cdf_vals += bivariate_cdf(F,plg2->p1->x,plg2->p1->y) + \
+      trapezoid_prob(F,plg2->p1->x, plg2->p1->y,plg1->p1->x-plg2->p1->x) +\
+      trapezoid_prob(F,plg1->p1->x,plg1->p1->y,c1);
+
     }else{
       // if crossing is at the bottom rectangle
-      cdf +=\
-      bigen_cdf(
-        p21,
-        p22,
-        min_gen1,
-        min_gen2,
-        max_gen1,
-        max_gen2,
-        gen1_cdf_array,
-        gen2_cdf_array) +\
-      trapezoid_prob(
-        p21,
-        p22,
-        p11_r-p21,
-        min_gen1,
-        min_gen2,
-        max_gen1,
-        max_gen2,
-        gen1_cdf_array,
-        gen2_cdf_array);
+
+      cdf_vals += bivariate_cdf(F,plg2->p1->x,plg2->p1->y) + trapezoid_prob(F,plg2->p1->x,plg2->p1->y,plg1->p2->x-plg2->p1->x);
     }
   }
 
-  return cdf;
+  return cdf_vals;
 }
 
-double get_cond_cdf(
-  long min_gen1,
-  long min_gen2,
-  long max_gen1,
-  long max_gen2,
-  double* gen1_cdf_array,
-  double* gen2_cdf_array,
-  long m1,
-  long m2,
-  long v1,
-  long v2,
-  long d1,
-  long d2,
-  long c,
-  int share_policy){
-
-  long P1[4];
-  long P2[4];
-  double cdf;
-  long c1, c2;
-
-  if(share_policy>0){
-    get_share_polygon_points(P1,m1,v1,v2,d1,d2,c,0);
-
-    get_share_polygon_points(P2,m2,v1,v2,d1,d2,c,1);
-
-    if(m1 < 0){
-      c1 = 2*c;
-    }else{
-      c1 = c;
-    }
-
-    if(m2 < 0){
-      c2 = 2*c;
-    }else{
-      c2 = c;
-    }
-
-  }else{
-
-    get_veto_polygon_points(P1,m1,v1,v2,c,0);
-
-    get_veto_polygon_points(P2,m2,v1,v2,c,1);
-
-    c1 = c;
-    c2 = c;
-  }
-
-  cdf = cond_cdf(
-    min_gen1,
-    min_gen2,
-    max_gen1,
-    max_gen2,
-    gen1_cdf_array,
-    gen2_cdf_array,
-    P1,
-    P2,
-    c1,
-    c2);
-
-  // rounding errors can make calculations negative in the order of 1e-60
-  return (cdf >= 0.0 ? cdf : 0.0);
-}
-
-long get_joint_polygon_x_bound(
-  long* P1,
-  long* P2,
-  long min_gen1,
-  long max_gen1,
+int get_joint_polygon_x_bound(
+  BivariateDiscreteDistribution* F, 
+  Polygon* plg1, 
+  Polygon* plg2, 
   int intersection){
 
   // find where the polygon derived from P2 crosses the x axis
-  long compared;
-  long p2_crossing, p1_crossing;
-  if(P2[3] > 0){
-    p2_crossing = LONG_MAX/2;
-  }else if(P2[1] <= 0){
-    p2_crossing = P2[0];
+  int compared;
+  int p2_crossing, p1_crossing;
+  if(plg2->p2->y > 0){
+    p2_crossing = INT_MAX/2;
+  }else if(plg2->p1->y <= 0){
+    p2_crossing = plg2->p1->x;
   }else{
-    p2_crossing = P2[2] + P2[3];
+    p2_crossing = plg2->p2->x + plg2->p2->y;
   }
 
   // find where the polygon derived from P1 crosses the x axis
-  if(P1[3] >= 0){
-    p1_crossing = P1[2];
-  }else if(P1[1] <= 0){
-    p1_crossing = P1[0];
+  if(plg1->p2->y >= 0){
+    p1_crossing = plg1->p2->x;
+  }else if(plg1->p1->y <= 0){
+    p1_crossing = plg1->p1->x;
   }else{
-    p1_crossing = P1[2] + P1[3];
+    p1_crossing = plg1->p2->x + plg1->p2->y;
   }
 
-  compared = intersection > 0 ? min(p1_crossing,p2_crossing) : max(p1_crossing,p2_crossing);
-  return(min(max_gen1,compared));
+  compared = intersection > 0 ? imin(p1_crossing,p2_crossing) : imax(p1_crossing,p2_crossing);
+  return(imin(F->x->min,compared));
 
 }
 
-long get_joint_polygon_y_bound_given_x(
-  long x,
-  long* P1,
-  long* P2,
-  long min_gen1,
-  long max_gen2,
+int get_joint_polygon_y_bound_given_x(
+  BivariateDiscreteDistribution* F, 
+  Polygon* plg1, 
+  Polygon* plg2, 
+  int x, 
   int intersection){
 
-  long compared, p1_y_bound, p2_y_bound;
+  int compared, p1_y_bound, p2_y_bound;
 
-  p1_y_bound = axis1_polygon_upper_bound(x,P1);
-  p2_y_bound = axis2_polygon_upper_bound(x,P2);
+  p1_y_bound = axis1_polygon_upper_bound(plg1,x);
+  p2_y_bound = axis2_polygon_upper_bound(plg2,x);
 
-  compared = intersection > 0 ? min(p1_y_bound,p2_y_bound) : max(p1_y_bound,p2_y_bound);
+  compared = intersection > 0 ? imin(p1_y_bound,p2_y_bound) : imax(p1_y_bound,p2_y_bound);
   
-  return(min(max_gen2,compared));
+  return(imin(F->y->max,compared));
 
 }
 
 void region_simulation(
-  long n,
-  long* simulations,
-  long min_gen1,
-  long min_gen2,
-  long max_gen1,
-  long max_gen2,
-  double* gen1_cdf_array,
-  double* gen2_cdf_array,
-  long* net_demand,
-  long* demand,
-  long* row_weights,
-  long n_rows,
-  long m1,
-  long m2,
-  long c,
-  int seed,
-  int intersection,
-  int share_policy){
+  BivariateDiscreteDistribution* F, 
+  IntMatrix* net_demand,
+  IntMatrix* demand,
+  IntMatrix* results,
+  SimulationParameters* parameters){
 
-  mt_seed32(seed);
+  mt_seed32(parameters->seed);
 
-  long row, nd1, nd2, d1, d2, x1, x2, x1_ub, x2_ub, v_flow, m1_s, m2_s;
-  double u, s_flow;
+  int row, x1, x2, x1_ub, x2_ub, m1_s, m2_s;
+  double flow;
 
-  // these 2 arrays contain the points that characterise polygons that need to be integrated
-  // as (P_11,P_12), (P_21,P_22) => [P_11,P_12,P_21,P_22]
-  long P1[4];
-  long P2[4];
+  Polygon plg1, plg2;
+  ObservedData current_obs;
 
-  double x1_cond_cdf_array[max_gen1+1]; //not all entries will be filled, but it works
+  double x1_cond_cdf_array[F->x->max+1]; //not all entries will be filled, but it works
+  DiscreteDistribution* F_cond;
 
-  long n_sim = 0, i, j, mx1;
+  F_cond->min = F->x->min;
+  F_cond->max = F->x->max;
+  F_cond->expectation = F->x->expectation;
+  F_cond->cdf = &x1_cond_cdf_array[0];
+
+  int n_sim = 0, i, j;
 
   // iterate over the provided rows
-  for(row=0;row<n_rows;row++){
+  for(row=0;row<net_demand->n_rows;row++){
 
     // initialize cond prob array
-    for(i=0;i<=max_gen1;i++){
+    for(i=0;i<=F->x->max;i++){
       x1_cond_cdf_array[i] = 1;
     }
 
-    nd1 = net_demand[2*row];
-    nd2 = net_demand[2*row+1];
-    d1 = demand[2*row];
-    d2 = demand[2*row+1];
+    current_obs.net_demand1 = get_element(net_demand,row,0);
+    current_obs.net_demand2 = get_element(net_demand,row,1);
+    current_obs.demand1 = get_element(demand,row,0);
+    current_obs.demand2 = get_element(demand,row,1);
 
-    if(share_policy > 0){
-      d1 = demand[2*row];
-      d2 = demand[2*row+1];
-      get_share_polygon_points(P1,m1,nd1,nd2,d1,d2,c,0);
-      get_share_polygon_points(P2,m2,nd1,nd2,d1,d2,c,1);
+    if(parameters->share_policy > 0){
+      get_share_polygon_points(&plg1,&current_obs,parameters->x_bound,parameters->c,0);
+      get_share_polygon_points(&plg2,&current_obs,parameters->y_bound,parameters->c,1);
     }else{
-      get_veto_polygon_points(P1,m1,nd1,nd2,c,0);
-      get_veto_polygon_points(P2,m2,nd1,nd2,c,1);
+      get_veto_polygon_points(&plg1,&current_obs,parameters->x_bound,parameters->c,0);
+      get_veto_polygon_points(&plg2,&current_obs,parameters->y_bound,parameters->c,1);
     }
 
-    x1_ub = get_joint_polygon_x_bound(P1,P2,min_gen1,max_gen1,intersection);
+    x1_ub = get_joint_polygon_x_bound(F, &plg1, &plg2, parameters->intersection);
+
+    //x1_ub = get_joint_polygon_x_bound(P1,P2,min_gen1,max_gen1,intersection);
 
     for(x1=0;x1<=x1_ub;x1++){
 
-      x2_ub = get_joint_polygon_y_bound_given_x(x1,P1,P2,min_gen2,max_gen2,intersection);
+      x2_ub = get_joint_polygon_y_bound_given_x(F, &plg1, &plg2, x1, parameters->intersection);
 
-      x1_cond_cdf_array[x1] = x1_stripe_pdf(
-        x1,
-        x2_ub,
-        min_gen1,
-        min_gen2,
-        max_gen1,
-        max_gen2,
-        gen1_cdf_array,
-        gen2_cdf_array);
+      x1_cond_cdf_array[x1] = bivariate_cdf(F,x1,x2_ub) - bivariate_cdf(F,x1-1,x2_ub);
 
       if(x1 > 0){
         x1_cond_cdf_array[x1] += x1_cond_cdf_array[x1-1];
       }
     }
 
-    for(j=0;j<row_weights[row];j++){
+    for(j=0;j<parameters->obs_weights[row];j++){
 
-      u = mt_drand();
+      x1 = boxed_gen_simulation(F_cond,x1_ub);
 
-      x1 = boxed_gen_simulation(u,x1_ub,min_gen1,max_gen1,x1_cond_cdf_array);
+      x2_ub = get_joint_polygon_y_bound_given_x(F, &plg1, &plg2, x1, parameters->intersection);
 
-      x2_ub = get_joint_polygon_y_bound_given_x(x1,P1,P2,min_gen2,max_gen2,intersection);
-
-      u = mt_drand();
-
-      x2 = boxed_gen_simulation(u,x2_ub,min_gen2,max_gen2,gen2_cdf_array);
+      x2 = boxed_gen_simulation(F->y,x2_ub);
       
-      m1_s = x1 - nd1;
-      m2_s = x2 - nd2;
+      m1_s = x1 - current_obs.net_demand1;
+      m2_s = x2 - current_obs.net_demand2;
 
-      if(share_policy>0){
-        s_flow = share_flow(m1_s, m2_s, d1, d2, c);
-        simulations[2*n_sim] = (long) (m1_s + s_flow);
-        simulations[2*n_sim+1] = (long) (m2_s - s_flow);
+      if(parameters->share_policy>0){
+        flow = share_flow(m1_s, m2_s, current_obs.demand1, current_obs.demand2, parameters->c);
 
       }else{
-        v_flow = veto_flow(m1_s, m2_s, c);
-        simulations[2*n_sim] = m1_s + v_flow;
-        simulations[2*n_sim+1] = m2_s - v_flow;
+        flow = veto_flow(m1_s, m2_s, parameters->c);
+
       }
+
+      set_element(results,n_sim,0, m1_s + (int) flow);
+      set_element(results,n_sim,1, m1_s - (int) flow);
 
       n_sim++;
 
@@ -1041,145 +526,375 @@ void region_simulation(
 }
 
 void conditioned_simulation(
-  long n,
-  long* simulations,
-  long min_gen1,
-  long min_gen2,
-  long max_gen1,
-  long max_gen2,
-  double* gen1_cdf_array,
-  double* gen2_cdf_array,
-  long* net_demand,
-  long* demand,
-  long* row_weights,
-  long n_rows,
-  long m1,
-  long c,
-  int seed,
-  int share_policy){
+  BivariateDiscreteDistribution* F,
+  IntMatrix* net_demand,
+  IntMatrix* demand,
+  IntMatrix* results,
+  SimulationParameters* parameters){
 
-  mt_seed32(seed);
+  mt_seed32(parameters->seed);
 
-  long row, nd1, nd2, d1, d2, x1, x2, v_flow, m1_s, m2_s;
-  double u, s_flow;
+  int row, x1, x2, m1_s, m2_s;
+  double flow;
 
-  long P1[4];
-  double cond_x2_cdf[max_gen2+1]; //not all entries will be filled, but it works
+  Polygon plg1;
+  double cond_x2_cdf[F->y->max+1]; //not all entries will be filled, but it works
 
-  long n_sim = 0, j;
+  DiscreteDistribution* F_cond;
 
-  // if(share_policy > 0){
-  //   printf("share policy");
-  // }
+  F_cond->min = F->y->min;
+  F_cond->max = F->y->max;
+  F_cond->expectation = F->y->expectation;
+  F_cond->cdf = &cond_x2_cdf[0];
 
-  // iterate over the provided rows
-  for(row=0;row<n_rows;row++){
+  int n_sim = 0, j;
 
-    nd1 = net_demand[2*row];
-    nd2 = net_demand[2*row+1];
+  ObservedData current_obs;
 
-    if(share_policy > 0){
-      d1 = demand[2*row];
-      d2 = demand[2*row+1];
-      get_share_polygon_points(P1,m1,nd1,nd2,d1,d2,c,0);
+  for(row=0;row<net_demand->n_rows;row++){
+
+    current_obs.net_demand1 = get_element(net_demand,row,0);
+    current_obs.net_demand2 = get_element(net_demand,row,1);
+    current_obs.demand1 = get_element(demand,row,0);
+    current_obs.demand2 = get_element(demand,row,1);
+
+    if(parameters->share_policy > 0){
+      get_share_polygon_points(&plg1,&current_obs,parameters->x_bound,parameters->c,0);
     }else{
-      get_veto_polygon_points(P1,m1,nd1,nd2,c,0);
+      get_veto_polygon_points(&plg1,&current_obs,parameters->x_bound,parameters->c,0);
     }
 
     // initialize cond prob array
-    for(x2=0;x2<=max_gen2;x2++){
-      if(x2 < P1[3]){
-        cond_x2_cdf[x2] = bigen_pdf(
-          P1[2],
-          x2,
-          min_gen1,
-          min_gen2,
-          max_gen1,
-          max_gen2,
-          gen1_cdf_array,
-          gen2_cdf_array);
-      }else if(x2 <= P1[1]){
-        cond_x2_cdf[x2] = bigen_pdf(
-          P1[2] - (x2 - P1[3]),
-          x2,
-          min_gen1,
-          min_gen2,
-          max_gen1,
-          max_gen2,
-          gen1_cdf_array,
-          gen2_cdf_array);
+    for(x2=0;x2<=F->y->max;x2++){
+      if(x2 < plg1.p2->y){
+        cond_x2_cdf[x2] = bivariate_pdf(F,plg1.p2->x,x2);
+      }else if(x2 <= plg1.p1->y){
+        cond_x2_cdf[x2] = bivariate_pdf(F,plg1.p2->x - (x2 - plg1.p2->y),x2);
       }else{
-        cond_x2_cdf[x2] = bigen_pdf(
-          P1[0],
-          x2,
-          min_gen1,
-          min_gen2,
-          max_gen1,
-          max_gen2,
-          gen1_cdf_array,
-          gen2_cdf_array);
+        cond_x2_cdf[x2] = bivariate_pdf(F,plg1.p1->x,x2);
       }
       if(x2>0){
         cond_x2_cdf[x2] += cond_x2_cdf[x2-1];
       }
     }
-    
-    // normalize conditional cdf
-    /*for(x2=0;x2<=max_gen2;x2++){
-      cond_x2_cdf[x2] /= cond_x2_cdf[max_gen2];
-    }*/
 
-    for(j=0;j<row_weights[row];j++){
+    for(j=0;j<parameters->obs_weights[row];j++){
 
-      u = mt_drand();
-      x2 = boxed_gen_simulation(u,max_gen2,min_gen2,max_gen2,cond_x2_cdf);
+      x2 = boxed_gen_simulation(F_cond,F_cond->max);
 
-      if(x2 >= P1[1]){
-        x1 = P1[0];
-      }else if(x2 <= P1[3]){
-        x1 = P1[2];
+      if(x2 >= plg1.p1->y){
+        x1 = plg1.p1->x;
+      }else if(x2 <= plg1.p2->y){
+        x1 = plg1.p2->x;
       }else{
-        x1 = P1[0] + (P1[1] - x2);
+        x1 = plg1.p1->x + (plg1.p1->y - x2);
       }
 
-      m1_s = x1 - nd1;
-      m2_s = x2 - nd2;
+      m1_s = x1 - current_obs.net_demand1;
+      m2_s = x2 - current_obs.net_demand2;
 
-      if(share_policy>0){
-        s_flow = share_flow(m1_s, m2_s, d1, d2, c);
-        simulations[2*n_sim] = (long) (m1_s + s_flow);
-        simulations[2*n_sim+1] = (long) (m2_s - s_flow);
+      if(parameters->share_policy>0){
+        flow = share_flow(m1_s, m2_s, current_obs.demand1, current_obs.demand2, parameters->c);
 
       }else{
-        v_flow = veto_flow(m1_s, m2_s, c);
-        simulations[2*n_sim] = m1_s + v_flow;
-        simulations[2*n_sim+1] = m2_s - v_flow;
+        flow = veto_flow(m1_s, m2_s, parameters->c);
       }
+
+      set_element(results,n_sim,0,m1_s + (int) flow);
+      set_element(results,n_sim,1,m1_s - (int) flow);
 
       n_sim++;
     }
   }
 }
 
-
 void bivar_ecdf(
-  double* ecdf,
-  double* X,
-  long n){
+  DoubleVector* ecdf,
+  IntMatrix* X){
 
   int i,j;
   double iter_ecdf;
-  for(i=0;i<n;i++){
+  for(i=0;i<X->n_rows;i++){
     iter_ecdf = 0.0;
     //printf("(%f,%f) larger than: \n", x[i],y[i]);
-    for(j=0;j<n;j++){
-      if(X[2*j] <= X[2*i] && X[2*j+1] <= X[2*i+1]){
-        //printf("(%f,%f)\n", x[j],y[j]);
+    for(j=0;j<X->n_rows;j++){
+      if(get_element(X,j,0) <= get_element(X,i,0) && get_element(X,j,1) <= get_element(X,i,1)){
         iter_ecdf ++;
       }
     }
     //printf("ECDF value: %f \n", iter_ecdf);
-    ecdf[i] = iter_ecdf/(n+1);
+    ecdf->value[i] = iter_ecdf/(X->n_rows+1);
   }
 
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+// ***************** Interfaces to Python
+
+void get_double_vector_from_py_objs(DoubleVector* vector, double* value, int size){
+
+  vector -> value = value;
+  vector ->size = size;
+}
+
+
+void get_observed_data_from_py_objs(ObservedData* obs, int d1, int d2, int nd1, int nd2){
+
+  obs->demand1 = d1;
+  obs->demand2 = d2;
+  obs->net_demand1 = nd1;
+  obs->net_demand2 = nd2;
+}
+
+void get_int_matrix_from_py_objs(IntMatrix* m, int* value, int n_rows, int n_cols){
+
+  m->value = value;
+  m->n_rows = n_rows;
+  m->n_cols = n_cols;
+}
+
+void get_sim_pars_from_py_objs(
+  SimulationParameters* pars,
+  int x_bound,
+  int y_bound,
+  int* obs_weights,
+  int seed,
+  int intersection,
+  int share_policy,
+  int c,
+  int n){
+
+  pars->x_bound = x_bound;
+  pars->y_bound = y_bound;
+  pars->obs_weights = obs_weights;
+  pars->seed = seed;
+  pars->intersection = intersection;
+  pars->share_policy = share_policy;
+  pars->c = c;
+  pars->n = n;
+}
+
+double triangle_prob_py_interface(
+    int origin_x,
+    int origin_y,
+    int triangle_length,
+    int min_gen1,
+    int min_gen2,
+    int max_gen1,
+    int max_gen2,
+    double* gen1_cdf_array,
+    double* gen2_cdf_array){
+
+  DiscreteDistribution X;
+  DiscreteDistribution Y;
+  BivariateDiscreteDistribution F;
+
+  get_discrete_dist_from_py_objs(&X, gen1_cdf_array, gen1_cdf_array, min_gen1, max_gen1);
+  get_discrete_dist_from_py_objs(&Y, gen2_cdf_array, gen2_cdf_array, min_gen2, max_gen2);
+  F.x = &X;
+  F.y = &Y;
+
+  return triangle_prob(&F, origin_x, origin_y, triangle_length);
+
+}
+
+double cond_eeu_veto_py_interface(
+  int v1,
+  int v2,
+  int c,
+  int min_gen1,
+  int min_gen2,
+  int max_gen1,
+  int max_gen2,
+  double* gen1_cdf_array,
+  double* gen2_cdf_array,
+  double* gen1_expectation){
+
+  DiscreteDistribution X;
+  DiscreteDistribution Y;
+  BivariateDiscreteDistribution F;
+  ObservedData obs;
+
+  get_discrete_dist_from_py_objs(&X, gen1_cdf_array, gen1_expectation, min_gen1, max_gen1);
+  get_discrete_dist_from_py_objs(&Y, gen2_cdf_array, gen2_cdf_array, min_gen2, max_gen2);
+  F.x = &X;
+  F.y = &Y;
+
+  get_observed_data_from_py_objs(&obs,v1,v2,v1,v2);
+
+  return cond_eeu_veto(&F,&obs,c);
+}
+
+double cond_eeu_share_py_interface(
+  int d1, 
+  int d2,
+  int v1,
+  int v2,
+  int c,
+  int min_gen1,
+  int min_gen2,
+  int max_gen1,
+  int max_gen2,
+  double* gen1_cdf_array,
+  double* gen2_cdf_array,
+  double* gen1_expectation){
+
+  DiscreteDistribution X;
+  DiscreteDistribution Y;
+  BivariateDiscreteDistribution F;
+  ObservedData obs;
+
+  get_discrete_dist_from_py_objs(&X, gen1_cdf_array, gen1_expectation, min_gen1, max_gen1);
+  get_discrete_dist_from_py_objs(&Y, gen2_cdf_array, gen2_cdf_array, min_gen2, max_gen2);
+  F.x = &X;
+  F.y = &Y;
+
+  get_observed_data_from_py_objs(&obs,d1,d2,v1,v2);
+
+  return cond_eeu_share(&F,&obs,c);
+
+}
+
+double trapezoid_prob_py_interface(
+  int ul_x,
+  int ul_y,
+  int width,
+  int min_gen1,
+  int min_gen2,
+  int max_gen1,
+  int max_gen2,
+  double* gen1_cdf_array,
+  double* gen2_cdf_array){
+
+  DiscreteDistribution X;
+  DiscreteDistribution Y;
+  BivariateDiscreteDistribution F;
+
+  get_discrete_dist_from_py_objs(&X, gen1_cdf_array, gen1_cdf_array, min_gen1, max_gen1);
+  get_discrete_dist_from_py_objs(&Y, gen2_cdf_array, gen2_cdf_array, min_gen2, max_gen2);
+  F.x = &X;
+  F.y = &Y;
+
+  return trapezoid_prob(&F,ul_x,ul_y,width);
+
+}
+
+void region_simulation_py_interface(
+  int n,
+  int* simulations,
+  int min_gen1,
+  int min_gen2,
+  int max_gen1,
+  int max_gen2,
+  double* gen1_cdf_array,
+  double* gen2_cdf_array,
+  int* net_demand,
+  int* demand,
+  int* row_weights,
+  int n_rows,
+  int m1,
+  int m2,
+  int c,
+  int seed,
+  int intersection,
+  int share_policy){
+
+  DiscreteDistribution X;
+  DiscreteDistribution Y;
+  BivariateDiscreteDistribution F;
+
+  get_discrete_dist_from_py_objs(&X, gen1_cdf_array, gen1_cdf_array, min_gen1, max_gen1);
+  get_discrete_dist_from_py_objs(&Y, gen2_cdf_array, gen2_cdf_array, min_gen2, max_gen2);
+  F.x = &X;
+  F.y = &Y;
+
+  IntMatrix net_demand_matrix;
+  IntMatrix demand_matrix;
+  IntMatrix results_matrix;
+
+  get_int_matrix_from_py_objs(&net_demand_matrix, net_demand, n_rows, 2);
+  get_int_matrix_from_py_objs(&demand_matrix, demand, n_rows, 2);
+  get_int_matrix_from_py_objs(&results_matrix, simulations, n_rows, 2);
+
+  SimulationParameters pars;
+
+  get_sim_pars_from_py_objs(&pars,m1,m2,row_weights,seed,intersection,share_policy,c,n);
+
+  region_simulation(&F,&net_demand_matrix,&demand_matrix,&results_matrix,&pars);
+
+}
+
+void conditioned_simulation_py_interface(
+  int n,
+  int* simulations,
+  int min_gen1,
+  int min_gen2,
+  int max_gen1,
+  int max_gen2,
+  double* gen1_cdf_array,
+  double* gen2_cdf_array,
+  int* net_demand,
+  int* demand,
+  int* row_weights,
+  int n_rows,
+  int m1,
+  int c,
+  int seed,
+  int share_policy){
+
+  DiscreteDistribution X;
+  DiscreteDistribution Y;
+  BivariateDiscreteDistribution F;
+
+  get_discrete_dist_from_py_objs(&X, gen1_cdf_array, gen1_cdf_array, min_gen1, max_gen1);
+  get_discrete_dist_from_py_objs(&Y, gen2_cdf_array, gen2_cdf_array, min_gen2, max_gen2);
+  F.x = &X;
+  F.y = &Y;
+
+  IntMatrix net_demand_matrix;
+  IntMatrix demand_matrix;
+  IntMatrix results_matrix;
+
+  get_int_matrix_from_py_objs(&net_demand_matrix, net_demand, n_rows, 2);
+  get_int_matrix_from_py_objs(&demand_matrix, demand, n_rows, 2);
+  get_int_matrix_from_py_objs(&results_matrix, simulations, n_rows, 2);
+
+  SimulationParameters pars;
+
+  get_sim_pars_from_py_objs(&pars,m1,m1,row_weights,seed,1,share_policy,c,n); //intersection = 1 (placeholder)
+
+  conditioned_simulation(&F,&net_demand_matrix,&demand_matrix,&results_matrix,&pars);
+}
+
+void bivar_ecdf_py_interface(
+  double* ecdf,
+  int* X,
+  long n){
+
+  DoubleVector ecdf_vector;
+  IntMatrix X_matrix; 
+
+  get_int_matrix_from_py_objs(&X_matrix, X, n, 2);
+  get_double_vector_from_py_objs(&ecdf_vector,&ecdf,n);
+
+  bivar_ecdf(&ecdf_vector,&X_matrix);
+}
+
+

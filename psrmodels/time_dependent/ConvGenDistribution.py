@@ -112,7 +112,7 @@ class ConvGenDistribution(object):
     # call C program
 
 
-    C_CALL.simulate_mc_power_grid(
+    C_CALL.simulate_mc_power_grid_py_interface(
       ffi.cast("double *",output.ctypes.data),
       ffi.cast("double *",self.transition_prob_array.ctypes.data),
       ffi.cast("double *",self.states_array.ctypes.data),
@@ -124,7 +124,7 @@ class ConvGenDistribution(object):
       np.int32(seed),
       np.int32(simulate_streaks))
 
-    return output.reshape((-1,1))
+    return output.reshape((-1,1),order="F")
 
   def _get_stationary_samples(self):
 

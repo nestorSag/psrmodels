@@ -90,7 +90,7 @@ class BivariateHindcastMargin(object):
 
     # overwrite gensim array with margin values
 
-    C_CALL.calculate_pre_itc_margins(
+    C_CALL.calculate_pre_itc_margins_py_interface(
         ffi.cast("double *", gensim.ctypes.data),
         ffi.cast("double *",self.net_demand.ctypes.data),
         np.int64(self.n),
@@ -124,7 +124,7 @@ class BivariateHindcastMargin(object):
 
     #override pre_itc array with margin values
     if policy == "veto":
-      C_CALL.calculate_post_itc_veto_margins(
+      C_CALL.calculate_post_itc_veto_margins_py_interface(
           ffi.cast("double *", pre_itc.ctypes.data),
           np.int64(pre_itc.shape[0]),
           np.int64(pre_itc.shape[1]),
@@ -132,7 +132,7 @@ class BivariateHindcastMargin(object):
 
     elif policy == "share":
 
-      C_CALL.calculate_post_itc_share_margins(
+      C_CALL.calculate_post_itc_share_margins_py_interface(
           ffi.cast("double *", pre_itc.ctypes.data),
           ffi.cast("double *", self.demand.ctypes.data),
           np.int64(self.n),

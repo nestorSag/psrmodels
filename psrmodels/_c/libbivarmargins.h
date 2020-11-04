@@ -1,466 +1,424 @@
 //#ifndef BIVAR_MARGINS_H_INCLUDED
 //#define BIVAR_MARGINS_H_INCLUDED
 
+#include "libunivarmargins.h"
+
+/**
+ * @brief This object represents a vector of integer observations
+ *
+ * @param value data
+ * @param size data size (length)
+ */
+typedef struct DoubleVector{
+  double* value;
+  int size;
+} DoubleVector;
+
+/**
+ * @brief This object represents a bivariate discrete distribution with independent components
+ *
+ * @param x first component
+ * @param y second component
+ */
+
+typedef struct BivariateDiscreteDistribution{
+	DiscreteDistribution* x;
+	DiscreteDistribution* y;
+} BivariateDiscreteDistribution;
+
+/**
+ * @brief Wrapper around observed demand and net demand values for a particular time
+ *
+ */
+
+typedef struct ObservedData{
+	int net_demand1;
+	int net_demand2;
+	int demand1;
+	int demand2;
+} ObservedData;
+
+/**
+ * @brief wrapper that represents a general 2-dimensional lattice point
+ */
+
+typedef struct Coord{
+	int x;
+	int y;
+} Coord;
+
+/**
+ * @brief Characterises a the polygon with a single segment line with a slope of -1. This polygon is characterised by 2 points
+ * which represent the left and right ends of the slope. 
+ *
+ */
+
+typedef struct Polygon{
+	Coord* p1;
+	Coord* p2;
+} Polygon;
+
+/**
+ * @brief Wrapper around a 2-dimensional int array
+ *
+ */
+
+typedef struct IntMatrix{
+	int* value;
+	int n_rows;
+	int n_cols;
+} IntMatrix;
+
+
+typedef struct SimulationParameters{
+  int x_bound;
+  int y_bound;
+  int* obs_weights;
+  int seed;
+  int intersection;
+  int share_policy;
+  int c;
+  int n;
+} SimulationParameters;
+
+int imax(int a, int b);
+
+int imin(int a, int b);
+
+int get_element(IntMatrix* m, int i, int j);
+
+void set_element(IntMatrix* m, int i, int j, int x);
+
+
+/**
+ * @brief Parameters needed to simulate rare events from a bivariate power margin distribution
+ *
+ * @param x_bound x axis bound for simulated points
+ * @param y_bound y axis bound for simulated points
+ * @param obs_weights number of simulated samples to get using each historic observation
+ * @param seed random seed
+ * @param intersection whether to simulate from the intersection or union of inequalities of the type x <= m1, y <= m2
+ * @param share_policy whether a share policy is used
+ * @param c interconnection capacity
+ * @param n number of simulated points to get
+ */
+
+
 double sign(double x);
-
-long min(long num1, long num2);
-
 /**
- * @brief Calculate the probability mass of a straight triangular lattice
+ * @brief Returns the CDF of a bivariate distribution on a lattice in, evaluated (x,y)
  *
- * @param origin_x x coordinate of lower left corner
- * @param origin_y y coordinate of lower left corner
- * @param triangle_length of cathethuses
- * @param min_gen1 minimum available generation in area 1
- * @param min_gen2 minimum available generation in area 2
- * @param max_gen1 maximum available generation in area 1
- * @param max_gen2 maximum available generation in area 2
- * @param gen1_cdf_array array of CDF values for area 1 generation
- * @param gen2_cdf_array array of CDF values for area 2 generation
  */
 
-double triangle_prob(
-	long origin_x,
-	long origin_y,
-	long triangle_length,
-	long min_gen1,
-	long min_gen2,
-	long max_gen1,
-	long max_gen2,
-	double* gen1_cdf_array,
-	double* gen2_cdf_array);
+double bivariate_cdf(BivariateDiscreteDistribution* F, int x, int y);
+
 
 /**
- * @brief Calculates the probability mass of a vertical stripe segment in bivariate conv. gen. space
+ * @brief Returns the PDF of a bivariate distribution on a lattice in, evaluated (x,y)
  *
- * @param x1 x coordinate
- * @param x2 y coordinate
- * @param min_gen1 minimum available generation in area 1
- * @param min_gen2 minimum available generation in area 2
- * @param max_gen1 maximum available generation in area 1
- * @param max_gen2 maximum available generation in area 2
- * @param gen1_cdf_array array of CDF values for area 1 generation
- * @param gen2_cdf_array array of CDF values for area 2 generation
+ */
+double bivariate_pdf(BivariateDiscreteDistribution* F, int x, int y);
+
+
+/**
+ * @brief Calculate the probability mass of the inner lattice of a straight triangular segment of the plane. It does not take the hypothenuse points into account.
+ *
+ * @param F probability distribution object
+ * @param x x coordinate of lower left corner
+ * @param y y coordinate of lower left corner
+ * @param triangle_length  length of of cathethuses
+ */
+double triangle_prob(BivariateDiscreteDistribution* F, int x, int y, int triangle_length);
+/**
+ * @brief Calculates the probability of a trapezoidal region in conventional generation space.
+ * The region is formed by stacking a right triangle where the hypotenuse facing right, on
+ * top of a rectangular segment of the same width.
+ *
+ * @param F probability distribution object
+ * @param ul_x x coordinate of upper left corner
+ * @param ul_y y coordinate of upper y corner
+ * @param width width of trapezoid
  */
 
-double x1_stripe_pdf(
-	long x1,
-	long x2,
-	long min_gen1,
-	long min_gen2,
-	long max_gen1,
-	long max_gen2,
-	double* gen1_cdf_array,
-	double* gen2_cdf_array);
+double trapezoid_prob(BivariateDiscreteDistribution* F, int ul_x, int l_y, int width);
 
 /**
  * @brief Calculate conditional EPU given demand and net demand values, under a share policy for a 2-area system
  *
- * @param d1 demand in area 1
- * @param d1 demand in area 2
- * @param v1 net demand in area 1
- * @param v2 net demand in area 2
- * @param c interconnector capacity
- * @param min_gen1 minimum available generation in area 1
- * @param min_gen2 minimum available generation in area 2
- * @param max_gen1 maximum available generation in area 1
- * @param max_gen2 maximum available generation in area 2
- * @param gen1_cdf_array array of CDF values for area 1 generation
- * @param gen2_cdf_array array of CDF values for area 2 generation
- * @param gen1_expectation array of expectation values for area 2 generation
+ * @param F probability distribution object
+ * @param obs Object with observed demands and net demands at a given time
+ * @param c Interconnection capacity
  */
-double cond_epu_share(
-	long d1, 
-	long d2,
-	long v1,
-	long v2,
-	long c,
-	long min_gen1,
-	long min_gen2,
-	long max_gen1,
-	long max_gen2,
-	double* gen1_cdf_array,
-	double* gen2_cdf_array,
-	double* gen1_expectation);
+
+double cond_epu_share(BivariateDiscreteDistribution* F, ObservedData* obs, int c);
 
 /**
  * @brief Calculate conditional EPU given demand and net demand values, under a veto policy for a 2-area system
  *
- * @param v1 net demand in area 1
- * @param v2 net demand in area 2
- * @param c interconnector capacity
- * @param min_gen1 minimum available generation in area 1
- * @param min_gen2 minimum available generation in area 2
- * @param max_gen1 maximum available generation in area 1
- * @param max_gen2 maximum available generation in area 2
- * @param gen1_cdf_array array of CDF values for area 1 generation
- * @param gen2_cdf_array array of CDF values for area 2 generation
- * @param gen1_expectation array of expectation values for area 2 generation
+ * @param F probability distribution object
+ * @param obs Object with observed demands and net demands at a given time
+ * @param c Interconnection capacity
  */
-
-double cond_epu_veto(
-	long v1,
-	long v2,
-	long c,
-	long min_gen1,
-	long min_gen2,
-	long max_gen1,
-	long max_gen2,
-	double* gen1_cdf_array,
-	double* gen2_cdf_array,
-	double* gen1_expectation);
+double cond_epu_veto(BivariateDiscreteDistribution* F, ObservedData* obs, int c);
 
 /**
- * @brief evaluate the bivariate probability distribution of conventional generation in a specified point
+ * @brief Computes points for that characterises the polygon in conventional generation space that has to be integrated 
+ * in order to calculate the probability P(M<=x), for a given interconnector size, a share policy and demand and net demand values
  *
- * @param x1 conventional generation in area 1
- * @param x2 conventional generation in area 1
- * @param min_gen1 minimum available generation in area 1
- * @param min_gen2 minimum available generation in area 2
- * @param max_gen1 maximum available generation in area 1
- * @param max_gen2 maximum available generation in area 2
- * @param gen1_cdf_array array of CDF values for generation in area 1
- * @param gen2_cdf_array array of CDF values for generation in area 2
+ * @param p Polygon object where points will be saved
+ * @param obs Object with observed demands and net demands at a given time
+ * @param x Margin value
+ * @param c Interconnection capacity
+ * @param area area to which the polygon will correspond
  */
-
-double bigen_cdf(
-	long x1,
-	long x2,
-	long min_gen1,
-	long min_gen2,
-	long max_gen1,
-	long max_gen2,
-	double* gen1_cdf_array,
-	double* gen2_cdf_array);
+void get_share_polygon_points(Polygon* p, ObservedData* obs, int x, int c, int area);
 
 /**
- * @brief Calculates the probability of a trapezoidal region in conventional generation space.
- * The region is formed by stacking a right triangle where the hypotenuse faces to the right, on
- * top of a rectangle
+ * @brief Computes points for that characterises the polygon in conventional generation space that has to be integrated 
+ * in order to calculate the probability P(M<=x), for a given interconnector size, a veto policy and demand and net demand values
  *
- * @param ul_x x coordinate of upper left corner
- * @param ul_y y coordinate of upper y corner
- * @param width width of trapezoid
- * @param min_gen1 minimum available generation in area 1
- * @param min_gen2 minimum available generation in area 2
- * @param max_gen1 maximum available generation in area 1
- * @param max_gen2 maximum available generation in area 2
- * @param gen1_cdf_array array of CDF values for generation in area 1
- * @param gen2_cdf_array array of CDF values for generation in area 2
+ * @param p Polygon object where points will be saved
+ * @param obs Object with observed demands and net demands at a given time
+ * @param x Margin value
+ * @param c Interconnection capacity
+ * @param area area to which the polygon will correspond
  */
-
-double trapezoid_prob(
-	long ul_x,
-	long ul_y,
-	long width,
-	long min_gen1,
-	long min_gen2,
-	long max_gen1,
-	long max_gen2,
-	double* gen1_cdf_array,
-	double* gen2_cdf_array);
+void get_veto_polygon_points(Polygon* p, ObservedData* obs, int x, int c, int area);
 
 /**
- * @brief Get points characterising the polygon in conventional generation space for a given margin in the given area under a share policy
+ * @brief Returns max(x2) such that (x,x2) is part of the polygon
  *
- * @param p_array array where the points are stored
- * @param m margin value
- * @param v1 net demand value in area 1
- * @param v2 net demand value in area 2
- * @param d1 demand in area 1
- * @param d2 demand in area 2
- * @param c interconnection capacity
- * @param area index (0 for area 1)
+ * @param p Polygon object where points will be saved
+ * @param x x axis value to evaluate at
  */
-
-void get_share_polygon_points(
-	long* p_array,
-	long m,
-	long v1,
-	long v2,
-	long d1,
-	long d2,
-	long c,
-	int i);
+int axis1_polygon_upper_bound(Polygon* p, int x);
 
 /**
- * @brief Get points characterising the polygon in conventional generation space for a given margin in the given area under a veto policy
+ * @brief Returns max(x1) such that (x1,x) is part of the polygon
  *
- * @param p_array array where the points are stored
- * @param m margin value
- * @param v1 net demand value in area 1
- * @param v2 net demand value in area 2
- * @param c interconnection capacity
- * @param area index (0 for area 1)
+ * @param p Polygon object where points will be saved
+ * @param x y axis value to evaluate at
  */
-
-void get_veto_polygon_points(
-	long* p_array,
-	long m,
-	long v1,
-	long v2,
-	long c,
-	int i);
+int axis2_polygon_upper_bound(Polygon* p, int x);
 
 /**
- * @brief Get the power that is exchanged, given initial power margins and interconnection capacity, under a veto policy
+ * @brief Simulates a random variable from a discrete distribution conditioned to be lower than a given bound
  *
- * @param min_gen1 minimum available generation in area 1
- * @param min_gen2 minimum available generation in area 2
- * @param max_gen1 maximum available generation in area 1
- * @param max_gen2 maximum available generation in area 2
- * @param gen1_cdf_array array of CDF values for area 1 generation
- * @param gen2_cdf_array array of CDF values for area 2 generation
- * @param m1 margin in area 1
- * @param m2 margin in area 2
- * @param v1 net demand in area 1
- * @param v2 net demand in area 2
- * @param d1 demand in area 2
- * @param d2 demand in area 2
- * @param c interconnection capacity
- * @param share_policy integer that determines if a veto or a share policy is simulated
+ * @param F distribution object
+ * @param upper_bound given upper bound
  */
-
-
-double get_cond_cdf(
-	long min_gen1,
-	long min_gen2,
-	long max_gen1,
-	long max_gen2,
-	double* gen1_cdf_array,
-	double* gen2_cdf_array,
-	long m1,
-	long m2,
-	long v1,
-	long v2,
-	long d1,
-	long d2,
-	long c,
-	int share_policy);
+int boxed_gen_simulation(DiscreteDistribution* F, int upper_bound);
 
 /**
- * @brief Get the power that is exchanged, given initial power margins and interconnection capacity, under a share policy
+ * @brief Returns veto flow to/from area 1 given power margins and interconnector capacity
  *
- * @param m1 margin in area 1
- * @param m2 margin in area 2
- * @param d1 demand in area 1
- * @param d2 demand in area 2
- * @param c interconnection capacity
+ * @param m1 Power margin at area 1
+ * @param m2 Power margin at area 2
+ * @param c Interconnection capacity
  */
-
-double share_flow(
-	long m1,
-	long m2,
-	long d1,
-	long d2,
-	long c);
+int veto_flow(int m1,int m2,int c);
 
 /**
- * @brief Get the power that is exchanged, given initial power margins and interconnection capacity, under a veto policy
+ * @brief Returns share flow to/from area 1 given power margins, demands and interconnector capacity
  *
- * @param m1 margin in area 1
- * @param m2 margin in area 2
- * @param c interconnection capacity
+ * @param m1 Power margin at area 1
+ * @param m2 Power margin at area 2
+ * @param d1 demand at area 2
+ * @param d2 demand at area 2
+ * @param c Interconnection capacity
  */
-
-long veto_flow(
-	long m1,
-	long m2,
-	long c);
-
-/**
- * @brief get polygon perimeter value at a given x coordinate
- *
- * @param x x coordinate in which to evaluate
- * @param P1 points from the slopped segment that characterises the polygon
- */
-
-long axis1_polygon_upper_bound(
-	long x,
-	long* P1);
-
-/**
- * @brief get polygon perimeter value at a given x coordinate
- *
- * @param x x coordinate in which to evaluate
- * @param P2 points from the slopped segment that characterises the polygon
- */
-
-long axis2_polygon_upper_bound(
-	long x,
-	long* P2);
-
-/**
- * @brief Simulate conventional generation values conditioned to being lower than a given threshold
- *
- * @param u uniform random number in [0,1]
- * @param upper_bound upper generation bound
- * @param max_gen maximum generation capacity
- * @param gen_cdf array with CDF values for conventional generation
- */
-
-long boxed_gen_simulation(
-	double u,
-	long upper_bound,
-	long max_gen,
-	double* gen_cdf);
-
-/**
- * @brief Simulate values for conventional generation in both areas under a share policy, 
- * such that bivariate post interconnector margins fall into the region specified by m1, m2
- *
- * @param n number of simulated samples
- * @param simulations array where simulations are stored
- * @param min_gen1 minimum available generation in area 1
- * @param min_gen2 minimum available generation in area 2
- * @param max_gen1 maximum available generation in area 1
- * @param max_gen2 maximum available generation in area 2
- * @param gen1_cdf_array array with CDF values for conventional generation in area 1
- * @param gen1_cdf_array array with CDF values for conventional generation in area 1
- * @param net_demand array of net demand values, of shape (n x 2)
- * @param demand array of demand values, of shape (n x 2)
- * @param row_weights array with number of samples to get from each of the rows being passed
- * @param n_rows number of net demand data observations
- * @param m1 margin upper bound at area 1
- * @param m1 margin upper bound at area 2
- * @param c interconnection capacity
- * @param seed random seed
- * @param intersection integer that determines whether the simulated area is a union or intersection of inequalities
- * @param share_policy integer that determines whether a share or a veto policy is simulated
- */
-
-void region_simulation(
-	long n,
-	long* simulations,
-	long min_gen1,
-	long min_gen2,
-	long max_gen1,
-	long max_gen2,
-	double* gen1_cdf_array,
-	double* gen2_cdf_array,
-	long* net_demand,
-	long* demand,
-	long* row_weights,
-	long n_rows,
-	long m1,
-	long m2,
-	long c,
-	int seed,
-	int intersection,
-	int share_policy);
-
-/**
- * @brief Calculate CDF for a bivariate hindcast margin model, given polygons induced by demand and net demand
- *
- * @param min_gen1 minimum available generation in area 1
- * @param min_gen2 minimum available generation in area 2
- * @param max_gen1 maximum available generation in area 1
- * @param max_gen2 maximum available generation in area 2
- * @param gen1_cdf_array array with CDF values for conventional generation in area 1
- * @param gen1_cdf_array array with CDF values for conventional generation in area 1
- * @param p_array_a1 point of -1 slope segment that characterises polygon of area 1
- * @param p_array_a2 point of -1 slope segment that characterises polygon of area 2
- * @param c1 horizontal length of sloped segment of plygon of area 1
- * @param c2 horizontal length of sloped segment of plygon of area 2
- */
-double cond_cdf(
-	long min_gen1,
-	long min_gen2,
-	long max_gen1,
-	long max_gen2,
-	double* gen1_cdf_array,
-	double* gen2_cdf_array,
-	long* p_array_a1,
-	long* p_array_a2,
-	long c1,
-	long c2);
-
-/**
- * @brief Simulates values in one axis conditioned on margin values on the other axis
- *
- * @param n number of simulated samples
- * @param simulations array where simulations are stored
- * @param min_gen1 minimum available generation in area 1
- * @param min_gen2 minimum available generation in area 2
- * @param max_gen1 maximum available generation in area 1
- * @param max_gen2 maximum available generation in area 2
- * @param gen1_cdf_array array with CDF values for conventional generation in area 1
- * @param gen1_cdf_array array with CDF values for conventional generation in area 1
- * @param net_demand array of net demand values, of shape (n x 2)
- * @param demand array of demand values, of shape (n x 2)
- * @param row_weights array with number of samples to get from each of the rows being passed
- * @param n_rows number of net demand data observations
- * @param m1 margin upper bound at area 1
- * @param c interconnection capacity
- * @param seed random seed
- * @param share_policy integer that determines whether a share or veto policy is simulated
- */
-void conditioned_simulation(
-	long n,
-	long* simulations,
-	long min_gen1,
-	long min_gen2,
-	long max_gen1,
-	long max_gen2,
-	double* gen1_cdf_array,
-	double* gen2_cdf_array,
-	long* net_demand,
-	long* demand,
-	long* row_weights,
-	long n_rows,
-	long m1,
-	long c,
-	int seed,
-	int share_policy);
+double share_flow(int m1,int m2,int d1,int d2,int c);
 
 
 /**
- * @brief Computes empirical CDF values of bivariate data; divides by n+1 to avoid having probability 1 in some observation
+ * @brief Calculate probability mass of the intersection of 2 given polygons
  *
- * @param ecdf ECDF placeholder
- * @param x first component
- * @param y second component
- * @param n number of observations
+ * @param F distribution object
+ * @param plg1 Polygon 1
+ * @param plg2 Polygon 2
  */
-
-void bivar_ecdf(
-	double* ecdf,
-	double* X,
-	long n);
+double cond_cdf(BivariateDiscreteDistribution* F, Polygon* plg1, Polygon* plg2);
 
 /**
  * @brief get the rightmost X coordinate of the intersection or union of both polygons
  *
- * @param P1 array that characterises polygon for area 1
- * @param P2 array that characterises polygon for area 2
- * @param max_gen1 maximum generation for area 1
+ * @param F distribution object
+ * @param plg1 Polygon1
+ * @param plg2 Polygon2
  * @param intersection whether to apply union or intersection to both polygons
  */
-
-long get_joint_polygon_x_bound(
-	long* P1,
-	long* P2,
-	long min_gen1,
-	long max_gen1,
-	int intersection);
+int get_joint_polygon_x_bound(
+  BivariateDiscreteDistribution* F, 
+  Polygon* plg1, 
+  Polygon* plg2, 
+  int intersection);
 
 /**
  * @brief get the highest Y coordinate of the intersection or union of both polygons at a particular X coordinate
  *
- * @param x X coordinate
- * @param P1 array that characterises polygon for area 1
- * @param P2 array that characterises polygon for area 2
- * @param max_gen2 maximum generation for area 2
+ * @param F distribution object
+ * @param plg1 Polygon1
+ * @param plg2 Polygon2
+ * @param x x axis coordinate
  * @param intersection whether to apply union or intersection to both polygons
  */
-
-long get_joint_polygon_y_bound_given_x(
-	long x,
-	long* P1,
-	long* P2,
-	long min_gen1,
-	long max_gen2,
-	int intersection);
+int get_joint_polygon_y_bound_given_x(
+  BivariateDiscreteDistribution* F, 
+  Polygon* plg1, 
+  Polygon* plg2, 
+  int x, 
+  int intersection);
 
 
-//#endif
+/**
+ * @brief Simulate bivariate values for conventional generation, 
+ * such that bivariate post interconnector margins fall into the region specified by the bounds in the parameters' object
+ *
+ * @param F distribution object
+ * @param data observed demand and net demand data at a given time
+ * @param net_demand matrix of net demand values
+ * @param demand matrix of demand values
+ * @param results matrix where results will be saved
+ * @param parameters Set of simulation parameters
+*/
+
+void region_simulation(
+  BivariateDiscreteDistribution* F, 
+  IntMatrix* net_demand,
+  IntMatrix* demand,
+  IntMatrix* results,
+  SimulationParameters* parameters);
+
+
+/**
+ * @brief Simulates power margin values in one axis conditioned on margin values on the other axis
+ *
+ * @param F distribution object
+ * @param net_demand matrix of net demand values
+ * @param demand matrix of demand values
+ * @param results matrix where results will be saved
+ * @param parameters Set of simulation parameters
+*/
+
+void conditioned_simulation(
+  BivariateDiscreteDistribution* F,
+  IntMatrix* net_demand,
+  IntMatrix* demand,
+  IntMatrix* results,
+  SimulationParameters* parameters);
+
+// Returns bivariate empirical CDF values
+void bivar_ecdf(
+  DoubleVector* ecdf,
+  IntMatrix* X);
+
+
+
+void get_double_vector_from_py_objs(DoubleVector* vector, double* value, int size);
+
+void get_observed_data_from_py_objs(ObservedData* obs, int d1, int d2, int nd1, int nd2);
+
+void get_int_matrix_from_py_objs(IntMatrix* m, int* value, int n_rows, int n_cols);
+
+void get_sim_pars_from_py_objs(
+  SimulationParameters* pars,
+  int x_bound,
+  int y_bound,
+  int* obs_weights,
+  int seed,
+  int intersection,
+  int share_policy,
+  int c,
+  int n);
+// py interfaces
+
+double triangle_prob_py_interface(
+    int origin_x,
+    int origin_y,
+    int triangle_length,
+    int min_gen1,
+    int min_gen2,
+    int max_gen1,
+    int max_gen2,
+    double* gen1_cdf_array,
+    double* gen2_cdf_array);
+
+double cond_eeu_veto_py_interface(
+  int v1,
+  int v2,
+  int c,
+  int min_gen1,
+  int min_gen2,
+  int max_gen1,
+  int max_gen2,
+  double* gen1_cdf_array,
+  double* gen2_cdf_array,
+  double* gen1_expectation);
+
+double cond_eeu_share_py_interface(
+  int d1, 
+  int d2,
+  int v1,
+  int v2,
+  int c,
+  int min_gen1,
+  int min_gen2,
+  int max_gen1,
+  int max_gen2,
+  double* gen1_cdf_array,
+  double* gen2_cdf_array,
+  double* gen1_expectation);
+
+double trapezoid_prob_py_interface(
+  int ul_x,
+  int ul_y,
+  int width,
+  int min_gen1,
+  int min_gen2,
+  int max_gen1,
+  int max_gen2,
+  double* gen1_cdf_array,
+  double* gen2_cdf_array);
+
+void region_simulation_py_interface(
+  int n,
+  int* simulations,
+  int min_gen1,
+  int min_gen2,
+  int max_gen1,
+  int max_gen2,
+  double* gen1_cdf_array,
+  double* gen2_cdf_array,
+  int* net_demand,
+  int* demand,
+  int* row_weights,
+  int n_rows,
+  int m1,
+  int m2,
+  int c,
+  int seed,
+  int intersection,
+  int share_policy);
+
+void conditioned_simulation_py_interface(
+  int n,
+  int* simulations,
+  int min_gen1,
+  int min_gen2,
+  int max_gen1,
+  int max_gen2,
+  double* gen1_cdf_array,
+  double* gen2_cdf_array,
+  int* net_demand,
+  int* demand,
+  int* row_weights,
+  int n_rows,
+  int m1,
+  int c,
+  int seed,
+  int share_policy);
+
+void bivar_ecdf_py_interface(
+  double* ecdf,
+  int* X,
+  long n);
