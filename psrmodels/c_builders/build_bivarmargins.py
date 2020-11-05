@@ -102,14 +102,14 @@ ffibuilder.cdef("""
 # 	ffibuilder.cdef(f.read())
 
 
-header = "#include \"" + os.path.dirname(os.path.abspath(__file__)) + "/../_c/libbivarmargins.h\""
+header = "#include \"" + os.path.dirname(os.path.abspath(__file__)) + "/../c/libbivarmargins.h\""
 
 ffibuilder.set_source("_c_ext_bivarmargins",  # name of the output C extension
     # """
     # #include "../../psrmodels/_c/libbivarmargins.h"
     # """,
     header,
-    sources=['psrmodels/_c/libbivarmargins.c','psrmodels/_c/libunivarmargins.c','psrmodels/_c/mtwist-1.5/mtwist.c'],
+    sources=['psrmodels/c/libbivarmargins.c','psrmodels/c/libunivarmargins.c','psrmodels/c/mtwist-1.5/mtwist.c'],
     libraries=['m'])    # on Unix, link with the math library
 
 if __name__ == "__main__":

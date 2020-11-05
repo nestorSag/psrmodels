@@ -44,9 +44,9 @@ setuptools.setup(
      url="https://bitbucket.com/nestorsag/phd",
 
      cffi_modules=[
-       "psrmodels/_c_builders/build_timedependence.py:ffibuilder",
-       "psrmodels/_c_builders/build_univarmargins.py:ffibuilder",
-       "psrmodels/_c_builders/build_bivarmargins.py:ffibuilder"],
+       "psrmodels/c_builders/build_timedependence.py:ffibuilder",
+       "psrmodels/c_builders/build_univarmargins.py:ffibuilder",
+       "psrmodels/c_builders/build_bivarmargins.py:ffibuilder"],
 
      classifiers=[
 

@@ -79,14 +79,14 @@ ffibuilder.cdef("""
 	  double* gen_expectation);
 	""")
 
-header = "#include \"" + os.path.dirname(os.path.abspath(__file__)) + "/../_c/libunivarmargins.h\""
+header = "#include \"" + os.path.dirname(os.path.abspath(__file__)) + "/../c/libunivarmargins.h\""
 
 ffibuilder.set_source("_c_ext_univarmargins",  # name of the output C extension
     # """
     # #include "../../psrmodels/_c/libunivarmargins.h"
     # """,
     header,
-    sources=['psrmodels/_c/libunivarmargins.c'],
+    sources=['psrmodels/c/libunivarmargins.c'],
     libraries=['m'])    # on Unix, link with the math library
 
 if __name__ == "__main__":

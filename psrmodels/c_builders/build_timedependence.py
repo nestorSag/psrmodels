@@ -41,7 +41,7 @@ void simulate_mc_power_grid_py_interface(
 # with open('psrmodels/_c/libtimedependence.h','r') as f:
 # 	ffibuilder.cdef(f.read())
 
-header = "#include \"" + os.path.dirname(os.path.abspath(__file__)) + "/../_c/libtimedependence.h\""
+header = "#include \"" + os.path.dirname(os.path.abspath(__file__)) + "/../c/libtimedependence.h\""
 
 
 ffibuilder.set_source("_c_ext_timedependence",  # name of the output C extension
@@ -49,7 +49,7 @@ ffibuilder.set_source("_c_ext_timedependence",  # name of the output C extension
     # #include "../../psrmodels/_c/libtimedependence.h"
     # """,
     header,
-    sources=['psrmodels/_c/libtimedependence.c','psrmodels/_c/mtwist-1.5/mtwist.c'],
+    sources=['psrmodels/c/libtimedependence.c','psrmodels/c/mtwist-1.5/mtwist.c'],
     libraries=['m'])    # on Unix, link with the math library
 
 if __name__ == "__main__":

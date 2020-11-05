@@ -235,12 +235,14 @@ double get_share_flow(
 void calculate_post_itc_veto_margins(DoubleMatrix* power_margin_matrix, double c){
 
   int i;
-  double flow;
+  double m1, m2, flow;
   for(i=0;i<power_margin_matrix->n_rows;++i){
-    flow = get_veto_flow(get_element(power_margin_matrix,i,0), get_element(power_margin_matrix,i,1),c);
+    m1 = get_element(power_margin_matrix,i,0);
+    m2 = get_element(power_margin_matrix,i,1);
+    flow = get_veto_flow(m1, m2,c);
 
-    set_element(power_margin_matrix,i,0, get_element(power_margin_matrix,i,0) + flow);
-    set_element(power_margin_matrix,i,1, get_element(power_margin_matrix,i,1) - flow);
+    set_element(power_margin_matrix,i,0, m1 + flow);
+    set_element(power_margin_matrix,i,1, m2 - flow);
 
   }
 }
@@ -252,7 +254,7 @@ void calculate_post_itc_share_margins(DoubleMatrix* power_margin_matrix, DoubleM
   for(i=0;i<power_margin_matrix->n_rows;++i){
     m1 = get_element(power_margin_matrix, i, 0);
     m2 = get_element(power_margin_matrix, i, 1);
-    
+
     flow = get_share_flow(
       m1,
       m2,
