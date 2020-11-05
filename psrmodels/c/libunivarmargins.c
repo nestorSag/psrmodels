@@ -15,12 +15,12 @@ double cumulative_value(DiscreteDistribution* F, double* array, int x){
   } 
 }
 
-double cdf(DiscreteDistribution* F, int x){
+double gen_cdf(DiscreteDistribution* F, int x){
   return cumulative_value(F,F->cdf,x);
 }
 
-double pdf(DiscreteDistribution* F, int x){
-  return cdf(F,x) - cdf(F,x-1);
+double gen_pdf(DiscreteDistribution* F, int x){
+  return gen_cdf(F,x) - gen_cdf(F,x-1);
 }
 
 double cumulative_expectation(DiscreteDistribution* F, int x){
@@ -43,7 +43,7 @@ double empirical_power_margin_cdf(DiscreteDistribution* F, IntVector* net_demand
   int i=0;
 
   for(i=0;i<net_demand->size;++i){
-    cdf_val += cdf(F,(int) net_demand->value[i]+x);
+    cdf_val += gen_cdf(F,(int) net_demand->value[i]+x);
   }
 
   return cdf_val/net_demand->size;
@@ -55,7 +55,7 @@ double empirical_eeu(DiscreteDistribution* F, IntVector* net_demand){
 
   for(i=0;i<net_demand->size;++i){
     current = (int) net_demand->value[i];
-    eeu += current*cdf(F,current-1) - cumulative_expectation(F,current-1);
+    eeu += current*gen_cdf(F,current-1) - cumulative_expectation(F,current-1);
   }
 
   return eeu/net_demand->size;
@@ -176,14 +176,14 @@ double semiparametric_power_margin_cdf(GPModel* gp, IntVector* net_demand, Discr
   for(y=0;y<net_demand->size;++y){
     if(net_demand->value[y] < gp->u){
       //cdf += get_gen_array_val(nd_vals[y]+x,gen_cdf,gen_min,gen_max+1)/nd_length;
-      cdf_val += cdf(F, (int) net_demand->value[y]+x);
+      cdf_val += gen_cdf(F, (int) net_demand->value[y]+x);
     }
   }
   cdf_val /=net_demand->size;
 
   for(y=(int) ceil(gp->u);y<F->max-x+1;++y){
     pdf_val = semiparametric_net_demand_pdf(gp,net_demand,y);
-    g_cdf = cdf(F,(int) (y+x));
+    g_cdf = gen_cdf(F,(int) (y+x));
     cdf_val += g_cdf*pdf_val;
   }
 
@@ -202,7 +202,7 @@ double bayesian_semiparametric_power_margin_cdf(PosteriorGPTrace* gpt, IntVector
   for(y=max((double) F->min,-x);y<F->max-x+1;++y){
 
     pdf_val = bayesian_semiparametric_net_demand_pdf(gpt,net_demand,y);
-    cdf_val += cdf(F,(int) (y+x))*pdf_val;
+    cdf_val += gen_cdf(F,(int) (y+x))*pdf_val;
   }
 
   cdf_val += 1.0 - bayesian_semiparametric_net_demand_cdf(gpt,net_demand,F->max - x);
@@ -224,7 +224,7 @@ double semiparametric_eeu(GPModel* gp, IntVector* net_demand, DiscreteDistributi
     for(i=0;i<net_demand->size;++i){
       current = (int) net_demand->value[i];
       if(current < gp->u){
-        eeu += current*cdf(F,current-1) - cumulative_expectation(F,current-1);
+        eeu += current*gen_cdf(F,current-1) - cumulative_expectation(F,current-1);
       }
     }
     eeu /= net_demand->size;
@@ -234,7 +234,7 @@ double semiparametric_eeu(GPModel* gp, IntVector* net_demand, DiscreteDistributi
 
       pdf_val = semiparametric_net_demand_pdf(gp,net_demand,y);
 
-      eeu += pdf_val*(y*(cdf(F,y-1)-1) - cumulative_expectation(F,y-1));
+      eeu += pdf_val*(y*(gen_cdf(F,y-1)-1) - cumulative_expectation(F,y-1));
     }
 
     eeu += genpar_expectation - cumulative_expectation(F,F->max)*(1-semiparametric_net_demand_cdf(gp,net_demand,F->max));
@@ -264,7 +264,7 @@ double bayesian_semiparametric_eeu(PosteriorGPTrace* gpt, IntVector* net_demand,
     for(i=0;i<net_demand->size;++i){
       current = (int) net_demand->value[i];
       if(current < gpt->u){
-        eeu += current*cdf(F,current-1) - cumulative_expectation(F,current-1);
+        eeu += current*gen_cdf(F,current-1) - cumulative_expectation(F,current-1);
       }
     }
     eeu /= net_demand->size;
@@ -279,7 +279,7 @@ double bayesian_semiparametric_eeu(PosteriorGPTrace* gpt, IntVector* net_demand,
 
       pdf_val = bayesian_semiparametric_net_demand_pdf(gpt,net_demand,y);
 
-      eeu += pdf_val*(y*(cdf(F,y-1)-1) - cumulative_expectation(F,y-1));
+      eeu += pdf_val*(y*(gen_cdf(F,y-1)-1) - cumulative_expectation(F,y-1));
     }
 
     eeu += genpar_expectation - cumulative_expectation(F,F->max)*bayesian_semiparametric_net_demand_cdf(gpt,net_demand,F->max);

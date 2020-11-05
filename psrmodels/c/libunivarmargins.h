@@ -77,13 +77,13 @@ double cumulative_value(DiscreteDistribution* F, double* array, int x);
  * @brief Returns CDF evaluated at x
  *
  */
-double cdf(DiscreteDistribution* F, int x);
+double gen_cdf(DiscreteDistribution* F, int x);
 
 /**
  * @brief Returns PDF evaluated at x
  *
  */
-double pdf(DiscreteDistribution* F, int x);
+double gen_pdf(DiscreteDistribution* F, int x);
 
 /**
  * @brief Returns cumulative expectation evaluated at x

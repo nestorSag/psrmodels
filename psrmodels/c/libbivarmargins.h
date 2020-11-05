@@ -110,14 +110,14 @@ double sign(double x);
  *
  */
 
-double bivariate_cdf(BivariateDiscreteDistribution* F, int x, int y);
+double bivariate_gen_cdf(BivariateDiscreteDistribution* F, int x, int y);
 
 
 /**
  * @brief Returns the PDF of a bivariate distribution on a lattice in, evaluated (x,y)
  *
  */
-double bivariate_pdf(BivariateDiscreteDistribution* F, int x, int y);
+double bivariate_gen_pdf(BivariateDiscreteDistribution* F, int x, int y);
 
 
 /**
@@ -202,12 +202,12 @@ int axis1_polygon_upper_bound(Polygon* p, int x);
 int axis2_polygon_upper_bound(Polygon* p, int x);
 
 /**
- * @brief Simulates a random variable from a discrete distribution conditioned to be lower than a given bound
+ * @brief Maps a uniform variable in [0,1] to the quantile of a distribution conditioned to be below a threshold
  *
  * @param F distribution object
  * @param upper_bound given upper bound
  */
-int boxed_gen_simulation(DiscreteDistribution* F, int upper_bound);
+int get_bounded_quantile(DiscreteDistribution* F, int upper_bound, double u);
 
 /**
  * @brief Returns veto flow to/from area 1 given power margins and interconnector capacity
@@ -231,13 +231,13 @@ double share_flow(int m1,int m2,int d1,int d2,int c);
 
 
 /**
- * @brief Calculate probability mass of the intersection of 2 given polygons
+ * @brief Calculate probability mass of the intersection of 2 given polygons; such polygons are given by the given values of net demand and demand.
  *
  * @param F distribution object
  * @param plg1 Polygon 1
  * @param plg2 Polygon 2
  */
-double cond_cdf(BivariateDiscreteDistribution* F, Polygon* plg1, Polygon* plg2);
+double cond_bivariate_power_margin_cdf(BivariateDiscreteDistribution* F, Polygon* plg1, Polygon* plg2);
 
 /**
  * @brief get the rightmost X coordinate of the intersection or union of both polygons
@@ -307,10 +307,20 @@ void conditioned_simulation(
   IntMatrix* results,
   SimulationParameters* parameters);
 
-// Returns bivariate empirical CDF values
-void bivar_ecdf(
+// Returns bivariate empirical CDF values from a matrix of observations
+void bivariate_empirical_cdf(
   DoubleVector* ecdf,
   IntMatrix* X);
+
+/**
+ * @brief Returns filled polygon objects
+ *
+ * @param F distribution object
+ * @param obs wrapper that contains observed demand and net demand values for a particular time
+ * @param parameters Set of simulation parameters
+*/
+
+void get_polygons(Polygon* p1, Polygon* p2, ObservedData* obs, SimulationParameters* pars);
 
 
 
@@ -418,7 +428,24 @@ void conditioned_simulation_py_interface(
   int seed,
   int share_policy);
 
-void bivar_ecdf_py_interface(
+/*void bivariate_empirical_cdf_py_interface(
   double* ecdf,
   int* X,
-  long n);
+  int n);*/
+
+
+double cond_bivariate_power_margin_cdf_py_interface(
+  int min_gen1,
+  int min_gen2,
+  int max_gen1,
+  int max_gen2,
+  double* gen1_cdf_array,
+  double* gen2_cdf_array,
+  int v1,
+  int v2,
+  int d1,
+  int d2,
+  int m1,
+  int m2,
+  int c,
+  int share_policy);

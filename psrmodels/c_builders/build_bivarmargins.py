@@ -91,10 +91,21 @@ ffibuilder.cdef("""
 	  int seed,
 	  int share_policy);
 
-	void bivar_ecdf_py_interface(
-	  double* ecdf,
-	  double* X,
-	  int n);
+	double cond_bivariate_power_margin_cdf_py_interface(
+	  int min_gen1,
+	  int min_gen2,
+	  int max_gen1,
+	  int max_gen2,
+	  double* gen1_cdf_array,
+	  double* gen2_cdf_array,
+	  int v1,
+	  int v2,
+	  int d1,
+	  int d2,
+	  int m1,
+	  int m2,
+	  int c,
+	  int share_policy);
 
 	""")
 

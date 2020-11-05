@@ -62,16 +62,16 @@ class BivariateHindcastMargin(object):
       else:
         raise Exception("'metric' has to be either a function or a string")
 
-  @staticmethod
-  def bivar_ecdf(X):
-    n = X.shape[0]
-    ecdf = np.ascontiguousarray(np.empty((n,)),dtype=np.float64)
-    C_CALL.bivar_ecdf_py_interface(
-      ffi.cast("double *",ecdf.ctypes.data),
-      ffi.cast("double *",np.ascontiguousarray(X,dtype=np.float64).ctypes.data),
-      np.int32(n))
+  # @staticmethod
+  # def bivariate_ecdf(X):
+  #   n = X.shape[0]
+  #   ecdf = np.ascontiguousarray(np.empty((n,)),dtype=np.float64)
+  #   C_CALL.bivariate_empirical_cdf_py_interface(
+  #     ffi.cast("double *",ecdf.ctypes.data),
+  #     ffi.cast("double *",np.ascontiguousarray(X,dtype=np.float64).ctypes.data),
+  #     np.int32(n))
 
-    return ecdf
+  #   return ecdf
 
   @staticmethod
   def _triangle_prob(bigen, origin,length):
@@ -949,12 +949,11 @@ class BivariateHindcastMargin(object):
       cdf_list = []
       
     for i in range(n):
-      #print(i)
       v1, v2 = self.net_demand[i,:]
 
       d1, d2 = self.demand[i,:]
 
-      point_cdf = C_CALL.get_cond_cdf_py_interface(
+      point_cdf = C_CALL.cond_bivariate_power_margin_cdf_py_interface(
                       np.int32(gendist1.min),
                       np.int32(gendist2.min),
                       np.int32(gendist1.max),
