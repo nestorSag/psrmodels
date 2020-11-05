@@ -179,7 +179,8 @@ void simulate_mc_power_grid(DoubleMatrix* output, MarkovChainArray* mkv_chains, 
     }
 
     for(k = 0; k < output_length; ++k){
-      set_element(output,k,i,aggregate[k]);
+      set_element(output,i,k,aggregate[k]);
+      //set_element(output,i,k,aggregate[k]);
       //output[i*output_length+k] = aggregate[k];
     }
 
@@ -246,18 +247,21 @@ void calculate_post_itc_veto_margins(DoubleMatrix* power_margin_matrix, double c
 
 void calculate_post_itc_share_margins(DoubleMatrix* power_margin_matrix, DoubleMatrix* demand_matrix, int c){
 
-  double flow;
+  double flow, m1, m2;
   int i, j=0, period_length = demand_matrix->n_rows;
   for(i=0;i<power_margin_matrix->n_rows;++i){
+    m1 = get_element(power_margin_matrix, i, 0);
+    m2 = get_element(power_margin_matrix, i, 1);
+    
     flow = get_share_flow(
-      get_element(power_margin_matrix, i, 0),
-      get_element(power_margin_matrix, i, 1),
-      get_element(power_margin_matrix, j, 0),
-      get_element(power_margin_matrix, j, 1),
+      m1,
+      m2,
+      get_element(demand_matrix, j, 0),
+      get_element(demand_matrix, j, 1),
       c);
 
-    set_element(power_margin_matrix,i,0, get_element(power_margin_matrix,i,0) + flow);
-    set_element(power_margin_matrix,i,1, get_element(power_margin_matrix,i,1) - flow);
+    set_element(power_margin_matrix,i,0, m1 + flow);
+    set_element(power_margin_matrix,i,1, m2 - flow);
     // this is to avoid using integer remainder operators, which is expensive
     j += 1;
     if(j==period_length){
@@ -305,7 +309,6 @@ void calculate_post_itc_share_margins_py_interface(
   double* dem_series,
   int period_length,
   int series_length,
-  int n_areas,
   double c){
 
   DoubleMatrix power_margin_matrix;
@@ -336,8 +339,7 @@ void calculate_pre_itc_margins_py_interface(
   double* gen_series,
   double* netdem_series,
   int period_length,
-  int series_length,
-  int n_areas){
+  int series_length){
 
   DoubleMatrix generation_matrix;
   DoubleMatrix net_demand_matrix;
@@ -386,7 +388,7 @@ void simulate_mc_power_grid_py_interface(
   mkv_chains.size = n_generators;
 
   DoubleMatrix m;
-  get_double_matrix_from_py_objs(&m,output,n_simulations,2);
+  get_double_matrix_from_py_objs(&m,output,n_simulations,n_timesteps+1);
 
   simulate_mc_power_grid(&m, &mkv_chains, &pars);
 

@@ -95,12 +95,12 @@ class UnivariateHindcastMargin(object):
     elif x < self.min:
       return 0.0
     else:
-      return C_CALL.empirical_power_margin_cdf(
+      return C_CALL.empirical_power_margin_cdf_py_interface(
         np.int32(x),
         np.int32(self.n),
         np.int32(self.gen.min),
         np.int32(self.gen.max),
-        ffi.cast("long *",self.nd_vals.ctypes.data),
+        ffi.cast("int *",self.nd_vals.ctypes.data),
         ffi.cast("double *",self.gen.cdf_vals.ctypes.data)
         )
 
@@ -136,11 +136,11 @@ class UnivariateHindcastMargin(object):
     `x` (`numpy.ndarray`): point to evaluate on
 
     """
-    return  C_CALL.empirical_eeu(
+    return  C_CALL.empirical_eeu_py_interface(
               np.int32(self.n),
               np.int32(self.gen.min),
               np.int32(self.gen.max),
-              ffi.cast("long *",self.nd_vals.ctypes.data),
+              ffi.cast("int *",self.nd_vals.ctypes.data),
               ffi.cast("double *",self.gen.cdf_vals.ctypes.data),
               ffi.cast("double *",self.gen.expectation_vals.ctypes.data))
 

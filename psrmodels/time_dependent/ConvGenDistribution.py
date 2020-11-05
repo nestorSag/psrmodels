@@ -104,7 +104,10 @@ class ConvGenDistribution(object):
 
     # set output array
     output_length = n_timesteps+1 #initial state + n_timesteps
-    output = np.ascontiguousarray(np.empty((output_length,n_sim)),dtype=np.float64)
+    output = np.ascontiguousarray(np.empty((n_sim,output_length)),dtype=np.float64)
+
+    #print("output shape: {s}".format(s=output.shape))
+    #print("output before: {o}".format(o=output))
 
     # set initial values array
     initial_values = np.ascontiguousarray(x0_list,dtype=np.float64)
@@ -124,7 +127,9 @@ class ConvGenDistribution(object):
       np.int32(seed),
       np.int32(simulate_streaks))
 
-    return output.reshape((-1,1),order="F")
+    #print("output after: {o}".format(o=output))
+
+    return output.reshape((-1,1))
 
   def _get_stationary_samples(self):
 

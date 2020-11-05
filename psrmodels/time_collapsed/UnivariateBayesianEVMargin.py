@@ -46,7 +46,7 @@ class UnivariateBayesianEVMargin(UnivariateEVMargin):
     `m` (`float`): point to evaluate on
 
     """
-    return C_CALL.bayesian_semiparametric_power_margin_cdf(
+    return C_CALL.bayesian_semiparametric_power_margin_cdf_py_interface(
       np.int32(m),
       np.float64(self.u),
       np.float64(self.p),
@@ -55,7 +55,7 @@ class UnivariateBayesianEVMargin(UnivariateEVMargin):
       ffi.cast("double *",self.posterior_xi.ctypes.data),
       np.int32(self.n),
       np.int32(self.gen.max),
-      ffi.cast("long *",self.nd_vals.ctypes.data),
+      ffi.cast("int *",self.nd_vals.ctypes.data),
       ffi.cast("double *",self.gen.cdf_vals.ctypes.data)
       )
 
@@ -64,7 +64,7 @@ class UnivariateBayesianEVMargin(UnivariateEVMargin):
 
   def epu(self):
 
-    epu = C_CALL.bayesian_semiparametric_eeu(
+    epu = C_CALL.bayesian_semiparametric_eeu_py_interface(
                         np.float64(self.u),
                         np.float64(self.p),
                         np.int32(self.n_posterior),
@@ -72,7 +72,7 @@ class UnivariateBayesianEVMargin(UnivariateEVMargin):
                         ffi.cast("double *",self.posterior_xi.ctypes.data),
                         np.int32(self.n),
                         np.int32(self.gen.max),
-                        ffi.cast("long *",self.nd_vals.ctypes.data),
+                        ffi.cast("int *",self.nd_vals.ctypes.data),
                         ffi.cast("double *",self.gen.cdf_vals.ctypes.data),
                         ffi.cast("double *",self.gen.expectation_vals.ctypes.data))
 

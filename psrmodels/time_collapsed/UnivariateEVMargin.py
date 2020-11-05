@@ -39,10 +39,10 @@ class UnivariateEVMargin(UnivariateHindcastMargin):
 
     self.xi = xi
 
-    self.p = C_CALL.empirical_net_demand_cdf(
+    self.p = C_CALL.empirical_net_demand_cdf_py_interface(
       np.float64(self.u),
       np.int32(self.n),
-      ffi.cast("long *",self.nd_vals.ctypes.data)
+      ffi.cast("int *",self.nd_vals.ctypes.data)
       )
 
   # def _fit(self):
@@ -72,7 +72,7 @@ class UnivariateEVMargin(UnivariateHindcastMargin):
     `m` (`float`): point to evaluate on
 
     """
-    return C_CALL.semiparametric_power_margin_cdf(
+    return C_CALL.semiparametric_power_margin_cdf_py_interface(
       np.int32(m),
       np.float64(self.u),
       np.float64(self.p),
@@ -80,20 +80,20 @@ class UnivariateEVMargin(UnivariateHindcastMargin):
       np.float64(self.xi),
       np.int32(self.n),
       np.int32(self.gen.max),
-      ffi.cast("long *",self.nd_vals.ctypes.data),
+      ffi.cast("int *",self.nd_vals.ctypes.data),
       ffi.cast("double *",self.gen.cdf_vals.ctypes.data)
       )
 
   def epu(self):
 
-    epu = C_CALL.semiparametric_eeu(
+    epu = C_CALL.semiparametric_eeu_py_interface(
                         np.float64(self.u),
                         np.float64(self.p),
                         np.float64(self.sigma),
                         np.float64(self.xi),
                         np.int32(self.n),
                         np.int32(self.gen.max),
-                        ffi.cast("long *",self.nd_vals.ctypes.data),
+                        ffi.cast("int *",self.nd_vals.ctypes.data),
                         ffi.cast("double *",self.gen.cdf_vals.ctypes.data),
                         ffi.cast("double *",self.gen.expectation_vals.ctypes.data))
 

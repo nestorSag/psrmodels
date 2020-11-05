@@ -94,8 +94,7 @@ class BivariateHindcastMargin(object):
         ffi.cast("double *", gensim.ctypes.data),
         ffi.cast("double *",self.net_demand.ctypes.data),
         np.int64(self.n),
-        np.int64(gensim.shape[0]),
-        np.int64(gensim.shape[1]))
+        np.int64(gensim.shape[0]))
 
     return gensim
     #### get simulated outages from n_sim*self.n hours
@@ -127,7 +126,6 @@ class BivariateHindcastMargin(object):
       C_CALL.calculate_post_itc_veto_margins_py_interface(
           ffi.cast("double *", pre_itc.ctypes.data),
           np.int64(pre_itc.shape[0]),
-          np.int64(pre_itc.shape[1]),
           np.float64(c))
 
     elif policy == "share":
@@ -137,7 +135,6 @@ class BivariateHindcastMargin(object):
           ffi.cast("double *", self.demand.ctypes.data),
           np.int64(self.n),
           np.int64(pre_itc.shape[0]),
-          np.int64(pre_itc.shape[1]),
           np.float64(c))
 
     else:
