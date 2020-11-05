@@ -79,6 +79,7 @@ class UnivariateEVMargin(UnivariateHindcastMargin):
       np.float64(self.sigma),
       np.float64(self.xi),
       np.int32(self.n),
+      np.int32(self.gen.min),
       np.int32(self.gen.max),
       ffi.cast("int *",self.nd_vals.ctypes.data),
       ffi.cast("double *",self.gen.cdf_vals.ctypes.data)
@@ -92,6 +93,7 @@ class UnivariateEVMargin(UnivariateHindcastMargin):
                         np.float64(self.sigma),
                         np.float64(self.xi),
                         np.int32(self.n),
+                        np.int32(self.gen.min),
                         np.int32(self.gen.max),
                         ffi.cast("int *",self.nd_vals.ctypes.data),
                         ffi.cast("double *",self.gen.cdf_vals.ctypes.data),

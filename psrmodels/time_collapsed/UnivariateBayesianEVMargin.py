@@ -13,7 +13,8 @@ from .UnivariateEVMargin import *
 from _c_ext_univarmargins import ffi, lib as C_CALL
 
 class UnivariateBayesianEVMargin(UnivariateEVMargin):
-  """Univariate time-collapsed margin model where net demand tails are extrapolated using a Generalized Pareto and it is fitted through Bayesian estimation
+  """Univariate time-collapsed margin model where net demand tails are extrapolated using a Generalized Pareto and it is fitted through Bayesian estimation.
+     The priors are a standard normal for the shape parameter and an improper uniform prior on the positive real line for the scale parameter
 
     **Parameters**:
     
@@ -35,7 +36,7 @@ class UnivariateBayesianEVMargin(UnivariateEVMargin):
     nd_data = np.array(nd_data)
     exceedances = nd_data[nd_data > u] - u
     print("getting posterior samples...")
-    self._get_posterior_samples(exceedances,n_posterior_samples,plot_trace,seed)
+    self._get_posterior_samples(exceedances,n_posterior_samples,seed)
     
 
   def cdf(self,m):
@@ -54,6 +55,7 @@ class UnivariateBayesianEVMargin(UnivariateEVMargin):
       ffi.cast("double *",self.posterior_sigma.ctypes.data),
       ffi.cast("double *",self.posterior_xi.ctypes.data),
       np.int32(self.n),
+      np.int32(self.gen.min),
       np.int32(self.gen.max),
       ffi.cast("int *",self.nd_vals.ctypes.data),
       ffi.cast("double *",self.gen.cdf_vals.ctypes.data)
@@ -71,6 +73,7 @@ class UnivariateBayesianEVMargin(UnivariateEVMargin):
                         ffi.cast("double *",self.posterior_sigma.ctypes.data),
                         ffi.cast("double *",self.posterior_xi.ctypes.data),
                         np.int32(self.n),
+                        np.int32(self.gen.min),
                         np.int32(self.gen.max),
                         ffi.cast("int *",self.nd_vals.ctypes.data),
                         ffi.cast("double *",self.gen.cdf_vals.ctypes.data),

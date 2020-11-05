@@ -86,9 +86,9 @@ double expdist_cdf(GPModel* gp, double x){
 
 double tail_model_cdf(GPModel* gp, double x){
   if(gp->xi != 0){
-    return gpdist_cdf(gp, (int) x);
+    return gpdist_cdf(gp, x);
   }else{
-    return expdist_cdf(gp, (int) x);
+    return expdist_cdf(gp, x);
   }
 }
 
@@ -213,7 +213,7 @@ double bayesian_semiparametric_power_margin_cdf(PosteriorGPTrace* gpt, IntVector
 
 double semiparametric_eeu(GPModel* gp, IntVector* net_demand, DiscreteDistribution* F){
 
-  double eeu = 0, pdf_val, genpar_expectation;
+  double eeu = 0, semiparametric_eeu = 0, pdf_val, remainder;
 
   int i, y, current;
 
@@ -225,19 +225,23 @@ double semiparametric_eeu(GPModel* gp, IntVector* net_demand, DiscreteDistributi
       current = (int) net_demand->value[i];
       if(current < gp->u){
         eeu += current*gen_cdf(F,current-1) - cumulative_expectation(F,current-1);
+        //printf("current: %d, eeu: %f\n",current,eeu);
       }
     }
     eeu /= net_demand->size;
 
-    genpar_expectation = (1-gp->p)*(gp->u + gp->sigma/(1-gp->xi));
+    //genpar_expectation = (1-gp->p)*(gp->u + gp->sigma/(1-gp->xi));
+
     for(y=(int) ceil(gp->u);y<F->max+1;++y){
 
       pdf_val = semiparametric_net_demand_pdf(gp,net_demand,y);
 
-      eeu += pdf_val*(y*(gen_cdf(F,y-1)-1) - cumulative_expectation(F,y-1));
+      semiparametric_eeu += pdf_val*(y*gen_cdf(F,y-1) - cumulative_expectation(F,y-1));
     }
 
-    eeu += genpar_expectation - cumulative_expectation(F,F->max)*(1-semiparametric_net_demand_cdf(gp,net_demand,F->max));
+    remainder = (1 - semiparametric_net_demand_cdf(gp,net_demand,F->max))*(F->max + gp->sigma/(1-gp->xi));
+
+    eeu += semiparametric_eeu + remainder - cumulative_expectation(F,F->max)*(1-semiparametric_net_demand_cdf(gp,net_demand,F->max));
 
   }
 
@@ -246,11 +250,15 @@ double semiparametric_eeu(GPModel* gp, IntVector* net_demand, DiscreteDistributi
 
 double bayesian_semiparametric_eeu(PosteriorGPTrace* gpt, IntVector* net_demand, DiscreteDistribution* F){
 
-  double eeu = 0, genpar_expectation, pdf_val;
+  double eeu = 0, semiparametric_eeu = 0, remainder =0, pdf_val;
 
   int i, y, current;
 
   int infinite_expectation = 0;
+
+  GPModel current_gp;
+  current_gp.u = gpt->u;
+  current_gp.p = gpt->p;
 
   for(y=0;y<gpt->size;++y){
     if(gpt->xi[y]>=1){
@@ -265,24 +273,28 @@ double bayesian_semiparametric_eeu(PosteriorGPTrace* gpt, IntVector* net_demand,
       current = (int) net_demand->value[i];
       if(current < gpt->u){
         eeu += current*gen_cdf(F,current-1) - cumulative_expectation(F,current-1);
+        //printf("current: %d, eeu: %f\n",current,eeu);
       }
     }
     eeu /= net_demand->size;
-
-    genpar_expectation = 0;
-    for(i=0;i<gpt->size;++i){
-      genpar_expectation += gpt->u + gpt->sigma[i]/(1-gpt->xi[i]);
-    }
-    genpar_expectation = (1-gpt->p)*genpar_expectation/gpt->size;
 
     for(y=(int) ceil(gpt->u);y<F->max+1;++y){
 
       pdf_val = bayesian_semiparametric_net_demand_pdf(gpt,net_demand,y);
 
-      eeu += pdf_val*(y*(gen_cdf(F,y-1)-1) - cumulative_expectation(F,y-1));
+      semiparametric_eeu += pdf_val*(y*gen_cdf(F,y-1) - cumulative_expectation(F,y-1));
     }
 
-    eeu += genpar_expectation - cumulative_expectation(F,F->max)*bayesian_semiparametric_net_demand_cdf(gpt,net_demand,F->max);
+    for(i=0;i<gpt->size;++i){
+      current_gp.xi = gpt->xi[i];
+      current_gp.sigma = gpt->sigma[i]; 
+      remainder += (1.0 - semiparametric_net_demand_cdf(&current_gp,net_demand,F->max))*(F->max + current_gp.sigma/(1.0-current_gp.xi));
+      //genpar_expectation += gpt->u + gpt->sigma[i]/(1-gpt->xi[i]);
+    }
+    //genpar_expectation = (1-gpt->p)*genpar_expectation/gpt->size;
+    remainder /= gpt->size;
+
+    eeu += semiparametric_eeu + remainder - cumulative_expectation(F,F->max)*(1-bayesian_semiparametric_net_demand_cdf(gpt,net_demand,F->max));
 
   }
 
@@ -471,7 +483,7 @@ double bayesian_semiparametric_eeu_py_interface(
   DiscreteDistribution F;
   IntVector net_demand;
 
-  get_discrete_dist_from_py_objs(&F, gen_cdf, gen_cdf, gen_min, gen_max);
+  get_discrete_dist_from_py_objs(&F, gen_cdf, gen_expectation, gen_min, gen_max);
   get_int_vector_from_py_objs(&net_demand,nd_vals,nd_length);
   get_gpt_from_py_objs(&gpt, xi, sigma, u, p, n_posterior);
 
