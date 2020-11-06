@@ -132,7 +132,10 @@ class ConvGenDistribution(object):
 
     # set output array
     output_length = n_timesteps+1 #initial state + n_timesteps
-    output = np.ascontiguousarray(np.empty((output_length,n_sim)),dtype=np.float64)
+    output = np.ascontiguousarray(np.empty((n_sim,output_length)),dtype=np.float64)
+
+    #print(&#34;output shape: {s}&#34;.format(s=output.shape))
+    #print(&#34;output before: {o}&#34;.format(o=output))
 
     # set initial values array
     initial_values = np.ascontiguousarray(x0_list,dtype=np.float64)
@@ -140,7 +143,7 @@ class ConvGenDistribution(object):
     # call C program
 
 
-    C_CALL.simulate_mc_power_grid(
+    C_CALL.simulate_mc_power_grid_py_interface(
       ffi.cast(&#34;double *&#34;,output.ctypes.data),
       ffi.cast(&#34;double *&#34;,self.transition_prob_array.ctypes.data),
       ffi.cast(&#34;double *&#34;,self.states_array.ctypes.data),
@@ -151,6 +154,8 @@ class ConvGenDistribution(object):
       np.int64(self.n_states),
       np.int32(seed),
       np.int32(simulate_streaks))
+
+    #print(&#34;output after: {o}&#34;.format(o=output))
 
     return output.reshape((-1,1))
 
@@ -306,7 +311,10 @@ class ConvGenDistribution(object):
 
     # set output array
     output_length = n_timesteps+1 #initial state + n_timesteps
-    output = np.ascontiguousarray(np.empty((output_length,n_sim)),dtype=np.float64)
+    output = np.ascontiguousarray(np.empty((n_sim,output_length)),dtype=np.float64)
+
+    #print(&#34;output shape: {s}&#34;.format(s=output.shape))
+    #print(&#34;output before: {o}&#34;.format(o=output))
 
     # set initial values array
     initial_values = np.ascontiguousarray(x0_list,dtype=np.float64)
@@ -314,7 +322,7 @@ class ConvGenDistribution(object):
     # call C program
 
 
-    C_CALL.simulate_mc_power_grid(
+    C_CALL.simulate_mc_power_grid_py_interface(
       ffi.cast(&#34;double *&#34;,output.ctypes.data),
       ffi.cast(&#34;double *&#34;,self.transition_prob_array.ctypes.data),
       ffi.cast(&#34;double *&#34;,self.states_array.ctypes.data),
@@ -325,6 +333,8 @@ class ConvGenDistribution(object):
       np.int64(self.n_states),
       np.int32(seed),
       np.int32(simulate_streaks))
+
+    #print(&#34;output after: {o}&#34;.format(o=output))
 
     return output.reshape((-1,1))
 
@@ -420,7 +430,10 @@ class ConvGenDistribution(object):
 
   # set output array
   output_length = n_timesteps+1 #initial state + n_timesteps
-  output = np.ascontiguousarray(np.empty((output_length,n_sim)),dtype=np.float64)
+  output = np.ascontiguousarray(np.empty((n_sim,output_length)),dtype=np.float64)
+
+  #print(&#34;output shape: {s}&#34;.format(s=output.shape))
+  #print(&#34;output before: {o}&#34;.format(o=output))
 
   # set initial values array
   initial_values = np.ascontiguousarray(x0_list,dtype=np.float64)
@@ -428,7 +441,7 @@ class ConvGenDistribution(object):
   # call C program
 
 
-  C_CALL.simulate_mc_power_grid(
+  C_CALL.simulate_mc_power_grid_py_interface(
     ffi.cast(&#34;double *&#34;,output.ctypes.data),
     ffi.cast(&#34;double *&#34;,self.transition_prob_array.ctypes.data),
     ffi.cast(&#34;double *&#34;,self.states_array.ctypes.data),
@@ -439,6 +452,8 @@ class ConvGenDistribution(object):
     np.int64(self.n_states),
     np.int32(seed),
     np.int32(simulate_streaks))
+
+  #print(&#34;output after: {o}&#34;.format(o=output))
 
   return output.reshape((-1,1))</code></pre>
 </details>

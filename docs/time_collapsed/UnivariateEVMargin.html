@@ -67,10 +67,10 @@ class UnivariateEVMargin(UnivariateHindcastMargin):
 
     self.xi = xi
 
-    self.p = C_CALL.h_nd_cdf(
+    self.p = C_CALL.empirical_net_demand_cdf_py_interface(
       np.float64(self.u),
-      np.int64(self.n),
-      ffi.cast(&#34;long *&#34;,self.nd_vals.ctypes.data)
+      np.int32(self.n),
+      ffi.cast(&#34;int *&#34;,self.nd_vals.ctypes.data)
       )
 
   # def _fit(self):
@@ -85,7 +85,7 @@ class UnivariateEVMargin(UnivariateHindcastMargin):
   #   pars = np.ascontiguousarray([np.log(np.sd(exceedances)),0],dtype=np.float64) #array of initial parameters
 
   #   return C_CALL.fit_ev_model(
-  #     np.int64(self.n),
+  #     np.int32(self.n),
   #     ffi.cast(&#34;double *&#34;,pars.ctypes.data),
   #     ffi.cast(&#34;double *&#34;,exceedances.ctypes.data)
   #     )
@@ -100,28 +100,30 @@ class UnivariateEVMargin(UnivariateHindcastMargin):
     `m` (`float`): point to evaluate on
 
     &#34;&#34;&#34;
-    return C_CALL.ev_margin_cdf(
-      np.int64(m),
+    return C_CALL.semiparametric_power_margin_cdf_py_interface(
+      np.int32(m),
       np.float64(self.u),
       np.float64(self.p),
       np.float64(self.sigma),
       np.float64(self.xi),
-      np.int64(self.n),
-      np.int64(self.gen.max),
-      ffi.cast(&#34;long *&#34;,self.nd_vals.ctypes.data),
+      np.int32(self.n),
+      np.int32(self.gen.min),
+      np.int32(self.gen.max),
+      ffi.cast(&#34;int *&#34;,self.nd_vals.ctypes.data),
       ffi.cast(&#34;double *&#34;,self.gen.cdf_vals.ctypes.data)
       )
 
   def epu(self):
 
-    epu = C_CALL.ev_epu(
+    epu = C_CALL.semiparametric_eeu_py_interface(
                         np.float64(self.u),
                         np.float64(self.p),
                         np.float64(self.sigma),
                         np.float64(self.xi),
-                        np.int64(self.n),
-                        np.int64(self.gen.max),
-                        ffi.cast(&#34;long *&#34;,self.nd_vals.ctypes.data),
+                        np.int32(self.n),
+                        np.int32(self.gen.min),
+                        np.int32(self.gen.max),
+                        ffi.cast(&#34;int *&#34;,self.nd_vals.ctypes.data),
                         ffi.cast(&#34;double *&#34;,self.gen.cdf_vals.ctypes.data),
                         ffi.cast(&#34;double *&#34;,self.gen.expectation_vals.ctypes.data))
 
@@ -210,10 +212,10 @@ class UnivariateEVMargin(UnivariateHindcastMargin):
 
     self.xi = xi
 
-    self.p = C_CALL.h_nd_cdf(
+    self.p = C_CALL.empirical_net_demand_cdf_py_interface(
       np.float64(self.u),
-      np.int64(self.n),
-      ffi.cast(&#34;long *&#34;,self.nd_vals.ctypes.data)
+      np.int32(self.n),
+      ffi.cast(&#34;int *&#34;,self.nd_vals.ctypes.data)
       )
 
   # def _fit(self):
@@ -228,7 +230,7 @@ class UnivariateEVMargin(UnivariateHindcastMargin):
   #   pars = np.ascontiguousarray([np.log(np.sd(exceedances)),0],dtype=np.float64) #array of initial parameters
 
   #   return C_CALL.fit_ev_model(
-  #     np.int64(self.n),
+  #     np.int32(self.n),
   #     ffi.cast(&#34;double *&#34;,pars.ctypes.data),
   #     ffi.cast(&#34;double *&#34;,exceedances.ctypes.data)
   #     )
@@ -243,28 +245,30 @@ class UnivariateEVMargin(UnivariateHindcastMargin):
     `m` (`float`): point to evaluate on
 
     &#34;&#34;&#34;
-    return C_CALL.ev_margin_cdf(
-      np.int64(m),
+    return C_CALL.semiparametric_power_margin_cdf_py_interface(
+      np.int32(m),
       np.float64(self.u),
       np.float64(self.p),
       np.float64(self.sigma),
       np.float64(self.xi),
-      np.int64(self.n),
-      np.int64(self.gen.max),
-      ffi.cast(&#34;long *&#34;,self.nd_vals.ctypes.data),
+      np.int32(self.n),
+      np.int32(self.gen.min),
+      np.int32(self.gen.max),
+      ffi.cast(&#34;int *&#34;,self.nd_vals.ctypes.data),
       ffi.cast(&#34;double *&#34;,self.gen.cdf_vals.ctypes.data)
       )
 
   def epu(self):
 
-    epu = C_CALL.ev_epu(
+    epu = C_CALL.semiparametric_eeu_py_interface(
                         np.float64(self.u),
                         np.float64(self.p),
                         np.float64(self.sigma),
                         np.float64(self.xi),
-                        np.int64(self.n),
-                        np.int64(self.gen.max),
-                        ffi.cast(&#34;long *&#34;,self.nd_vals.ctypes.data),
+                        np.int32(self.n),
+                        np.int32(self.gen.min),
+                        np.int32(self.gen.max),
+                        ffi.cast(&#34;int *&#34;,self.nd_vals.ctypes.data),
                         ffi.cast(&#34;double *&#34;,self.gen.cdf_vals.ctypes.data),
                         ffi.cast(&#34;double *&#34;,self.gen.expectation_vals.ctypes.data))
 
@@ -322,15 +326,16 @@ class UnivariateEVMargin(UnivariateHindcastMargin):
   `m` (`float`): point to evaluate on
 
   &#34;&#34;&#34;
-  return C_CALL.ev_margin_cdf(
-    np.int64(m),
+  return C_CALL.semiparametric_power_margin_cdf_py_interface(
+    np.int32(m),
     np.float64(self.u),
     np.float64(self.p),
     np.float64(self.sigma),
     np.float64(self.xi),
-    np.int64(self.n),
-    np.int64(self.gen.max),
-    ffi.cast(&#34;long *&#34;,self.nd_vals.ctypes.data),
+    np.int32(self.n),
+    np.int32(self.gen.min),
+    np.int32(self.gen.max),
+    ffi.cast(&#34;int *&#34;,self.nd_vals.ctypes.data),
     ffi.cast(&#34;double *&#34;,self.gen.cdf_vals.ctypes.data)
     )</code></pre>
 </details>
@@ -345,6 +350,8 @@ class UnivariateEVMargin(UnivariateHindcastMargin):
 <li><code><a title="psrmodels.time_collapsed.UnivariateHindcastMargin.UnivariateHindcastMargin.lole" href="UnivariateHindcastMargin.html#psrmodels.time_collapsed.UnivariateHindcastMargin.UnivariateHindcastMargin.lole">lole</a></code></li>
 <li><code><a title="psrmodels.time_collapsed.UnivariateHindcastMargin.UnivariateHindcastMargin.lolp" href="UnivariateHindcastMargin.html#psrmodels.time_collapsed.UnivariateHindcastMargin.UnivariateHindcastMargin.lolp">lolp</a></code></li>
 <li><code><a title="psrmodels.time_collapsed.UnivariateHindcastMargin.UnivariateHindcastMargin.pdf" href="UnivariateHindcastMargin.html#psrmodels.time_collapsed.UnivariateHindcastMargin.UnivariateHindcastMargin.pdf">pdf</a></code></li>
+<li><code><a title="psrmodels.time_collapsed.UnivariateHindcastMargin.UnivariateHindcastMargin.quantile" href="UnivariateHindcastMargin.html#psrmodels.time_collapsed.UnivariateHindcastMargin.UnivariateHindcastMargin.quantile">quantile</a></code></li>
+<li><code><a title="psrmodels.time_collapsed.UnivariateHindcastMargin.UnivariateHindcastMargin.renewables_efc" href="UnivariateHindcastMargin.html#psrmodels.time_collapsed.UnivariateHindcastMargin.UnivariateHindcastMargin.renewables_efc">renewables_efc</a></code></li>
 <li><code><a title="psrmodels.time_collapsed.UnivariateHindcastMargin.UnivariateHindcastMargin.simulate" href="UnivariateHindcastMargin.html#psrmodels.time_collapsed.UnivariateHindcastMargin.UnivariateHindcastMargin.simulate">simulate</a></code></li>
 </ul>
 </li>

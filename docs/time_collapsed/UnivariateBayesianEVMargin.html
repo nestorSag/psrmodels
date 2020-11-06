@@ -41,7 +41,8 @@ from .UnivariateEVMargin import *
 from _c_ext_univarmargins import ffi, lib as C_CALL
 
 class UnivariateBayesianEVMargin(UnivariateEVMargin):
-  &#34;&#34;&#34;Univariate time-collapsed margin model where net demand tails are extrapolated using a Generalized Pareto and it is fitted through Bayesian estimation
+  &#34;&#34;&#34;Univariate time-collapsed margin model where net demand tails are extrapolated using a Generalized Pareto and it is fitted through Bayesian estimation.
+     The priors are a standard normal for the shape parameter and an improper uniform prior on the positive real line for the scale parameter
 
     **Parameters**:
     
@@ -63,7 +64,7 @@ class UnivariateBayesianEVMargin(UnivariateEVMargin):
     nd_data = np.array(nd_data)
     exceedances = nd_data[nd_data &gt; u] - u
     print(&#34;getting posterior samples...&#34;)
-    self._get_posterior_samples(exceedances,n_posterior_samples,plot_trace,seed)
+    self._get_posterior_samples(exceedances,n_posterior_samples,seed)
     
 
   def cdf(self,m):
@@ -74,16 +75,17 @@ class UnivariateBayesianEVMargin(UnivariateEVMargin):
     `m` (`float`): point to evaluate on
 
     &#34;&#34;&#34;
-    return C_CALL.bev_margin_cdf(
-      np.int64(m),
+    return C_CALL.bayesian_semiparametric_power_margin_cdf_py_interface(
+      np.int32(m),
       np.float64(self.u),
       np.float64(self.p),
-      np.int64(self.n_posterior),
+      np.int32(self.n_posterior),
       ffi.cast(&#34;double *&#34;,self.posterior_sigma.ctypes.data),
       ffi.cast(&#34;double *&#34;,self.posterior_xi.ctypes.data),
-      np.int64(self.n),
-      np.int64(self.gen.max),
-      ffi.cast(&#34;long *&#34;,self.nd_vals.ctypes.data),
+      np.int32(self.n),
+      np.int32(self.gen.min),
+      np.int32(self.gen.max),
+      ffi.cast(&#34;int *&#34;,self.nd_vals.ctypes.data),
       ffi.cast(&#34;double *&#34;,self.gen.cdf_vals.ctypes.data)
       )
 
@@ -92,15 +94,16 @@ class UnivariateBayesianEVMargin(UnivariateEVMargin):
 
   def epu(self):
 
-    epu = C_CALL.bev_epu(
+    epu = C_CALL.bayesian_semiparametric_eeu_py_interface(
                         np.float64(self.u),
                         np.float64(self.p),
-                        np.int64(self.n_posterior),
+                        np.int32(self.n_posterior),
                         ffi.cast(&#34;double *&#34;,self.posterior_sigma.ctypes.data),
                         ffi.cast(&#34;double *&#34;,self.posterior_xi.ctypes.data),
-                        np.int64(self.n),
-                        np.int64(self.gen.max),
-                        ffi.cast(&#34;long *&#34;,self.nd_vals.ctypes.data),
+                        np.int32(self.n),
+                        np.int32(self.gen.min),
+                        np.int32(self.gen.max),
+                        ffi.cast(&#34;int *&#34;,self.nd_vals.ctypes.data),
                         ffi.cast(&#34;double *&#34;,self.gen.cdf_vals.ctypes.data),
                         ffi.cast(&#34;double *&#34;,self.gen.expectation_vals.ctypes.data))
 
@@ -185,7 +188,8 @@ class UnivariateBayesianEVMargin(UnivariateEVMargin):
 <span>(</span><span>gen, nd_data, u, n_posterior_samples=2500, plot_trace=False, seed=1)</span>
 </code></dt>
 <dd>
-<div class="desc"><p>Univariate time-collapsed margin model where net demand tails are extrapolated using a Generalized Pareto and it is fitted through Bayesian estimation</p>
+<div class="desc"><p>Univariate time-collapsed margin model where net demand tails are extrapolated using a Generalized Pareto and it is fitted through Bayesian estimation.
+The priors are a standard normal for the shape parameter and an improper uniform prior on the positive real line for the scale parameter</p>
 <p><strong>Parameters</strong>:</p>
 <p><code>gen</code> (<code>ConvGenDistribution</code>): available conventional generation object</p>
 <p><code>nd_data</code> (<code>numpy.npdarray</code>): vector of net demand values</p>
@@ -197,7 +201,8 @@ class UnivariateBayesianEVMargin(UnivariateEVMargin):
 <span>Expand source code</span>
 </summary>
 <pre><code class="python">class UnivariateBayesianEVMargin(UnivariateEVMargin):
-  &#34;&#34;&#34;Univariate time-collapsed margin model where net demand tails are extrapolated using a Generalized Pareto and it is fitted through Bayesian estimation
+  &#34;&#34;&#34;Univariate time-collapsed margin model where net demand tails are extrapolated using a Generalized Pareto and it is fitted through Bayesian estimation.
+     The priors are a standard normal for the shape parameter and an improper uniform prior on the positive real line for the scale parameter
 
     **Parameters**:
     
@@ -219,7 +224,7 @@ class UnivariateBayesianEVMargin(UnivariateEVMargin):
     nd_data = np.array(nd_data)
     exceedances = nd_data[nd_data &gt; u] - u
     print(&#34;getting posterior samples...&#34;)
-    self._get_posterior_samples(exceedances,n_posterior_samples,plot_trace,seed)
+    self._get_posterior_samples(exceedances,n_posterior_samples,seed)
     
 
   def cdf(self,m):
@@ -230,16 +235,17 @@ class UnivariateBayesianEVMargin(UnivariateEVMargin):
     `m` (`float`): point to evaluate on
 
     &#34;&#34;&#34;
-    return C_CALL.bev_margin_cdf(
-      np.int64(m),
+    return C_CALL.bayesian_semiparametric_power_margin_cdf_py_interface(
+      np.int32(m),
       np.float64(self.u),
       np.float64(self.p),
-      np.int64(self.n_posterior),
+      np.int32(self.n_posterior),
       ffi.cast(&#34;double *&#34;,self.posterior_sigma.ctypes.data),
       ffi.cast(&#34;double *&#34;,self.posterior_xi.ctypes.data),
-      np.int64(self.n),
-      np.int64(self.gen.max),
-      ffi.cast(&#34;long *&#34;,self.nd_vals.ctypes.data),
+      np.int32(self.n),
+      np.int32(self.gen.min),
+      np.int32(self.gen.max),
+      ffi.cast(&#34;int *&#34;,self.nd_vals.ctypes.data),
       ffi.cast(&#34;double *&#34;,self.gen.cdf_vals.ctypes.data)
       )
 
@@ -248,15 +254,16 @@ class UnivariateBayesianEVMargin(UnivariateEVMargin):
 
   def epu(self):
 
-    epu = C_CALL.bev_epu(
+    epu = C_CALL.bayesian_semiparametric_eeu_py_interface(
                         np.float64(self.u),
                         np.float64(self.p),
-                        np.int64(self.n_posterior),
+                        np.int32(self.n_posterior),
                         ffi.cast(&#34;double *&#34;,self.posterior_sigma.ctypes.data),
                         ffi.cast(&#34;double *&#34;,self.posterior_xi.ctypes.data),
-                        np.int64(self.n),
-                        np.int64(self.gen.max),
-                        ffi.cast(&#34;long *&#34;,self.nd_vals.ctypes.data),
+                        np.int32(self.n),
+                        np.int32(self.gen.min),
+                        np.int32(self.gen.max),
+                        ffi.cast(&#34;int *&#34;,self.nd_vals.ctypes.data),
                         ffi.cast(&#34;double *&#34;,self.gen.cdf_vals.ctypes.data),
                         ffi.cast(&#34;double *&#34;,self.gen.expectation_vals.ctypes.data))
 
@@ -341,6 +348,8 @@ class UnivariateBayesianEVMargin(UnivariateEVMargin):
 <li><code><a title="psrmodels.time_collapsed.UnivariateEVMargin.UnivariateEVMargin.lole" href="UnivariateHindcastMargin.html#psrmodels.time_collapsed.UnivariateHindcastMargin.UnivariateHindcastMargin.lole">lole</a></code></li>
 <li><code><a title="psrmodels.time_collapsed.UnivariateEVMargin.UnivariateEVMargin.lolp" href="UnivariateHindcastMargin.html#psrmodels.time_collapsed.UnivariateHindcastMargin.UnivariateHindcastMargin.lolp">lolp</a></code></li>
 <li><code><a title="psrmodels.time_collapsed.UnivariateEVMargin.UnivariateEVMargin.pdf" href="UnivariateHindcastMargin.html#psrmodels.time_collapsed.UnivariateHindcastMargin.UnivariateHindcastMargin.pdf">pdf</a></code></li>
+<li><code><a title="psrmodels.time_collapsed.UnivariateEVMargin.UnivariateEVMargin.quantile" href="UnivariateHindcastMargin.html#psrmodels.time_collapsed.UnivariateHindcastMargin.UnivariateHindcastMargin.quantile">quantile</a></code></li>
+<li><code><a title="psrmodels.time_collapsed.UnivariateEVMargin.UnivariateEVMargin.renewables_efc" href="UnivariateHindcastMargin.html#psrmodels.time_collapsed.UnivariateHindcastMargin.UnivariateHindcastMargin.renewables_efc">renewables_efc</a></code></li>
 <li><code><a title="psrmodels.time_collapsed.UnivariateEVMargin.UnivariateEVMargin.simulate" href="UnivariateHindcastMargin.html#psrmodels.time_collapsed.UnivariateHindcastMargin.UnivariateHindcastMargin.simulate">simulate</a></code></li>
 </ul>
 </li>

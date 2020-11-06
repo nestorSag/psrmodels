@@ -32,6 +32,10 @@ from _c_ext_univarmargins import ffi, lib as C_CALL
 
 from .ConvGenDistribution import *
 
+import warnings
+
+from scipy.optimize import bisect
+
 class UnivariateHindcastMargin(object):
   &#34;&#34;&#34;Univariate time-collapsed hindcast model
 
@@ -41,19 +45,71 @@ class UnivariateHindcastMargin(object):
 
     `nd_data` (`numpy.npdarray`): vector of net demand values
 
-    &#34;&#34;&#34;
+  &#34;&#34;&#34;
   def __init__(self,gen,nd_data):
 
     if not isinstance(gen,ConvGenDistribution):
       raise Exception(&#34;gen is not an instance of ConvGenDistribution&#34;)
       
     self.gen = gen
-    self.nd_vals = np.ascontiguousarray(nd_data).clip(min=0).astype(np.int64)
+    self.nd_vals = np.ascontiguousarray(nd_data).clip(min=0).astype(np.int32)
     self.n = len(self.nd_vals)
 
     self.min = -np.max(self.nd_vals)
     self.max = self.gen.max - np.min(self.nd_vals)
-        
+
+  def renewables_efc(self,demand,renewables,metric=&#34;lole&#34;,tol=0.1):
+    &#34;&#34;&#34;calculate efc of wind fleer
+
+    **Parameters**:
+    
+    `demand` (`numpy.ndarray`): array of demand observations
+
+    `renewables` (`numpy.ndarray`): vector of renewable generation observations
+
+    `metric` (`str` or function): baseline risk metric to perform the calculations; if `str`, the instance&#39;s method with matching name will be used; of a function, it needs to take a `UnivariateHindcastMargin` object as a parameter
+
+    `tol` (`float`): absolute error tolerance with respect to true baseline risk metric for bisection function
+    &#34;&#34;&#34;
+
+    if np.any(renewables &lt; 0):
+      raise Exception(&#34;renewable generation observations contain negative values.&#34;)
+
+    if self.gen.fc != 0:
+      warnings.warn(&#34;available generation&#39;s firm capacity is nonzero.&#34;)
+
+    def get_risk_function(metric):
+
+      if isinstance(metric,str):
+        return lambda x: getattr(x,metric)()
+      elif callable(metric):
+        return metric
+
+    with_wind_obj = UnivariateHindcastMargin(self.gen,demand - renewables)
+    with_wind_risk = get_risk_function(metric)(with_wind_obj)
+
+    def bisection_target(x):
+      self.gen += x
+      with_fc_obj = UnivariateHindcastMargin(self.gen,demand)
+      with_fc_risk = get_risk_function(metric)(with_fc_obj)
+      self.gen += (-x)
+      #print(&#34;fc: {x}, with_fc_risk:{wfcr}, with_wind_risk: {wwr}&#34;.format(x=x,wfcr=with_fc_risk,wwr=with_wind_risk))
+      return with_fc_risk - with_wind_risk
+
+    delta = 300 
+    leftmost = 0
+    rightmost = 0
+    while bisection_target(rightmost) &gt; 0:
+      rightmost += delta
+
+    #print(&#34;leftmost: {l}, rightmost: {r}&#34;.format(l=leftmost,r=rightmost))
+    efc, res = bisect(f=bisection_target,a=leftmost,b=rightmost,full_output=True,xtol=tol/2,rtol=tol/(2*with_wind_risk))
+    #print(&#34;EFC: {efc}&#34;.format(efc=efc))
+    if not res.converged:
+      print(&#34;Warning: EFC estimator did not converge.&#34;)
+    #print(&#34;efc:{efc}&#34;.format(efc=efc))
+    return int(efc)
+ 
   def cdf(self,x):
     &#34;&#34;&#34;calculate margin CDF values
 
@@ -67,12 +123,12 @@ class UnivariateHindcastMargin(object):
     elif x &lt; self.min:
       return 0.0
     else:
-      return C_CALL.h_margin_cdf(
-        np.int64(x),
-        np.int64(self.n),
-        np.int64(self.gen.min),
-        np.int64(self.gen.max),
-        ffi.cast(&#34;long *&#34;,self.nd_vals.ctypes.data),
+      return C_CALL.empirical_power_margin_cdf_py_interface(
+        np.int32(x),
+        np.int32(self.n),
+        np.int32(self.gen.min),
+        np.int32(self.gen.max),
+        ffi.cast(&#34;int *&#34;,self.nd_vals.ctypes.data),
         ffi.cast(&#34;double *&#34;,self.gen.cdf_vals.ctypes.data)
         )
 
@@ -108,11 +164,11 @@ class UnivariateHindcastMargin(object):
     `x` (`numpy.ndarray`): point to evaluate on
 
     &#34;&#34;&#34;
-    return  C_CALL.h_epu(
-              np.int64(self.n),
-              np.int64(self.gen.min),
-              np.int64(self.gen.max),
-              ffi.cast(&#34;long *&#34;,self.nd_vals.ctypes.data),
+    return  C_CALL.empirical_eeu_py_interface(
+              np.int32(self.n),
+              np.int32(self.gen.min),
+              np.int32(self.gen.max),
+              ffi.cast(&#34;int *&#34;,self.nd_vals.ctypes.data),
               ffi.cast(&#34;double *&#34;,self.gen.cdf_vals.ctypes.data),
               ffi.cast(&#34;double *&#34;,self.gen.expectation_vals.ctypes.data))
 
@@ -129,6 +185,32 @@ class UnivariateHindcastMargin(object):
     row_idx = np.random.choice(row_range,size=n)
 
     return self.nd_vals[row_idx]
+
+  def quantile(self,q):
+
+    &#34;&#34;&#34;Returns quantiles of the power margin distribution
+
+    **Parameters**:
+    
+    `q` (`float`): quantile
+
+
+    &#34;&#34;&#34;
+    def bisection(x):
+      return self.cdf(x) - q
+    
+    delta = 1000
+
+    lower = 0
+    upper = 0
+
+    while bisection(lower) &gt;= 0:
+      lower -= delta
+
+    while bisection(upper) &lt;= 0:
+      upper += delta
+
+    return int(bisect(f=bisection,a=lower,b=upper))
 
   def simulate(self,n,seed=1):
     &#34;&#34;&#34;Simulate from hindcast distribution
@@ -182,19 +264,71 @@ class UnivariateHindcastMargin(object):
 
     `nd_data` (`numpy.npdarray`): vector of net demand values
 
-    &#34;&#34;&#34;
+  &#34;&#34;&#34;
   def __init__(self,gen,nd_data):
 
     if not isinstance(gen,ConvGenDistribution):
       raise Exception(&#34;gen is not an instance of ConvGenDistribution&#34;)
       
     self.gen = gen
-    self.nd_vals = np.ascontiguousarray(nd_data).clip(min=0).astype(np.int64)
+    self.nd_vals = np.ascontiguousarray(nd_data).clip(min=0).astype(np.int32)
     self.n = len(self.nd_vals)
 
     self.min = -np.max(self.nd_vals)
     self.max = self.gen.max - np.min(self.nd_vals)
-        
+
+  def renewables_efc(self,demand,renewables,metric=&#34;lole&#34;,tol=0.1):
+    &#34;&#34;&#34;calculate efc of wind fleer
+
+    **Parameters**:
+    
+    `demand` (`numpy.ndarray`): array of demand observations
+
+    `renewables` (`numpy.ndarray`): vector of renewable generation observations
+
+    `metric` (`str` or function): baseline risk metric to perform the calculations; if `str`, the instance&#39;s method with matching name will be used; of a function, it needs to take a `UnivariateHindcastMargin` object as a parameter
+
+    `tol` (`float`): absolute error tolerance with respect to true baseline risk metric for bisection function
+    &#34;&#34;&#34;
+
+    if np.any(renewables &lt; 0):
+      raise Exception(&#34;renewable generation observations contain negative values.&#34;)
+
+    if self.gen.fc != 0:
+      warnings.warn(&#34;available generation&#39;s firm capacity is nonzero.&#34;)
+
+    def get_risk_function(metric):
+
+      if isinstance(metric,str):
+        return lambda x: getattr(x,metric)()
+      elif callable(metric):
+        return metric
+
+    with_wind_obj = UnivariateHindcastMargin(self.gen,demand - renewables)
+    with_wind_risk = get_risk_function(metric)(with_wind_obj)
+
+    def bisection_target(x):
+      self.gen += x
+      with_fc_obj = UnivariateHindcastMargin(self.gen,demand)
+      with_fc_risk = get_risk_function(metric)(with_fc_obj)
+      self.gen += (-x)
+      #print(&#34;fc: {x}, with_fc_risk:{wfcr}, with_wind_risk: {wwr}&#34;.format(x=x,wfcr=with_fc_risk,wwr=with_wind_risk))
+      return with_fc_risk - with_wind_risk
+
+    delta = 300 
+    leftmost = 0
+    rightmost = 0
+    while bisection_target(rightmost) &gt; 0:
+      rightmost += delta
+
+    #print(&#34;leftmost: {l}, rightmost: {r}&#34;.format(l=leftmost,r=rightmost))
+    efc, res = bisect(f=bisection_target,a=leftmost,b=rightmost,full_output=True,xtol=tol/2,rtol=tol/(2*with_wind_risk))
+    #print(&#34;EFC: {efc}&#34;.format(efc=efc))
+    if not res.converged:
+      print(&#34;Warning: EFC estimator did not converge.&#34;)
+    #print(&#34;efc:{efc}&#34;.format(efc=efc))
+    return int(efc)
+ 
   def cdf(self,x):
     &#34;&#34;&#34;calculate margin CDF values
 
@@ -208,12 +342,12 @@ class UnivariateHindcastMargin(object):
     elif x &lt; self.min:
       return 0.0
     else:
-      return C_CALL.h_margin_cdf(
-        np.int64(x),
-        np.int64(self.n),
-        np.int64(self.gen.min),
-        np.int64(self.gen.max),
-        ffi.cast(&#34;long *&#34;,self.nd_vals.ctypes.data),
+      return C_CALL.empirical_power_margin_cdf_py_interface(
+        np.int32(x),
+        np.int32(self.n),
+        np.int32(self.gen.min),
+        np.int32(self.gen.max),
+        ffi.cast(&#34;int *&#34;,self.nd_vals.ctypes.data),
         ffi.cast(&#34;double *&#34;,self.gen.cdf_vals.ctypes.data)
         )
 
@@ -249,11 +383,11 @@ class UnivariateHindcastMargin(object):
     `x` (`numpy.ndarray`): point to evaluate on
 
     &#34;&#34;&#34;
-    return  C_CALL.h_epu(
-              np.int64(self.n),
-              np.int64(self.gen.min),
-              np.int64(self.gen.max),
-              ffi.cast(&#34;long *&#34;,self.nd_vals.ctypes.data),
+    return  C_CALL.empirical_eeu_py_interface(
+              np.int32(self.n),
+              np.int32(self.gen.min),
+              np.int32(self.gen.max),
+              ffi.cast(&#34;int *&#34;,self.nd_vals.ctypes.data),
               ffi.cast(&#34;double *&#34;,self.gen.cdf_vals.ctypes.data),
               ffi.cast(&#34;double *&#34;,self.gen.expectation_vals.ctypes.data))
 
@@ -270,6 +404,32 @@ class UnivariateHindcastMargin(object):
     row_idx = np.random.choice(row_range,size=n)
 
     return self.nd_vals[row_idx]
+
+  def quantile(self,q):
+
+    &#34;&#34;&#34;Returns quantiles of the power margin distribution
+
+    **Parameters**:
+    
+    `q` (`float`): quantile
+
+
+    &#34;&#34;&#34;
+    def bisection(x):
+      return self.cdf(x) - q
+    
+    delta = 1000
+
+    lower = 0
+    upper = 0
+
+    while bisection(lower) &gt;= 0:
+      lower -= delta
+
+    while bisection(upper) &lt;= 0:
+      upper += delta
+
+    return int(bisect(f=bisection,a=lower,b=upper))
 
   def simulate(self,n,seed=1):
     &#34;&#34;&#34;Simulate from hindcast distribution
@@ -320,12 +480,12 @@ class UnivariateHindcastMargin(object):
   elif x &lt; self.min:
     return 0.0
   else:
-    return C_CALL.h_margin_cdf(
-      np.int64(x),
-      np.int64(self.n),
-      np.int64(self.gen.min),
-      np.int64(self.gen.max),
-      ffi.cast(&#34;long *&#34;,self.nd_vals.ctypes.data),
+    return C_CALL.empirical_power_margin_cdf_py_interface(
+      np.int32(x),
+      np.int32(self.n),
+      np.int32(self.gen.min),
+      np.int32(self.gen.max),
+      ffi.cast(&#34;int *&#34;,self.nd_vals.ctypes.data),
       ffi.cast(&#34;double *&#34;,self.gen.cdf_vals.ctypes.data)
       )</code></pre>
 </details>
@@ -366,11 +526,11 @@ class UnivariateHindcastMargin(object):
   `x` (`numpy.ndarray`): point to evaluate on
 
   &#34;&#34;&#34;
-  return  C_CALL.h_epu(
-            np.int64(self.n),
-            np.int64(self.gen.min),
-            np.int64(self.gen.max),
-            ffi.cast(&#34;long *&#34;,self.nd_vals.ctypes.data),
+  return  C_CALL.empirical_eeu_py_interface(
+            np.int32(self.n),
+            np.int32(self.gen.min),
+            np.int32(self.gen.max),
+            ffi.cast(&#34;int *&#34;,self.nd_vals.ctypes.data),
             ffi.cast(&#34;double *&#34;,self.gen.cdf_vals.ctypes.data),
             ffi.cast(&#34;double *&#34;,self.gen.expectation_vals.ctypes.data))</code></pre>
 </details>
@@ -429,6 +589,111 @@ class UnivariateHindcastMargin(object):
 
   &#34;&#34;&#34;
   return self.cdf(x) - self.cdf(x-1)</code></pre>
+</details>
+</dd>
+<dt id="psrmodels.time_collapsed.UnivariateHindcastMargin.UnivariateHindcastMargin.quantile"><code class="name flex">
+<span>def <span class="ident">quantile</span></span>(<span>self, q)</span>
+</code></dt>
+<dd>
+<div class="desc"><p>Returns quantiles of the power margin distribution</p>
+<p><strong>Parameters</strong>:</p>
+<p><code>q</code> (<code>float</code>): quantile</p></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def quantile(self,q):
+
+  &#34;&#34;&#34;Returns quantiles of the power margin distribution
+
+  **Parameters**:
+  
+  `q` (`float`): quantile
+
+
+  &#34;&#34;&#34;
+  def bisection(x):
+    return self.cdf(x) - q
+  
+  delta = 1000
+
+  lower = 0
+  upper = 0
+
+  while bisection(lower) &gt;= 0:
+    lower -= delta
+
+  while bisection(upper) &lt;= 0:
+    upper += delta
+
+  return int(bisect(f=bisection,a=lower,b=upper))</code></pre>
+</details>
+</dd>
+<dt id="psrmodels.time_collapsed.UnivariateHindcastMargin.UnivariateHindcastMargin.renewables_efc"><code class="name flex">
+<span>def <span class="ident">renewables_efc</span></span>(<span>self, demand, renewables, metric='lole', tol=0.1)</span>
+</code></dt>
+<dd>
+<div class="desc"><p>calculate efc of wind fleer</p>
+<p><strong>Parameters</strong>:</p>
+<p><code>demand</code> (<code>numpy.ndarray</code>): array of demand observations</p>
+<p><code>renewables</code> (<code>numpy.ndarray</code>): vector of renewable generation observations</p>
+<p><code>metric</code> (<code>str</code> or function): baseline risk metric to perform the calculations; if <code>str</code>, the instance's method with matching name will be used; of a function, it needs to take a <code><a title="psrmodels.time_collapsed.UnivariateHindcastMargin.UnivariateHindcastMargin" href="#psrmodels.time_collapsed.UnivariateHindcastMargin.UnivariateHindcastMargin">UnivariateHindcastMargin</a></code> object as a parameter</p>
+<p><code>tol</code> (<code>float</code>): absolute error tolerance with respect to true baseline risk metric for bisection function</p></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def renewables_efc(self,demand,renewables,metric=&#34;lole&#34;,tol=0.1):
+  &#34;&#34;&#34;calculate efc of wind fleer
+
+  **Parameters**:
+  
+  `demand` (`numpy.ndarray`): array of demand observations
+
+  `renewables` (`numpy.ndarray`): vector of renewable generation observations
+
+  `metric` (`str` or function): baseline risk metric to perform the calculations; if `str`, the instance&#39;s method with matching name will be used; of a function, it needs to take a `UnivariateHindcastMargin` object as a parameter
+
+  `tol` (`float`): absolute error tolerance with respect to true baseline risk metric for bisection function
+  &#34;&#34;&#34;
+
+  if np.any(renewables &lt; 0):
+    raise Exception(&#34;renewable generation observations contain negative values.&#34;)
+
+  if self.gen.fc != 0:
+    warnings.warn(&#34;available generation&#39;s firm capacity is nonzero.&#34;)
+
+  def get_risk_function(metric):
+
+    if isinstance(metric,str):
+      return lambda x: getattr(x,metric)()
+    elif callable(metric):
+      return metric
+
+  with_wind_obj = UnivariateHindcastMargin(self.gen,demand - renewables)
+  with_wind_risk = get_risk_function(metric)(with_wind_obj)
+
+  def bisection_target(x):
+    self.gen += x
+    with_fc_obj = UnivariateHindcastMargin(self.gen,demand)
+    with_fc_risk = get_risk_function(metric)(with_fc_obj)
+    self.gen += (-x)
+    #print(&#34;fc: {x}, with_fc_risk:{wfcr}, with_wind_risk: {wwr}&#34;.format(x=x,wfcr=with_fc_risk,wwr=with_wind_risk))
+    return with_fc_risk - with_wind_risk
+
+  delta = 300 
+  leftmost = 0
+  rightmost = 0
+  while bisection_target(rightmost) &gt; 0:
+    rightmost += delta
+
+  #print(&#34;leftmost: {l}, rightmost: {r}&#34;.format(l=leftmost,r=rightmost))
+  efc, res = bisect(f=bisection_target,a=leftmost,b=rightmost,full_output=True,xtol=tol/2,rtol=tol/(2*with_wind_risk))
+  #print(&#34;EFC: {efc}&#34;.format(efc=efc))
+  if not res.converged:
+    print(&#34;Warning: EFC estimator did not converge.&#34;)
+  #print(&#34;efc:{efc}&#34;.format(efc=efc))
+  return int(efc)</code></pre>
 </details>
 </dd>
 <dt id="psrmodels.time_collapsed.UnivariateHindcastMargin.UnivariateHindcastMargin.simulate"><code class="name flex">
@@ -490,6 +755,8 @@ class UnivariateHindcastMargin(object):
 <li><code><a title="psrmodels.time_collapsed.UnivariateHindcastMargin.UnivariateHindcastMargin.lole" href="#psrmodels.time_collapsed.UnivariateHindcastMargin.UnivariateHindcastMargin.lole">lole</a></code></li>
 <li><code><a title="psrmodels.time_collapsed.UnivariateHindcastMargin.UnivariateHindcastMargin.lolp" href="#psrmodels.time_collapsed.UnivariateHindcastMargin.UnivariateHindcastMargin.lolp">lolp</a></code></li>
 <li><code><a title="psrmodels.time_collapsed.UnivariateHindcastMargin.UnivariateHindcastMargin.pdf" href="#psrmodels.time_collapsed.UnivariateHindcastMargin.UnivariateHindcastMargin.pdf">pdf</a></code></li>
+<li><code><a title="psrmodels.time_collapsed.UnivariateHindcastMargin.UnivariateHindcastMargin.quantile" href="#psrmodels.time_collapsed.UnivariateHindcastMargin.UnivariateHindcastMargin.quantile">quantile</a></code></li>
+<li><code><a title="psrmodels.time_collapsed.UnivariateHindcastMargin.UnivariateHindcastMargin.renewables_efc" href="#psrmodels.time_collapsed.UnivariateHindcastMargin.UnivariateHindcastMargin.renewables_efc">renewables_efc</a></code></li>
 <li><code><a title="psrmodels.time_collapsed.UnivariateHindcastMargin.UnivariateHindcastMargin.simulate" href="#psrmodels.time_collapsed.UnivariateHindcastMargin.UnivariateHindcastMargin.simulate">simulate</a></code></li>
 </ul>
 </li>

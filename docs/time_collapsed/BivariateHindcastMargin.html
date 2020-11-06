@@ -57,13 +57,13 @@ class BivariateHindcastMargin(object):
 
   def __init__(self,demand,renewables,gen_dists,**kwargs):
 
-    self.net_demand = np.ascontiguousarray((demand - renewables),dtype=np.int64).clip(min=0) #no negative net demand
+    self.net_demand = np.ascontiguousarray((demand - renewables),dtype=np.int32).clip(min=0) #no negative net demand
     self.renewables = renewables
-    self.demand = np.ascontiguousarray(demand,dtype=np.int64)
+    self.demand = np.ascontiguousarray(demand,dtype=np.int32)
     self.gen_dists = self._parse_gendists(gen_dists,**kwargs)
     self.n = self.net_demand.shape[0]
 
-    self.MARGIN_BOUND = int(np.iinfo(np.int64).max / 2)
+    self.MARGIN_BOUND = int(np.iinfo(np.int32).max / 2)
 
   def _parse_gendists(self,data,**kwargs):
     gen_dists = []
@@ -82,15 +82,24 @@ class BivariateHindcastMargin(object):
     return gen_dists
 
   @staticmethod
-  def bivar_ecdf(X):
-    n = X.shape[0]
-    ecdf = np.ascontiguousarray(np.empty((n,)),dtype=np.float64)
-    C_CALL.bivar_ecdf(
-      ffi.cast(&#34;double *&#34;,ecdf.ctypes.data),
-      ffi.cast(&#34;double *&#34;,np.ascontiguousarray(X,dtype=np.float64).ctypes.data),
-      np.int64(n))
+  def get_efc_metric_function(metric,obj,**kwargs):
+      if isinstance(metric,str):
+        return getattr(obj,metric)
+      elif callable(metric):
+        return lambda c,policy,axis: metric(obj=obj,c=c,policy=policy,axis=axis,**kwargs) #return curried metric set_metric_function
+      else:
+        raise Exception(&#34;&#39;metric&#39; has to be either a function or a string&#34;)
 
-    return ecdf
+  # @staticmethod
+  # def bivariate_ecdf(X):
+  #   n = X.shape[0]
+  #   ecdf = np.ascontiguousarray(np.empty((n,)),dtype=np.float64)
+  #   C_CALL.bivariate_empirical_cdf_py_interface(
+  #     ffi.cast(&#34;double *&#34;,ecdf.ctypes.data),
+  #     ffi.cast(&#34;double *&#34;,np.ascontiguousarray(X,dtype=np.float64).ctypes.data),
+  #     np.int32(n))
+
+  #   return ecdf
 
   @staticmethod
   def _triangle_prob(bigen, origin,length):
@@ -107,16 +116,16 @@ class BivariateHindcastMargin(object):
     `length` (`int`): length of triangle legs
 
     &#34;&#34;&#34;
-    origin = np.ascontiguousarray(origin,dtype=np.int64)
+    origin = np.ascontiguousarray(origin,dtype=np.int32)
 
-    return C_CALL.triangle_prob(
-                      np.int64(origin[0]),
-                      np.int64(origin[1]),
-                      np.int64(length),
-                      np.int64(bigen.X1.min),
-                      np.int64(bigen.X2.min),
-                      np.int64(bigen.X1.max),
-                      np.int64(bigen.X2.max),
+    return C_CALL.triangle_prob_py_interface(
+                      np.int32(origin[0]),
+                      np.int32(origin[1]),
+                      np.int32(length),
+                      np.int32(bigen.X1.min),
+                      np.int32(bigen.X2.min),
+                      np.int32(bigen.X1.max),
+                      np.int32(bigen.X2.max),
                       ffi.cast(&#34;double *&#34;,bigen.X1.cdf_vals.ctypes.data),
                       ffi.cast(&#34;double *&#34;,bigen.X2.cdf_vals.ctypes.data))
 
@@ -239,7 +248,7 @@ class BivariateHindcastMargin(object):
 
     &#34;&#34;&#34;
 
-    x = np.int64(x)
+    x = np.int32(x)
     return self.cdf(x,**kwargs) - (self.cdf(x - (1,0),**kwargs) - self.cdf(x - (0,1),**kwargs) + self.cdf(x - (1,1),**kwargs))
 
 
@@ -511,7 +520,7 @@ class BivariateHindcastMargin(object):
     warn(&#34;This method is deprecated; use methods itc_efc or convgen_ifc instead.&#34;)
     return self.itc_efc(**kwargs)
 
-  def convgen_efc(self, cap, prob, gen_axis, fc_axis, c,policy,metric=&#34;lole&#34;,axis=0,tol=0.1,**kwargs):
+  def convgen_efc(self, cap, prob, gen_axis, fc_axis, c,policy, metric=&#34;lole&#34;,axis=0,tol=0.1,**kwargs):
     &#34;&#34;&#34;Returns the amount of firm capacity that needs to be added to area `fc_axis` such that area `axis` has the same risk (as defined by `metric`) than if new conventional generation was installed in `gen_axis`.
 
     **Parameters**:
@@ -530,11 +539,12 @@ class BivariateHindcastMargin(object):
 
     `axis` (`int`): area for which risk will be calculated
 
-    `metric` (`string`): name of the instance&#39;s method that will be used to measure risk. Only &#39;LOLE&#39; and &#39;EEU&#39; are supported
+    `metric` (`string` or function): Baseline risk metric that will be used to calculate EFC. If a `string`, use matching method from the appropriate `BivariateHindcastMargin` instance (for example, &#34;`1lole`&#34; or &#34;`eeu`&#34;); if a function, it needs to take as parameters a `BivariateHindcastMargin` instance `obj`, interconnection capacity `c`, axis `axis` and  policy `policy`, and optionally additional arguments. This is useful for using more complex metrics such as quantiles.
 
     `tol` (`float`): absolute error tolerance from true target risk value
 
     &#34;&#34;&#34;
+
     if not (axis in [0,1]):
       raise Exception(&#34;axis value must be 0 or 1&#34;)
 
@@ -560,7 +570,8 @@ class BivariateHindcastMargin(object):
     new_bivariate_dist[gen_axis] = augmented_gen_dist
     new_bivariate_dist[other] = self.gen_dists[other]
     new_margin_dist = BivariateHindcastMargin(self.demand,self.renewables,new_bivariate_dist)
-    new_metric_func = getattr(new_margin_dist,metric)
+    
+    new_metric_func = BivariateHindcastMargin.get_efc_metric_function(metric,new_margin_dist,**kwargs)
     new_metric_val = new_metric_func(c=c,policy=policy,axis=axis)
 
     print(&#34;new metric val: {x}&#34;.format(x=new_metric_val))
@@ -582,7 +593,7 @@ class BivariateHindcastMargin(object):
       original_bivariate_dist[fc_axis] += x
       # create bivariate margin distribution object
       dist = BivariateHindcastMargin(self.demand,self.renewables,original_bivariate_dist)
-      metric_func = getattr(dist,metric)
+      metric_func = BivariateHindcastMargin.get_efc_metric_function(metric,dist,**kwargs)
       metric_val = metric_func(c=c,policy=policy,axis=axis)
 
       # reset firm capacity to 0
@@ -609,28 +620,32 @@ class BivariateHindcastMargin(object):
 
     `axis` (`int`): area for which risk will be calculated
 
-    `metric` (`string`): name of the instance&#39;s method that will be used to measure risk
+    `metric` (`string` or function): Baseline risk metric that will be used to calculate EFC. If a `string`, use matching method from the appropriate `BivariateHindcastMargin` instance (for example, &#34;`1lole`&#34; or &#34;`eeu`&#34;); if a function, it needs to take as parameters a `BivariateHindcastMargin` instance `obj`, interconnection capacity `c`, axis `axis` and  policy `policy`, and optionally additional arguments. This is useful for using more complex metrics such as quantiles.
 
     `tol` (`float`): absolute error tolerance from true target risk value
 
     &#34;&#34;&#34;
-    if not metric in [&#34;lole&#34;,&#34;eeu&#34;]:
-      raise Exception(&#34;Only &#39;lole&#39; or &#39;eeu&#39; supported as risk metrics&#34;)
+    # if not metric in [&#34;lole&#34;,&#34;eeu&#34;]:
+    #   raise Exception(&#34;Only &#39;lole&#39; or &#39;eeu&#39; supported as risk metrics&#34;)
     
     #target value
-    with_itc = getattr(self,metric)(c=c,axis=axis,policy=policy,**kwargs)
+    metric_func = BivariateHindcastMargin.get_efc_metric_function(metric,self,**kwargs)
+    with_itc = metric_func(c=c,axis=axis,policy=policy,**kwargs)
+
+    print(&#34;with_itc: {x}&#34;.format(x=with_itc))
 
     def compare_itc_to_fc(k):
       self.gen_dists[axis] += k ## add firm capacity
-      univar = UnivariateHindcastMargin(self.gen_dists[axis],self.net_demand[:,axis])
-      #risk_metric = getattr(univar,metric)
-      without_itc = getattr(univar,metric)()
+      #univar = UnivariateHindcastMargin(self.gen_dists[axis],self.net_demand[:,axis])
+      #without_itc = getattr(univar,metric)()
+      without_itc = BivariateHindcastMargin.get_efc_metric_function(metric,self,**kwargs)(policy=policy,axis=axis,c=0)
       #k_fc_risk =  with_itc - without_itc
+      print(&#34;k: {k}, without_itc: {y}, delta: {x}&#34;.format(k=k, y=without_itc,x=with_itc - without_itc))
       self.gen_dists[axis] += (-k) #reset firm capacity to 0
       return with_itc - without_itc
 
     diff_to_null = compare_itc_to_fc(0)
-
+    print(&#34;diff to null: {x}&#34;.format(x=diff_to_null))
     # now find the root of compare_itc_to_fc by bisection
 
     # is the interconnector adding risk?
@@ -671,14 +686,14 @@ class BivariateHindcastMargin(object):
     `c` (`int`): width of trapezoid
 
     &#34;&#34;&#34;
-    return C_CALL.trapezoid_prob(
-                        np.int64(ulc1),
-                        np.int64(ulc2),
-                        np.int64(c),
-                        np.int64(X.X1.min),
-                        np.int64(X.X2.min),
-                        np.int64(X.X1.max),
-                        np.int64(X.X2.max),
+    return C_CALL.trapezoid_prob_py_interface(
+                        np.int32(ulc1),
+                        np.int32(ulc2),
+                        np.int32(c),
+                        np.int32(X.X1.min),
+                        np.int32(X.X2.min),
+                        np.int32(X.X1.max),
+                        np.int32(X.X2.max),
                         ffi.cast(&#34;double *&#34;,X.X1.cdf_vals.ctypes.data),
                         ffi.cast(&#34;double *&#34;,X.X2.cdf_vals.ctypes.data))
 
@@ -703,16 +718,16 @@ class BivariateHindcastMargin(object):
 
     &#34;&#34;&#34;
 
-    return C_CALL.cond_epu_share(
-                    np.int64(d1),
-                    np.int64(d2),
-                    np.int64(v1),
-                    np.int64(v2),
-                    np.int64(c),
-                    np.int64(FX1.min),
-                    np.int64(FX2.min),
-                    np.int64(FX1.max),
-                    np.int64(FX2.max),
+    return C_CALL.cond_eeu_share_py_interface(
+                    np.int32(d1),
+                    np.int32(d2),
+                    np.int32(v1),
+                    np.int32(v2),
+                    np.int32(c),
+                    np.int32(FX1.min),
+                    np.int32(FX2.min),
+                    np.int32(FX1.max),
+                    np.int32(FX2.max),
                     ffi.cast(&#34;double *&#34;,FX1.cdf_vals.ctypes.data),
                     ffi.cast(&#34;double *&#34;,FX2.cdf_vals.ctypes.data),
                     ffi.cast(&#34;double *&#34;,FX1.expectation_vals.ctypes.data))
@@ -734,14 +749,14 @@ class BivariateHindcastMargin(object):
 
     &#34;&#34;&#34;
 
-    return C_CALL.cond_epu_veto(
-                    np.int64(v1),
-                    np.int64(v2),
-                    np.int64(c),
-                    np.int64(FX1.min),
-                    np.int64(FX2.min),
-                    np.int64(FX1.max),
-                    np.int64(FX2.max),
+    return C_CALL.cond_eeu_veto_py_interface(
+                    np.int32(v1),
+                    np.int32(v2),
+                    np.int32(c),
+                    np.int32(FX1.min),
+                    np.int32(FX2.min),
+                    np.int32(FX1.max),
+                    np.int32(FX2.max),
                     ffi.cast(&#34;double *&#34;,FX1.cdf_vals.ctypes.data),
                     ffi.cast(&#34;double *&#34;,FX2.cdf_vals.ctypes.data),
                     ffi.cast(&#34;double *&#34;,FX1.expectation_vals.ctypes.data))
@@ -799,7 +814,7 @@ class BivariateHindcastMargin(object):
 
     X = BivariateConvGenDist(X1,X2) #system-wide conv. gen. distribution
 
-    simulated = np.ascontiguousarray(np.zeros((n,2)),dtype=np.int64)
+    simulated = np.ascontiguousarray(np.zeros((n,2)),dtype=np.int32)
 
     ### calculate conditional probability of each historical observation given
     ### margin value tuple m
@@ -815,28 +830,28 @@ class BivariateHindcastMargin(object):
       ## only pass rows which induce at least one simulated value
       df = df.query(&#34;row_weights &gt; 0&#34;)
 
-      row_weights = np.ascontiguousarray(df[&#34;row_weights&#34;],dtype=np.int64)
+      row_weights = np.ascontiguousarray(df[&#34;row_weights&#34;],dtype=np.int32)
 
-      net_demand = np.ascontiguousarray(df[[&#34;nd0&#34;,&#34;nd1&#34;]],dtype=np.int64)
+      net_demand = np.ascontiguousarray(df[[&#34;nd0&#34;,&#34;nd1&#34;]],dtype=np.int32)
 
-      demand = np.ascontiguousarray(df[[&#34;d0&#34;,&#34;d1&#34;]],dtype=np.int64)
+      demand = np.ascontiguousarray(df[[&#34;d0&#34;,&#34;d1&#34;]],dtype=np.int32)
 
-      C_CALL.region_simulation(
-        np.int64(n),
-        ffi.cast(&#34;long *&#34;,simulated.ctypes.data),
-        np.int64(X.X1.min),
-        np.int64(X.X2.min),
-        np.int64(X.X1.max),
-        np.int64(X.X2.max),
+      C_CALL.region_simulation_py_interface(
+        np.int32(n),
+        ffi.cast(&#34;int *&#34;,simulated.ctypes.data),
+        np.int32(X.X1.min),
+        np.int32(X.X2.min),
+        np.int32(X.X1.max),
+        np.int32(X.X2.max),
         ffi.cast(&#34;double *&#34;,X.X1.cdf_vals.ctypes.data),
         ffi.cast(&#34;double *&#34;,X.X2.cdf_vals.ctypes.data),
-        ffi.cast(&#34;long *&#34;,net_demand.ctypes.data),
-        ffi.cast(&#34;long *&#34;,demand.ctypes.data),
-        ffi.cast(&#34;long *&#34;,row_weights.ctypes.data),
-        np.int64(net_demand.shape[0]),
-        np.int64(m1),
-        np.int64(m2),
-        np.int64(c),
+        ffi.cast(&#34;int *&#34;,net_demand.ctypes.data),
+        ffi.cast(&#34;int *&#34;,demand.ctypes.data),
+        ffi.cast(&#34;int *&#34;,row_weights.ctypes.data),
+        np.int32(net_demand.shape[0]),
+        np.int32(m1),
+        np.int32(m2),
+        np.int32(c),
         int(seed),
         int(intersection),
         int(policy == &#34;share&#34;))
@@ -873,7 +888,7 @@ class BivariateHindcastMargin(object):
 
     X = BivariateConvGenDist(X1,X2) #system-wide conv. gen. distribution
 
-    simulated = np.ascontiguousarray(np.zeros((n,2)),dtype=np.int64)
+    simulated = np.ascontiguousarray(np.zeros((n,2)),dtype=np.int32)
 
     ### calculate conditional probability of each historical observation given
     ### margin value tuple m
@@ -898,27 +913,27 @@ class BivariateHindcastMargin(object):
       ## only pass rows which induce at least one simulated value
       df = df.query(&#34;row_weights &gt; 0&#34;)
 
-      row_weights = np.ascontiguousarray(df[&#34;row_weights&#34;],dtype=np.int64)
+      row_weights = np.ascontiguousarray(df[&#34;row_weights&#34;],dtype=np.int32)
 
-      net_demand = np.ascontiguousarray(df[[&#34;nd0&#34;,&#34;nd1&#34;]],dtype=np.int64)
+      net_demand = np.ascontiguousarray(df[[&#34;nd0&#34;,&#34;nd1&#34;]],dtype=np.int32)
 
-      demand = np.ascontiguousarray(df[[&#34;d0&#34;,&#34;d1&#34;]],dtype=np.int64)
+      demand = np.ascontiguousarray(df[[&#34;d0&#34;,&#34;d1&#34;]],dtype=np.int32)
 
-      C_CALL.conditioned_simulation(
-          np.int64(n),
-          ffi.cast(&#34;long *&#34;,simulated.ctypes.data),
-          np.int64(X.X1.min),
-          np.int64(X.X2.min),
-          np.int64(X.X1.max),
-          np.int64(X.X2.max),
+      C_CALL.conditioned_simulation_py_interface(
+          np.int32(n),
+          ffi.cast(&#34;int *&#34;,simulated.ctypes.data),
+          np.int32(X.X1.min),
+          np.int32(X.X2.min),
+          np.int32(X.X1.max),
+          np.int32(X.X2.max),
           ffi.cast(&#34;double *&#34;,X.X1.cdf_vals.ctypes.data),
           ffi.cast(&#34;double *&#34;,X.X2.cdf_vals.ctypes.data),
-          ffi.cast(&#34;long *&#34;,net_demand.ctypes.data),
-          ffi.cast(&#34;long *&#34;,demand.ctypes.data),
-          ffi.cast(&#34;long *&#34;,row_weights.ctypes.data),
-          np.int64(net_demand.shape[0]),
-          np.int64(m1),
-          np.int64(c),
+          ffi.cast(&#34;int *&#34;,net_demand.ctypes.data),
+          ffi.cast(&#34;int *&#34;,demand.ctypes.data),
+          ffi.cast(&#34;int *&#34;,row_weights.ctypes.data),
+          np.int32(net_demand.shape[0]),
+          np.int32(m1),
+          np.int32(c),
           int(seed),
           int(policy == &#34;share&#34;))
 
@@ -962,26 +977,25 @@ class BivariateHindcastMargin(object):
       cdf_list = []
       
     for i in range(n):
-      #print(i)
       v1, v2 = self.net_demand[i,:]
 
       d1, d2 = self.demand[i,:]
 
-      point_cdf = C_CALL.get_cond_cdf(
-                      np.int64(gendist1.min),
-                      np.int64(gendist2.min),
-                      np.int64(gendist1.max),
-                      np.int64(gendist2.max),
+      point_cdf = C_CALL.cond_bivariate_power_margin_cdf_py_interface(
+                      np.int32(gendist1.min),
+                      np.int32(gendist2.min),
+                      np.int32(gendist1.max),
+                      np.int32(gendist2.max),
                       ffi.cast(&#34;double *&#34;,gendist1.cdf_vals.ctypes.data),
                       ffi.cast(&#34;double *&#34;,gendist2.cdf_vals.ctypes.data),
-                      np.int64(m1),
-                      np.int64(m2),
-                      np.int64(v1),
-                      np.int64(v2),
-                      np.int64(d1),
-                      np.int64(d2),
-                      np.int64(c),
-                      np.int64(policy == &#34;share&#34;))
+                      np.int32(m1),
+                      np.int32(m2),
+                      np.int32(v1),
+                      np.int32(v2),
+                      np.int32(d1),
+                      np.int32(d2),
+                      np.int32(c),
+                      np.int32(policy == &#34;share&#34;))
 
       #print(&#34;point cdf: {x}, index: {i}&#34;.format(x=point_cdf, i=i))
       cdf += point_cdf
@@ -1200,13 +1214,13 @@ risk metrics under a share policy, in which available power flow depends on dema
 
   def __init__(self,demand,renewables,gen_dists,**kwargs):
 
-    self.net_demand = np.ascontiguousarray((demand - renewables),dtype=np.int64).clip(min=0) #no negative net demand
+    self.net_demand = np.ascontiguousarray((demand - renewables),dtype=np.int32).clip(min=0) #no negative net demand
     self.renewables = renewables
-    self.demand = np.ascontiguousarray(demand,dtype=np.int64)
+    self.demand = np.ascontiguousarray(demand,dtype=np.int32)
     self.gen_dists = self._parse_gendists(gen_dists,**kwargs)
     self.n = self.net_demand.shape[0]
 
-    self.MARGIN_BOUND = int(np.iinfo(np.int64).max / 2)
+    self.MARGIN_BOUND = int(np.iinfo(np.int32).max / 2)
 
   def _parse_gendists(self,data,**kwargs):
     gen_dists = []
@@ -1225,15 +1239,24 @@ risk metrics under a share policy, in which available power flow depends on dema
     return gen_dists
 
   @staticmethod
-  def bivar_ecdf(X):
-    n = X.shape[0]
-    ecdf = np.ascontiguousarray(np.empty((n,)),dtype=np.float64)
-    C_CALL.bivar_ecdf(
-      ffi.cast(&#34;double *&#34;,ecdf.ctypes.data),
-      ffi.cast(&#34;double *&#34;,np.ascontiguousarray(X,dtype=np.float64).ctypes.data),
-      np.int64(n))
+  def get_efc_metric_function(metric,obj,**kwargs):
+      if isinstance(metric,str):
+        return getattr(obj,metric)
+      elif callable(metric):
+        return lambda c,policy,axis: metric(obj=obj,c=c,policy=policy,axis=axis,**kwargs) #return curried metric set_metric_function
+      else:
+        raise Exception(&#34;&#39;metric&#39; has to be either a function or a string&#34;)
 
-    return ecdf
+  # @staticmethod
+  # def bivariate_ecdf(X):
+  #   n = X.shape[0]
+  #   ecdf = np.ascontiguousarray(np.empty((n,)),dtype=np.float64)
+  #   C_CALL.bivariate_empirical_cdf_py_interface(
+  #     ffi.cast(&#34;double *&#34;,ecdf.ctypes.data),
+  #     ffi.cast(&#34;double *&#34;,np.ascontiguousarray(X,dtype=np.float64).ctypes.data),
+  #     np.int32(n))
+
+  #   return ecdf
 
   @staticmethod
   def _triangle_prob(bigen, origin,length):
@@ -1250,16 +1273,16 @@ risk metrics under a share policy, in which available power flow depends on dema
     `length` (`int`): length of triangle legs
 
     &#34;&#34;&#34;
-    origin = np.ascontiguousarray(origin,dtype=np.int64)
+    origin = np.ascontiguousarray(origin,dtype=np.int32)
 
-    return C_CALL.triangle_prob(
-                      np.int64(origin[0]),
-                      np.int64(origin[1]),
-                      np.int64(length),
-                      np.int64(bigen.X1.min),
-                      np.int64(bigen.X2.min),
-                      np.int64(bigen.X1.max),
-                      np.int64(bigen.X2.max),
+    return C_CALL.triangle_prob_py_interface(
+                      np.int32(origin[0]),
+                      np.int32(origin[1]),
+                      np.int32(length),
+                      np.int32(bigen.X1.min),
+                      np.int32(bigen.X2.min),
+                      np.int32(bigen.X1.max),
+                      np.int32(bigen.X2.max),
                       ffi.cast(&#34;double *&#34;,bigen.X1.cdf_vals.ctypes.data),
                       ffi.cast(&#34;double *&#34;,bigen.X2.cdf_vals.ctypes.data))
 
@@ -1382,7 +1405,7 @@ risk metrics under a share policy, in which available power flow depends on dema
 
     &#34;&#34;&#34;
 
-    x = np.int64(x)
+    x = np.int32(x)
     return self.cdf(x,**kwargs) - (self.cdf(x - (1,0),**kwargs) - self.cdf(x - (0,1),**kwargs) + self.cdf(x - (1,1),**kwargs))
 
 
@@ -1654,7 +1677,7 @@ risk metrics under a share policy, in which available power flow depends on dema
     warn(&#34;This method is deprecated; use methods itc_efc or convgen_ifc instead.&#34;)
     return self.itc_efc(**kwargs)
 
-  def convgen_efc(self, cap, prob, gen_axis, fc_axis, c,policy,metric=&#34;lole&#34;,axis=0,tol=0.1,**kwargs):
+  def convgen_efc(self, cap, prob, gen_axis, fc_axis, c,policy, metric=&#34;lole&#34;,axis=0,tol=0.1,**kwargs):
     &#34;&#34;&#34;Returns the amount of firm capacity that needs to be added to area `fc_axis` such that area `axis` has the same risk (as defined by `metric`) than if new conventional generation was installed in `gen_axis`.
 
     **Parameters**:
@@ -1673,11 +1696,12 @@ risk metrics under a share policy, in which available power flow depends on dema
 
     `axis` (`int`): area for which risk will be calculated
 
-    `metric` (`string`): name of the instance&#39;s method that will be used to measure risk. Only &#39;LOLE&#39; and &#39;EEU&#39; are supported
+    `metric` (`string` or function): Baseline risk metric that will be used to calculate EFC. If a `string`, use matching method from the appropriate `BivariateHindcastMargin` instance (for example, &#34;`1lole`&#34; or &#34;`eeu`&#34;); if a function, it needs to take as parameters a `BivariateHindcastMargin` instance `obj`, interconnection capacity `c`, axis `axis` and  policy `policy`, and optionally additional arguments. This is useful for using more complex metrics such as quantiles.
 
     `tol` (`float`): absolute error tolerance from true target risk value
 
     &#34;&#34;&#34;
+
     if not (axis in [0,1]):
       raise Exception(&#34;axis value must be 0 or 1&#34;)
 
@@ -1703,7 +1727,8 @@ risk metrics under a share policy, in which available power flow depends on dema
     new_bivariate_dist[gen_axis] = augmented_gen_dist
     new_bivariate_dist[other] = self.gen_dists[other]
     new_margin_dist = BivariateHindcastMargin(self.demand,self.renewables,new_bivariate_dist)
-    new_metric_func = getattr(new_margin_dist,metric)
+    
+    new_metric_func = BivariateHindcastMargin.get_efc_metric_function(metric,new_margin_dist,**kwargs)
     new_metric_val = new_metric_func(c=c,policy=policy,axis=axis)
 
     print(&#34;new metric val: {x}&#34;.format(x=new_metric_val))
@@ -1725,7 +1750,7 @@ risk metrics under a share policy, in which available power flow depends on dema
       original_bivariate_dist[fc_axis] += x
       # create bivariate margin distribution object
       dist = BivariateHindcastMargin(self.demand,self.renewables,original_bivariate_dist)
-      metric_func = getattr(dist,metric)
+      metric_func = BivariateHindcastMargin.get_efc_metric_function(metric,dist,**kwargs)
       metric_val = metric_func(c=c,policy=policy,axis=axis)
 
       # reset firm capacity to 0
@@ -1752,28 +1777,32 @@ risk metrics under a share policy, in which available power flow depends on dema
 
     `axis` (`int`): area for which risk will be calculated
 
-    `metric` (`string`): name of the instance&#39;s method that will be used to measure risk
+    `metric` (`string` or function): Baseline risk metric that will be used to calculate EFC. If a `string`, use matching method from the appropriate `BivariateHindcastMargin` instance (for example, &#34;`1lole`&#34; or &#34;`eeu`&#34;); if a function, it needs to take as parameters a `BivariateHindcastMargin` instance `obj`, interconnection capacity `c`, axis `axis` and  policy `policy`, and optionally additional arguments. This is useful for using more complex metrics such as quantiles.
 
     `tol` (`float`): absolute error tolerance from true target risk value
 
     &#34;&#34;&#34;
-    if not metric in [&#34;lole&#34;,&#34;eeu&#34;]:
-      raise Exception(&#34;Only &#39;lole&#39; or &#39;eeu&#39; supported as risk metrics&#34;)
+    # if not metric in [&#34;lole&#34;,&#34;eeu&#34;]:
+    #   raise Exception(&#34;Only &#39;lole&#39; or &#39;eeu&#39; supported as risk metrics&#34;)
     
     #target value
-    with_itc = getattr(self,metric)(c=c,axis=axis,policy=policy,**kwargs)
+    metric_func = BivariateHindcastMargin.get_efc_metric_function(metric,self,**kwargs)
+    with_itc = metric_func(c=c,axis=axis,policy=policy,**kwargs)
+
+    print(&#34;with_itc: {x}&#34;.format(x=with_itc))
 
     def compare_itc_to_fc(k):
       self.gen_dists[axis] += k ## add firm capacity
-      univar = UnivariateHindcastMargin(self.gen_dists[axis],self.net_demand[:,axis])
-      #risk_metric = getattr(univar,metric)
-      without_itc = getattr(univar,metric)()
+      #univar = UnivariateHindcastMargin(self.gen_dists[axis],self.net_demand[:,axis])
+      #without_itc = getattr(univar,metric)()
+      without_itc = BivariateHindcastMargin.get_efc_metric_function(metric,self,**kwargs)(policy=policy,axis=axis,c=0)
       #k_fc_risk =  with_itc - without_itc
+      print(&#34;k: {k}, without_itc: {y}, delta: {x}&#34;.format(k=k, y=without_itc,x=with_itc - without_itc))
       self.gen_dists[axis] += (-k) #reset firm capacity to 0
       return with_itc - without_itc
 
     diff_to_null = compare_itc_to_fc(0)
-
+    print(&#34;diff to null: {x}&#34;.format(x=diff_to_null))
     # now find the root of compare_itc_to_fc by bisection
 
     # is the interconnector adding risk?
@@ -1814,14 +1843,14 @@ risk metrics under a share policy, in which available power flow depends on dema
     `c` (`int`): width of trapezoid
 
     &#34;&#34;&#34;
-    return C_CALL.trapezoid_prob(
-                        np.int64(ulc1),
-                        np.int64(ulc2),
-                        np.int64(c),
-                        np.int64(X.X1.min),
-                        np.int64(X.X2.min),
-                        np.int64(X.X1.max),
-                        np.int64(X.X2.max),
+    return C_CALL.trapezoid_prob_py_interface(
+                        np.int32(ulc1),
+                        np.int32(ulc2),
+                        np.int32(c),
+                        np.int32(X.X1.min),
+                        np.int32(X.X2.min),
+                        np.int32(X.X1.max),
+                        np.int32(X.X2.max),
                         ffi.cast(&#34;double *&#34;,X.X1.cdf_vals.ctypes.data),
                         ffi.cast(&#34;double *&#34;,X.X2.cdf_vals.ctypes.data))
 
@@ -1846,16 +1875,16 @@ risk metrics under a share policy, in which available power flow depends on dema
 
     &#34;&#34;&#34;
 
-    return C_CALL.cond_epu_share(
-                    np.int64(d1),
-                    np.int64(d2),
-                    np.int64(v1),
-                    np.int64(v2),
-                    np.int64(c),
-                    np.int64(FX1.min),
-                    np.int64(FX2.min),
-                    np.int64(FX1.max),
-                    np.int64(FX2.max),
+    return C_CALL.cond_eeu_share_py_interface(
+                    np.int32(d1),
+                    np.int32(d2),
+                    np.int32(v1),
+                    np.int32(v2),
+                    np.int32(c),
+                    np.int32(FX1.min),
+                    np.int32(FX2.min),
+                    np.int32(FX1.max),
+                    np.int32(FX2.max),
                     ffi.cast(&#34;double *&#34;,FX1.cdf_vals.ctypes.data),
                     ffi.cast(&#34;double *&#34;,FX2.cdf_vals.ctypes.data),
                     ffi.cast(&#34;double *&#34;,FX1.expectation_vals.ctypes.data))
@@ -1877,14 +1906,14 @@ risk metrics under a share policy, in which available power flow depends on dema
 
     &#34;&#34;&#34;
 
-    return C_CALL.cond_epu_veto(
-                    np.int64(v1),
-                    np.int64(v2),
-                    np.int64(c),
-                    np.int64(FX1.min),
-                    np.int64(FX2.min),
-                    np.int64(FX1.max),
-                    np.int64(FX2.max),
+    return C_CALL.cond_eeu_veto_py_interface(
+                    np.int32(v1),
+                    np.int32(v2),
+                    np.int32(c),
+                    np.int32(FX1.min),
+                    np.int32(FX2.min),
+                    np.int32(FX1.max),
+                    np.int32(FX2.max),
                     ffi.cast(&#34;double *&#34;,FX1.cdf_vals.ctypes.data),
                     ffi.cast(&#34;double *&#34;,FX2.cdf_vals.ctypes.data),
                     ffi.cast(&#34;double *&#34;,FX1.expectation_vals.ctypes.data))
@@ -1942,7 +1971,7 @@ risk metrics under a share policy, in which available power flow depends on dema
 
     X = BivariateConvGenDist(X1,X2) #system-wide conv. gen. distribution
 
-    simulated = np.ascontiguousarray(np.zeros((n,2)),dtype=np.int64)
+    simulated = np.ascontiguousarray(np.zeros((n,2)),dtype=np.int32)
 
     ### calculate conditional probability of each historical observation given
     ### margin value tuple m
@@ -1958,28 +1987,28 @@ risk metrics under a share policy, in which available power flow depends on dema
       ## only pass rows which induce at least one simulated value
       df = df.query(&#34;row_weights &gt; 0&#34;)
 
-      row_weights = np.ascontiguousarray(df[&#34;row_weights&#34;],dtype=np.int64)
+      row_weights = np.ascontiguousarray(df[&#34;row_weights&#34;],dtype=np.int32)
 
-      net_demand = np.ascontiguousarray(df[[&#34;nd0&#34;,&#34;nd1&#34;]],dtype=np.int64)
+      net_demand = np.ascontiguousarray(df[[&#34;nd0&#34;,&#34;nd1&#34;]],dtype=np.int32)
 
-      demand = np.ascontiguousarray(df[[&#34;d0&#34;,&#34;d1&#34;]],dtype=np.int64)
+      demand = np.ascontiguousarray(df[[&#34;d0&#34;,&#34;d1&#34;]],dtype=np.int32)
 
-      C_CALL.region_simulation(
-        np.int64(n),
-        ffi.cast(&#34;long *&#34;,simulated.ctypes.data),
-        np.int64(X.X1.min),
-        np.int64(X.X2.min),
-        np.int64(X.X1.max),
-        np.int64(X.X2.max),
+      C_CALL.region_simulation_py_interface(
+        np.int32(n),
+        ffi.cast(&#34;int *&#34;,simulated.ctypes.data),
+        np.int32(X.X1.min),
+        np.int32(X.X2.min),
+        np.int32(X.X1.max),
+        np.int32(X.X2.max),
         ffi.cast(&#34;double *&#34;,X.X1.cdf_vals.ctypes.data),
         ffi.cast(&#34;double *&#34;,X.X2.cdf_vals.ctypes.data),
-        ffi.cast(&#34;long *&#34;,net_demand.ctypes.data),
-        ffi.cast(&#34;long *&#34;,demand.ctypes.data),
-        ffi.cast(&#34;long *&#34;,row_weights.ctypes.data),
-        np.int64(net_demand.shape[0]),
-        np.int64(m1),
-        np.int64(m2),
-        np.int64(c),
+        ffi.cast(&#34;int *&#34;,net_demand.ctypes.data),
+        ffi.cast(&#34;int *&#34;,demand.ctypes.data),
+        ffi.cast(&#34;int *&#34;,row_weights.ctypes.data),
+        np.int32(net_demand.shape[0]),
+        np.int32(m1),
+        np.int32(m2),
+        np.int32(c),
         int(seed),
         int(intersection),
         int(policy == &#34;share&#34;))
@@ -2016,7 +2045,7 @@ risk metrics under a share policy, in which available power flow depends on dema
 
     X = BivariateConvGenDist(X1,X2) #system-wide conv. gen. distribution
 
-    simulated = np.ascontiguousarray(np.zeros((n,2)),dtype=np.int64)
+    simulated = np.ascontiguousarray(np.zeros((n,2)),dtype=np.int32)
 
     ### calculate conditional probability of each historical observation given
     ### margin value tuple m
@@ -2041,27 +2070,27 @@ risk metrics under a share policy, in which available power flow depends on dema
       ## only pass rows which induce at least one simulated value
       df = df.query(&#34;row_weights &gt; 0&#34;)
 
-      row_weights = np.ascontiguousarray(df[&#34;row_weights&#34;],dtype=np.int64)
+      row_weights = np.ascontiguousarray(df[&#34;row_weights&#34;],dtype=np.int32)
 
-      net_demand = np.ascontiguousarray(df[[&#34;nd0&#34;,&#34;nd1&#34;]],dtype=np.int64)
+      net_demand = np.ascontiguousarray(df[[&#34;nd0&#34;,&#34;nd1&#34;]],dtype=np.int32)
 
-      demand = np.ascontiguousarray(df[[&#34;d0&#34;,&#34;d1&#34;]],dtype=np.int64)
+      demand = np.ascontiguousarray(df[[&#34;d0&#34;,&#34;d1&#34;]],dtype=np.int32)
 
-      C_CALL.conditioned_simulation(
-          np.int64(n),
-          ffi.cast(&#34;long *&#34;,simulated.ctypes.data),
-          np.int64(X.X1.min),
-          np.int64(X.X2.min),
-          np.int64(X.X1.max),
-          np.int64(X.X2.max),
+      C_CALL.conditioned_simulation_py_interface(
+          np.int32(n),
+          ffi.cast(&#34;int *&#34;,simulated.ctypes.data),
+          np.int32(X.X1.min),
+          np.int32(X.X2.min),
+          np.int32(X.X1.max),
+          np.int32(X.X2.max),
           ffi.cast(&#34;double *&#34;,X.X1.cdf_vals.ctypes.data),
           ffi.cast(&#34;double *&#34;,X.X2.cdf_vals.ctypes.data),
-          ffi.cast(&#34;long *&#34;,net_demand.ctypes.data),
-          ffi.cast(&#34;long *&#34;,demand.ctypes.data),
-          ffi.cast(&#34;long *&#34;,row_weights.ctypes.data),
-          np.int64(net_demand.shape[0]),
-          np.int64(m1),
-          np.int64(c),
+          ffi.cast(&#34;int *&#34;,net_demand.ctypes.data),
+          ffi.cast(&#34;int *&#34;,demand.ctypes.data),
+          ffi.cast(&#34;int *&#34;,row_weights.ctypes.data),
+          np.int32(net_demand.shape[0]),
+          np.int32(m1),
+          np.int32(c),
           int(seed),
           int(policy == &#34;share&#34;))
 
@@ -2105,26 +2134,25 @@ risk metrics under a share policy, in which available power flow depends on dema
       cdf_list = []
       
     for i in range(n):
-      #print(i)
       v1, v2 = self.net_demand[i,:]
 
       d1, d2 = self.demand[i,:]
 
-      point_cdf = C_CALL.get_cond_cdf(
-                      np.int64(gendist1.min),
-                      np.int64(gendist2.min),
-                      np.int64(gendist1.max),
-                      np.int64(gendist2.max),
+      point_cdf = C_CALL.cond_bivariate_power_margin_cdf_py_interface(
+                      np.int32(gendist1.min),
+                      np.int32(gendist2.min),
+                      np.int32(gendist1.max),
+                      np.int32(gendist2.max),
                       ffi.cast(&#34;double *&#34;,gendist1.cdf_vals.ctypes.data),
                       ffi.cast(&#34;double *&#34;,gendist2.cdf_vals.ctypes.data),
-                      np.int64(m1),
-                      np.int64(m2),
-                      np.int64(v1),
-                      np.int64(v2),
-                      np.int64(d1),
-                      np.int64(d2),
-                      np.int64(c),
-                      np.int64(policy == &#34;share&#34;))
+                      np.int32(m1),
+                      np.int32(m2),
+                      np.int32(v1),
+                      np.int32(v2),
+                      np.int32(d1),
+                      np.int32(d2),
+                      np.int32(c),
+                      np.int32(policy == &#34;share&#34;))
 
       #print(&#34;point cdf: {x}, index: {i}&#34;.format(x=point_cdf, i=i))
       cdf += point_cdf
@@ -2280,8 +2308,8 @@ risk metrics under a share policy, in which available power flow depends on dema
 </details>
 <h3>Static methods</h3>
 <dl>
-<dt id="psrmodels.time_collapsed.BivariateHindcastMargin.BivariateHindcastMargin.bivar_ecdf"><code class="name flex">
-<span>def <span class="ident">bivar_ecdf</span></span>(<span>X)</span>
+<dt id="psrmodels.time_collapsed.BivariateHindcastMargin.BivariateHindcastMargin.get_efc_metric_function"><code class="name flex">
+<span>def <span class="ident">get_efc_metric_function</span></span>(<span>metric, obj, **kwargs)</span>
 </code></dt>
 <dd>
 <div class="desc"></div>
@@ -2290,15 +2318,13 @@ risk metrics under a share policy, in which available power flow depends on dema
 <span>Expand source code</span>
 </summary>
 <pre><code class="python">@staticmethod
-def bivar_ecdf(X):
-  n = X.shape[0]
-  ecdf = np.ascontiguousarray(np.empty((n,)),dtype=np.float64)
-  C_CALL.bivar_ecdf(
-    ffi.cast(&#34;double *&#34;,ecdf.ctypes.data),
-    ffi.cast(&#34;double *&#34;,np.ascontiguousarray(X,dtype=np.float64).ctypes.data),
-    np.int64(n))
-
-  return ecdf</code></pre>
+def get_efc_metric_function(metric,obj,**kwargs):
+    if isinstance(metric,str):
+      return getattr(obj,metric)
+    elif callable(metric):
+      return lambda c,policy,axis: metric(obj=obj,c=c,policy=policy,axis=axis,**kwargs) #return curried metric set_metric_function
+    else:
+      raise Exception(&#34;&#39;metric&#39; has to be either a function or a string&#34;)</code></pre>
 </details>
 </dd>
 </dl>
@@ -2353,26 +2379,25 @@ def bivar_ecdf(X):
     cdf_list = []
     
   for i in range(n):
-    #print(i)
     v1, v2 = self.net_demand[i,:]
 
     d1, d2 = self.demand[i,:]
 
-    point_cdf = C_CALL.get_cond_cdf(
-                    np.int64(gendist1.min),
-                    np.int64(gendist2.min),
-                    np.int64(gendist1.max),
-                    np.int64(gendist2.max),
+    point_cdf = C_CALL.cond_bivariate_power_margin_cdf_py_interface(
+                    np.int32(gendist1.min),
+                    np.int32(gendist2.min),
+                    np.int32(gendist1.max),
+                    np.int32(gendist2.max),
                     ffi.cast(&#34;double *&#34;,gendist1.cdf_vals.ctypes.data),
                     ffi.cast(&#34;double *&#34;,gendist2.cdf_vals.ctypes.data),
-                    np.int64(m1),
-                    np.int64(m2),
-                    np.int64(v1),
-                    np.int64(v2),
-                    np.int64(d1),
-                    np.int64(d2),
-                    np.int64(c),
-                    np.int64(policy == &#34;share&#34;))
+                    np.int32(m1),
+                    np.int32(m2),
+                    np.int32(v1),
+                    np.int32(v2),
+                    np.int32(d1),
+                    np.int32(d2),
+                    np.int32(c),
+                    np.int32(policy == &#34;share&#34;))
 
     #print(&#34;point cdf: {x}, index: {i}&#34;.format(x=point_cdf, i=i))
     cdf += point_cdf
@@ -2404,13 +2429,14 @@ def bivar_ecdf(X):
 <p><code>c</code> (<code>int</code>): interconnection capacity</p>
 <p><code>policy</code> (<code>str</code>): Either 'share' or 'veto'</p>
 <p><code>axis</code> (<code>int</code>): area for which risk will be calculated</p>
-<p><code>metric</code> (<code>string</code>): name of the instance's method that will be used to measure risk. Only 'LOLE' and 'EEU' are supported</p>
+<p><code>metric</code> (<code>string</code> or function): Baseline risk metric that will be used to calculate EFC. If a <code>string</code>, use matching method from the appropriate <code><a title="psrmodels.time_collapsed.BivariateHindcastMargin.BivariateHindcastMargin" href="#psrmodels.time_collapsed.BivariateHindcastMargin.BivariateHindcastMargin">BivariateHindcastMargin</a></code> instance (for example, "<code>1lole</code>" or "<code>eeu</code>"); if a function, it needs to take as parameters a <code><a title="psrmodels.time_collapsed.BivariateHindcastMargin.BivariateHindcastMargin" href="#psrmodels.time_collapsed.BivariateHindcastMargin.BivariateHindcastMargin">BivariateHindcastMargin</a></code> instance <code>obj</code>, interconnection capacity <code>c</code>, axis <code>axis</code> and
+policy <code>policy</code>, and optionally additional arguments. This is useful for using more complex metrics such as quantiles.</p>
 <p><code>tol</code> (<code>float</code>): absolute error tolerance from true target risk value</p></div>
 <details class="source">
 <summary>
 <span>Expand source code</span>
 </summary>
-<pre><code class="python">def convgen_efc(self, cap, prob, gen_axis, fc_axis, c,policy,metric=&#34;lole&#34;,axis=0,tol=0.1,**kwargs):
+<pre><code class="python">def convgen_efc(self, cap, prob, gen_axis, fc_axis, c,policy, metric=&#34;lole&#34;,axis=0,tol=0.1,**kwargs):
   &#34;&#34;&#34;Returns the amount of firm capacity that needs to be added to area `fc_axis` such that area `axis` has the same risk (as defined by `metric`) than if new conventional generation was installed in `gen_axis`.
 
   **Parameters**:
@@ -2429,11 +2455,12 @@ def bivar_ecdf(X):
 
   `axis` (`int`): area for which risk will be calculated
 
-  `metric` (`string`): name of the instance&#39;s method that will be used to measure risk. Only &#39;LOLE&#39; and &#39;EEU&#39; are supported
+  `metric` (`string` or function): Baseline risk metric that will be used to calculate EFC. If a `string`, use matching method from the appropriate `BivariateHindcastMargin` instance (for example, &#34;`1lole`&#34; or &#34;`eeu`&#34;); if a function, it needs to take as parameters a `BivariateHindcastMargin` instance `obj`, interconnection capacity `c`, axis `axis` and  policy `policy`, and optionally additional arguments. This is useful for using more complex metrics such as quantiles.
 
   `tol` (`float`): absolute error tolerance from true target risk value
 
   &#34;&#34;&#34;
+
   if not (axis in [0,1]):
     raise Exception(&#34;axis value must be 0 or 1&#34;)
 
@@ -2459,7 +2486,8 @@ def bivar_ecdf(X):
   new_bivariate_dist[gen_axis] = augmented_gen_dist
   new_bivariate_dist[other] = self.gen_dists[other]
   new_margin_dist = BivariateHindcastMargin(self.demand,self.renewables,new_bivariate_dist)
-  new_metric_func = getattr(new_margin_dist,metric)
+  
+  new_metric_func = BivariateHindcastMargin.get_efc_metric_function(metric,new_margin_dist,**kwargs)
   new_metric_val = new_metric_func(c=c,policy=policy,axis=axis)
 
   print(&#34;new metric val: {x}&#34;.format(x=new_metric_val))
@@ -2481,7 +2509,7 @@ def bivar_ecdf(X):
     original_bivariate_dist[fc_axis] += x
     # create bivariate margin distribution object
     dist = BivariateHindcastMargin(self.demand,self.renewables,original_bivariate_dist)
-    metric_func = getattr(dist,metric)
+    metric_func = BivariateHindcastMargin.get_efc_metric_function(metric,dist,**kwargs)
     metric_val = metric_func(c=c,policy=policy,axis=axis)
 
     # reset firm capacity to 0
@@ -2634,7 +2662,8 @@ def bivar_ecdf(X):
 <p><code>c</code> (<code>int</code>): interconnection capacity</p>
 <p><code>policy</code> (<code>str</code>): Either 'share' or 'veto'</p>
 <p><code>axis</code> (<code>int</code>): area for which risk will be calculated</p>
-<p><code>metric</code> (<code>string</code>): name of the instance's method that will be used to measure risk</p>
+<p><code>metric</code> (<code>string</code> or function): Baseline risk metric that will be used to calculate EFC. If a <code>string</code>, use matching method from the appropriate <code><a title="psrmodels.time_collapsed.BivariateHindcastMargin.BivariateHindcastMargin" href="#psrmodels.time_collapsed.BivariateHindcastMargin.BivariateHindcastMargin">BivariateHindcastMargin</a></code> instance (for example, "<code>1lole</code>" or "<code>eeu</code>"); if a function, it needs to take as parameters a <code><a title="psrmodels.time_collapsed.BivariateHindcastMargin.BivariateHindcastMargin" href="#psrmodels.time_collapsed.BivariateHindcastMargin.BivariateHindcastMargin">BivariateHindcastMargin</a></code> instance <code>obj</code>, interconnection capacity <code>c</code>, axis <code>axis</code> and
+policy <code>policy</code>, and optionally additional arguments. This is useful for using more complex metrics such as quantiles.</p>
 <p><code>tol</code> (<code>float</code>): absolute error tolerance from true target risk value</p></div>
 <details class="source">
 <summary>
@@ -2651,28 +2680,32 @@ def bivar_ecdf(X):
 
   `axis` (`int`): area for which risk will be calculated
 
-  `metric` (`string`): name of the instance&#39;s method that will be used to measure risk
+  `metric` (`string` or function): Baseline risk metric that will be used to calculate EFC. If a `string`, use matching method from the appropriate `BivariateHindcastMargin` instance (for example, &#34;`1lole`&#34; or &#34;`eeu`&#34;); if a function, it needs to take as parameters a `BivariateHindcastMargin` instance `obj`, interconnection capacity `c`, axis `axis` and  policy `policy`, and optionally additional arguments. This is useful for using more complex metrics such as quantiles.
 
   `tol` (`float`): absolute error tolerance from true target risk value
 
   &#34;&#34;&#34;
-  if not metric in [&#34;lole&#34;,&#34;eeu&#34;]:
-    raise Exception(&#34;Only &#39;lole&#39; or &#39;eeu&#39; supported as risk metrics&#34;)
+  # if not metric in [&#34;lole&#34;,&#34;eeu&#34;]:
+  #   raise Exception(&#34;Only &#39;lole&#39; or &#39;eeu&#39; supported as risk metrics&#34;)
   
   #target value
-  with_itc = getattr(self,metric)(c=c,axis=axis,policy=policy,**kwargs)
+  metric_func = BivariateHindcastMargin.get_efc_metric_function(metric,self,**kwargs)
+  with_itc = metric_func(c=c,axis=axis,policy=policy,**kwargs)
+
+  print(&#34;with_itc: {x}&#34;.format(x=with_itc))
 
   def compare_itc_to_fc(k):
     self.gen_dists[axis] += k ## add firm capacity
-    univar = UnivariateHindcastMargin(self.gen_dists[axis],self.net_demand[:,axis])
-    #risk_metric = getattr(univar,metric)
-    without_itc = getattr(univar,metric)()
+    #univar = UnivariateHindcastMargin(self.gen_dists[axis],self.net_demand[:,axis])
+    #without_itc = getattr(univar,metric)()
+    without_itc = BivariateHindcastMargin.get_efc_metric_function(metric,self,**kwargs)(policy=policy,axis=axis,c=0)
     #k_fc_risk =  with_itc - without_itc
+    print(&#34;k: {k}, without_itc: {y}, delta: {x}&#34;.format(k=k, y=without_itc,x=with_itc - without_itc))
     self.gen_dists[axis] += (-k) #reset firm capacity to 0
     return with_itc - without_itc
 
   diff_to_null = compare_itc_to_fc(0)
-
+  print(&#34;diff to null: {x}&#34;.format(x=diff_to_null))
   # now find the root of compare_itc_to_fc by bisection
 
   # is the interconnector adding risk?
@@ -2847,7 +2880,7 @@ def bivar_ecdf(X):
 
   &#34;&#34;&#34;
 
-  x = np.int64(x)
+  x = np.int32(x)
   return self.cdf(x,**kwargs) - (self.cdf(x - (1,0),**kwargs) - self.cdf(x - (0,1),**kwargs) + self.cdf(x - (1,1),**kwargs))</code></pre>
 </details>
 </dd>
@@ -2897,7 +2930,7 @@ def bivar_ecdf(X):
 
   X = BivariateConvGenDist(X1,X2) #system-wide conv. gen. distribution
 
-  simulated = np.ascontiguousarray(np.zeros((n,2)),dtype=np.int64)
+  simulated = np.ascontiguousarray(np.zeros((n,2)),dtype=np.int32)
 
   ### calculate conditional probability of each historical observation given
   ### margin value tuple m
@@ -2922,27 +2955,27 @@ def bivar_ecdf(X):
     ## only pass rows which induce at least one simulated value
     df = df.query(&#34;row_weights &gt; 0&#34;)
 
-    row_weights = np.ascontiguousarray(df[&#34;row_weights&#34;],dtype=np.int64)
+    row_weights = np.ascontiguousarray(df[&#34;row_weights&#34;],dtype=np.int32)
 
-    net_demand = np.ascontiguousarray(df[[&#34;nd0&#34;,&#34;nd1&#34;]],dtype=np.int64)
+    net_demand = np.ascontiguousarray(df[[&#34;nd0&#34;,&#34;nd1&#34;]],dtype=np.int32)
 
-    demand = np.ascontiguousarray(df[[&#34;d0&#34;,&#34;d1&#34;]],dtype=np.int64)
+    demand = np.ascontiguousarray(df[[&#34;d0&#34;,&#34;d1&#34;]],dtype=np.int32)
 
-    C_CALL.conditioned_simulation(
-        np.int64(n),
-        ffi.cast(&#34;long *&#34;,simulated.ctypes.data),
-        np.int64(X.X1.min),
-        np.int64(X.X2.min),
-        np.int64(X.X1.max),
-        np.int64(X.X2.max),
+    C_CALL.conditioned_simulation_py_interface(
+        np.int32(n),
+        ffi.cast(&#34;int *&#34;,simulated.ctypes.data),
+        np.int32(X.X1.min),
+        np.int32(X.X2.min),
+        np.int32(X.X1.max),
+        np.int32(X.X2.max),
         ffi.cast(&#34;double *&#34;,X.X1.cdf_vals.ctypes.data),
         ffi.cast(&#34;double *&#34;,X.X2.cdf_vals.ctypes.data),
-        ffi.cast(&#34;long *&#34;,net_demand.ctypes.data),
-        ffi.cast(&#34;long *&#34;,demand.ctypes.data),
-        ffi.cast(&#34;long *&#34;,row_weights.ctypes.data),
-        np.int64(net_demand.shape[0]),
-        np.int64(m1),
-        np.int64(c),
+        ffi.cast(&#34;int *&#34;,net_demand.ctypes.data),
+        ffi.cast(&#34;int *&#34;,demand.ctypes.data),
+        ffi.cast(&#34;int *&#34;,row_weights.ctypes.data),
+        np.int32(net_demand.shape[0]),
+        np.int32(m1),
+        np.int32(c),
         int(seed),
         int(policy == &#34;share&#34;))
 
@@ -3017,7 +3050,7 @@ def bivar_ecdf(X):
 
   X = BivariateConvGenDist(X1,X2) #system-wide conv. gen. distribution
 
-  simulated = np.ascontiguousarray(np.zeros((n,2)),dtype=np.int64)
+  simulated = np.ascontiguousarray(np.zeros((n,2)),dtype=np.int32)
 
   ### calculate conditional probability of each historical observation given
   ### margin value tuple m
@@ -3033,28 +3066,28 @@ def bivar_ecdf(X):
     ## only pass rows which induce at least one simulated value
     df = df.query(&#34;row_weights &gt; 0&#34;)
 
-    row_weights = np.ascontiguousarray(df[&#34;row_weights&#34;],dtype=np.int64)
+    row_weights = np.ascontiguousarray(df[&#34;row_weights&#34;],dtype=np.int32)
 
-    net_demand = np.ascontiguousarray(df[[&#34;nd0&#34;,&#34;nd1&#34;]],dtype=np.int64)
+    net_demand = np.ascontiguousarray(df[[&#34;nd0&#34;,&#34;nd1&#34;]],dtype=np.int32)
 
-    demand = np.ascontiguousarray(df[[&#34;d0&#34;,&#34;d1&#34;]],dtype=np.int64)
+    demand = np.ascontiguousarray(df[[&#34;d0&#34;,&#34;d1&#34;]],dtype=np.int32)
 
-    C_CALL.region_simulation(
-      np.int64(n),
-      ffi.cast(&#34;long *&#34;,simulated.ctypes.data),
-      np.int64(X.X1.min),
-      np.int64(X.X2.min),
-      np.int64(X.X1.max),
-      np.int64(X.X2.max),
+    C_CALL.region_simulation_py_interface(
+      np.int32(n),
+      ffi.cast(&#34;int *&#34;,simulated.ctypes.data),
+      np.int32(X.X1.min),
+      np.int32(X.X2.min),
+      np.int32(X.X1.max),
+      np.int32(X.X2.max),
       ffi.cast(&#34;double *&#34;,X.X1.cdf_vals.ctypes.data),
       ffi.cast(&#34;double *&#34;,X.X2.cdf_vals.ctypes.data),
-      ffi.cast(&#34;long *&#34;,net_demand.ctypes.data),
-      ffi.cast(&#34;long *&#34;,demand.ctypes.data),
-      ffi.cast(&#34;long *&#34;,row_weights.ctypes.data),
-      np.int64(net_demand.shape[0]),
-      np.int64(m1),
-      np.int64(m2),
-      np.int64(c),
+      ffi.cast(&#34;int *&#34;,net_demand.ctypes.data),
+      ffi.cast(&#34;int *&#34;,demand.ctypes.data),
+      ffi.cast(&#34;int *&#34;,row_weights.ctypes.data),
+      np.int32(net_demand.shape[0]),
+      np.int32(m1),
+      np.int32(m2),
+      np.int32(c),
       int(seed),
       int(intersection),
       int(policy == &#34;share&#34;))
@@ -3194,12 +3227,12 @@ def bivar_ecdf(X):
 <li>
 <h4><code><a title="psrmodels.time_collapsed.BivariateHindcastMargin.BivariateHindcastMargin" href="#psrmodels.time_collapsed.BivariateHindcastMargin.BivariateHindcastMargin">BivariateHindcastMargin</a></code></h4>
 <ul class="">
-<li><code><a title="psrmodels.time_collapsed.BivariateHindcastMargin.BivariateHindcastMargin.bivar_ecdf" href="#psrmodels.time_collapsed.BivariateHindcastMargin.BivariateHindcastMargin.bivar_ecdf">bivar_ecdf</a></code></li>
 <li><code><a title="psrmodels.time_collapsed.BivariateHindcastMargin.BivariateHindcastMargin.cdf" href="#psrmodels.time_collapsed.BivariateHindcastMargin.BivariateHindcastMargin.cdf">cdf</a></code></li>
 <li><code><a title="psrmodels.time_collapsed.BivariateHindcastMargin.BivariateHindcastMargin.convgen_efc" href="#psrmodels.time_collapsed.BivariateHindcastMargin.BivariateHindcastMargin.convgen_efc">convgen_efc</a></code></li>
 <li><code><a title="psrmodels.time_collapsed.BivariateHindcastMargin.BivariateHindcastMargin.eeu" href="#psrmodels.time_collapsed.BivariateHindcastMargin.BivariateHindcastMargin.eeu">eeu</a></code></li>
 <li><code><a title="psrmodels.time_collapsed.BivariateHindcastMargin.BivariateHindcastMargin.efc" href="#psrmodels.time_collapsed.BivariateHindcastMargin.BivariateHindcastMargin.efc">efc</a></code></li>
 <li><code><a title="psrmodels.time_collapsed.BivariateHindcastMargin.BivariateHindcastMargin.epu" href="#psrmodels.time_collapsed.BivariateHindcastMargin.BivariateHindcastMargin.epu">epu</a></code></li>
+<li><code><a title="psrmodels.time_collapsed.BivariateHindcastMargin.BivariateHindcastMargin.get_efc_metric_function" href="#psrmodels.time_collapsed.BivariateHindcastMargin.BivariateHindcastMargin.get_efc_metric_function">get_efc_metric_function</a></code></li>
 <li><code><a title="psrmodels.time_collapsed.BivariateHindcastMargin.BivariateHindcastMargin.itc_efc" href="#psrmodels.time_collapsed.BivariateHindcastMargin.BivariateHindcastMargin.itc_efc">itc_efc</a></code></li>
 <li><code><a title="psrmodels.time_collapsed.BivariateHindcastMargin.BivariateHindcastMargin.lole" href="#psrmodels.time_collapsed.BivariateHindcastMargin.BivariateHindcastMargin.lole">lole</a></code></li>
 <li><code><a title="psrmodels.time_collapsed.BivariateHindcastMargin.BivariateHindcastMargin.margin_cdf" href="#psrmodels.time_collapsed.BivariateHindcastMargin.BivariateHindcastMargin.margin_cdf">margin_cdf</a></code></li>
