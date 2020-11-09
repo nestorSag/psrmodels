@@ -1,7 +1,7 @@
 import setuptools
 from distutils.core import Extension
 
-LATEST = "1.2.6"
+LATEST = "1.2.7"
 
 with open("README.md", "r") as fh:
 
