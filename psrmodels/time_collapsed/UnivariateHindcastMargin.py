@@ -139,7 +139,7 @@ class UnivariateHindcastMargin(object):
               ffi.cast("double *",self.gen.cdf_vals.ctypes.data),
               ffi.cast("double *",self.gen.expectation_vals.ctypes.data))
 
-  def cvar(self, conditional = True):
+  def cvar(self, x, conditional = True):
     """calculate conditional value at risk for the left tail of the power margin distribution
 
     **Parameters**:

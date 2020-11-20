@@ -50,7 +50,7 @@ class UnivariateBayesianEVMargin(UnivariateEVMargin):
 
     output = np.ascontiguousarray(np.empty((self.n_posterior,)),dtype=np.float64)
 
-    C_CALL.bayesian_semiparametric_power_margin_cdf__trace_py_interface(
+    C_CALL.bayesian_semiparametric_power_margin_cdf_trace_py_interface(
       np.int32(m),
       np.float64(self.u),
       np.float64(self.p),
@@ -74,11 +74,11 @@ class UnivariateBayesianEVMargin(UnivariateEVMargin):
   # def _nd_tail_cdf(self,x):
   #   return np.mean(gp.cdf(x,c=self.posterior_xi,loc=self.u,scale=self.posterior_sigma))
 
-  def _rescaled_cvar_trace(self,x):
+  def cvar_trace(self,x):
 
     output = np.ascontiguousarray(np.empty((self.n_posterior,)),dtype=np.float64)
 
-    C_CALL.bayesian_semiparametric_cvar__trace_py_interface(
+    C_CALL.bayesian_semiparametric_cvar_trace_py_interface(
                         np.int32(x),
                         np.float64(self.u),
                         np.float64(self.p),
@@ -100,7 +100,7 @@ class UnivariateBayesianEVMargin(UnivariateEVMargin):
 
   def _rescaled_cvar(self,x):
 
-    return np.mean(self._rescaled_cvar_trace(x))
+    return np.mean(self.cvar_trace(x))
 
   def _get_posterior_samples(self,obs,n_samples,seed):
 
