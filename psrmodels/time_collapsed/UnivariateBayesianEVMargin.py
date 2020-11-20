@@ -39,7 +39,7 @@ class UnivariateBayesianEVMargin(UnivariateEVMargin):
     self._get_posterior_samples(exceedances,n_posterior_samples,seed)
     
 
-  def cdf(self,m):
+  def cdf_trace(self,m):
     """calculate margin CDF values
 
     **Parameters**:
@@ -47,7 +47,10 @@ class UnivariateBayesianEVMargin(UnivariateEVMargin):
     `m` (`float`): point to evaluate on
 
     """
-    return C_CALL.bayesian_semiparametric_power_margin_cdf_py_interface(
+
+    output = np.ascontiguousarray(np.empty((self.n_posterior,)),dtype=np.float64)
+
+    C_CALL.bayesian_semiparametric_power_margin_cdf__trace_py_interface(
       np.int32(m),
       np.float64(self.u),
       np.float64(self.p),
@@ -58,15 +61,25 @@ class UnivariateBayesianEVMargin(UnivariateEVMargin):
       np.int32(self.gen.min),
       np.int32(self.gen.max),
       ffi.cast("int *",self.nd_vals.ctypes.data),
-      ffi.cast("double *",self.gen.cdf_vals.ctypes.data)
+      ffi.cast("double *",self.gen.cdf_vals.ctypes.data),
+      ffi.cast("double *",output.ctypes.data)
       )
+
+    return output
+
+  def cdf(self,m):
+
+    return np.mean(self.cdf_trace(m))
 
   # def _nd_tail_cdf(self,x):
   #   return np.mean(gp.cdf(x,c=self.posterior_xi,loc=self.u,scale=self.posterior_sigma))
 
-  def epu(self):
+  def _rescaled_cvar_trace(self,x):
 
-    epu = C_CALL.bayesian_semiparametric_eeu_py_interface(
+    output = np.ascontiguousarray(np.empty((self.n_posterior,)),dtype=np.float64)
+
+    C_CALL.bayesian_semiparametric_cvar__trace_py_interface(
+                        np.int32(x),
                         np.float64(self.u),
                         np.float64(self.p),
                         np.int32(self.n_posterior),
@@ -77,12 +90,17 @@ class UnivariateBayesianEVMargin(UnivariateEVMargin):
                         np.int32(self.gen.max),
                         ffi.cast("int *",self.nd_vals.ctypes.data),
                         ffi.cast("double *",self.gen.cdf_vals.ctypes.data),
-                        ffi.cast("double *",self.gen.expectation_vals.ctypes.data))
+                        ffi.cast("double *",self.gen.expectation_vals.ctypes.data),
+                        ffi.cast("double *",output.ctypes.data))
 
-    if epu == -1:
-      epu = np.Inf
-      
-    return epu
+    if output[0] == -1:
+      raise Exception("Estimator is unbounded (posterior shape parameter samples are larger than 1)")
+    else:
+      return output
+
+  def _rescaled_cvar(self,x):
+
+    return np.mean(self._rescaled_cvar_trace(x))
 
   def _get_posterior_samples(self,obs,n_samples,seed):
 

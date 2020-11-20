@@ -128,15 +128,10 @@ class UnivariateHindcastMargin(object):
 
     return self.n * self.lolp()
 
-  def epu(self):
-    """calculate expected power unserved
+  def _rescaled_cvar(self,x):
 
-    **Parameters**:
-    
-    `x` (`numpy.ndarray`): point to evaluate on
-
-    """
-    return  C_CALL.empirical_eeu_py_interface(
+    return  C_CALL.empirical_cvar_py_interface(
+              np.int32(x),
               np.int32(self.n),
               np.int32(self.gen.min),
               np.int32(self.gen.max),
@@ -144,12 +139,28 @@ class UnivariateHindcastMargin(object):
               ffi.cast("double *",self.gen.cdf_vals.ctypes.data),
               ffi.cast("double *",self.gen.expectation_vals.ctypes.data))
 
+  def cvar(self, conditional = True):
+    """calculate conditional value at risk for the left tail of the power margin distribution
+
+    **Parameters**:
+    
+    `x` (`int`): upper bound
+
+    `conditional` (`boolean`): if `True`, returns E[M|M<x], otherwise returns P(X < x) * E[X|X<x]
+
+    """
+    raw = self._rescaled_cvar(x)
+    if conditional:
+      return raw/self.cdf(x-1)
+    else:
+      return raw
+
   def eeu(self):
     """calculate expected energy unserved
 
     """
 
-    return self.n * self.epu()
+    return self.n * self.cvar(0,False)
 
   def _simulate_nd(self,n):
 

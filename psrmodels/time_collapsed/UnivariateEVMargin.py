@@ -85,9 +85,10 @@ class UnivariateEVMargin(UnivariateHindcastMargin):
       ffi.cast("double *",self.gen.cdf_vals.ctypes.data)
       )
 
-  def epu(self):
+  def _rescaled_cvar(self, x):
 
-    epu = C_CALL.semiparametric_eeu_py_interface(
+    cvar = C_CALL.semiparametric_cvar_py_interface(
+                        np.int32(x),
                         np.float64(self.u),
                         np.float64(self.p),
                         np.float64(self.sigma),
@@ -99,10 +100,10 @@ class UnivariateEVMargin(UnivariateHindcastMargin):
                         ffi.cast("double *",self.gen.cdf_vals.ctypes.data),
                         ffi.cast("double *",self.gen.expectation_vals.ctypes.data))
 
-    if epu == -1:
-      epu = np.Inf
+    if cvar == -1:
+      cvar = np.Inf
       
-    return epu
+    return cvar
 
   def _simulate_nd(self,n):
 

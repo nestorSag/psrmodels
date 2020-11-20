@@ -568,7 +568,7 @@ void conditioned_simulation(
   double flow, u;
 
   Coord p11 = {0,0}, p12 = {0,0}, p21 = {0,0}, p22 = {0,0};
-  Polygon plg1 = {&p11,&p12}, plg2 = {&p21,&p22};
+  Polygon plg1 = {&p11,&p12};//, plg2 = {&p21,&p22};
   double cond_x2_cdf[F->y->max+1]; //not all entries will be filled, but it works
 
   DiscreteDistribution F_cond = {F->y->min, F->y->max, &cond_x2_cdf[0], F->y->expectation};
@@ -682,13 +682,6 @@ void bivariate_empirical_cdf(
 
 
 // ***************** Interfaces to Python
-
-void get_double_vector_from_py_objs(DoubleVector* vector, double* value, int size){
-
-  vector -> value = value;
-  vector ->size = size;
-}
-
 
 void get_observed_data_from_py_objs(ObservedData* obs, int d1, int d2, int nd1, int nd2){
 

@@ -29,6 +29,18 @@ typedef struct IntVector{
   int size;
 } IntVector;
 
+/**
+ * @brief This object represents a vector of double observations
+ *
+ * @param value data
+ * @param size data size (length)
+ */
+typedef struct DoubleVector{
+  double* value;
+  int size;
+} DoubleVector;
+
+
 
 /**
  * @brief This object represents a fitted Generalised Pareto tail model
@@ -102,10 +114,10 @@ double min(double num1, double num2);
 double empirical_power_margin_cdf(DiscreteDistribution* F, IntVector* net_demand, int x);
 
 /**
- * @brief Returns expected energy unserved estimate from an available generation probability model and a net demand sample
+ * @brief Returns conditional value at risk from an available generation probability model and a net demand sample; q is the upper bound to use
  *
  */
-double empirical_eeu(DiscreteDistribution* F, IntVector* net_demand);
+double empirical_cvar(DiscreteDistribution* F, IntVector* net_demand, int q);
 
 /**
  * @brief Returns a Generalised Pareto CDF evaluated at x
@@ -153,39 +165,44 @@ double semiparametric_net_demand_pdf(GPModel* gp, IntVector* net_demand, double 
  * @brief Returns the CDF of a net demand model with a Bayesian GP tail component evaluated at x 
  *
  */
-double bayesian_semiparametric_net_demand_cdf(PosteriorGPTrace* gpt, IntVector* net_demand, double x);
 
+
+
+//void bayesian_semiparametric_net_demand_cdf_trace(PosteriorGPTrace* gpt, IntVector* net_demand, DoubleVector* output, double x);
 /**
  * @brief Returns the PDF of a net demand model with a Bayesian GP tail component evaluated at x 
  *
  */
-double bayesian_semiparametric_net_demand_pdf(PosteriorGPTrace* gpt, IntVector* net_demand, double x);
-
+//double bayesian_semiparametric_net_demand_pdf_trace(PosteriorGPTrace* gpt, IntVector* net_demand, DoubleVector* output, double x);
 /**
  * @brief Returns the CDF of a power margin model whose net demand has a GP tail component, evaluated at x 
  *
  */
+
+
+
+
+
 double semiparametric_power_margin_cdf(GPModel* gp, IntVector* net_demand, DiscreteDistribution* F, double x);
 
 /**
  * @brief Returns the CDF of a power margin model whose net demand has a Bayesian GP tail component, evaluated at x 
  *
  */
-double bayesian_semiparametric_power_margin_cdf(PosteriorGPTrace* gpt, IntVector* net_demand, DiscreteDistribution* F, double x);
+void bayesian_semiparametric_power_margin_cdf_trace(PosteriorGPTrace* gpt, IntVector* net_demand, DiscreteDistribution* F, DoubleVector* output, double x);
 //double bayesian_semiparametric_power_margin_cdf(PosteriorGPTrace* gpt, DiscreteDistribution* F, double x);
 
 /**
- * @brief Returns the EEU estimate of a power margin model whose net demand has GP tail component
+ * @brief Returns conditional value at risk estimate of a power margin model whose net demand has GP tail component; q is the upper bound to be used
  *
  */
-double semiparametric_eeu(GPModel* gp, IntVector* net_demand, DiscreteDistribution* F);
+double semiparametric_cvar(GPModel* gp, IntVector* net_demand, DiscreteDistribution* F, int q);
 
 /**
- * @brief Returns the EEU estimate of a power margin model whose net demand has a Bayesian GP tail component
+ * @brief Returns the conditional value at risk estimate of a power margin model whose net demand has a Bayesian GP tail component; q is the upper bound to be used
  *
  */
-double bayesian_semiparametric_eeu(PosteriorGPTrace* gpt, IntVector* net_demand, DiscreteDistribution* F);
-
+void bayesian_semiparametric_cvar_trace(PosteriorGPTrace* gpt, IntVector* net_demand, DiscreteDistribution* F, DoubleVector* output, int q);
 
 
 // python interfaces
@@ -194,6 +211,8 @@ double bayesian_semiparametric_eeu(PosteriorGPTrace* gpt, IntVector* net_demand,
 void get_discrete_dist_from_py_objs(DiscreteDistribution* F, double* cdf, double* expectation, int min, int max);
 
 void get_int_vector_from_py_objs(IntVector* vector, int* value, int size);
+
+void get_double_vector_from_py_objs(DoubleVector* vector, double* value, int size);
 
 void get_gp_from_py_objs(GPModel* gp, double xi, double sigma, double u, double p);
 
@@ -225,7 +244,7 @@ double semiparametric_power_margin_cdf_py_interface(
   double* gen_cdf
   );
 
-double bayesian_semiparametric_power_margin_cdf_py_interface(
+void bayesian_semiparametric_power_margin_cdf_trace_py_interface(
   int x,
   double u,
   double p,
@@ -236,10 +255,11 @@ double bayesian_semiparametric_power_margin_cdf_py_interface(
   int gen_min,
   int gen_max,
   int* nd_vals,
-  double* gen_cdf
-  );
+  double* gen_cdf,
+  double* py_output);
 
-double empirical_eeu_py_interface(
+double empirical_cvar_py_interface(
+  int q,
   int nd_length,
   int gen_min,
   int gen_max,
@@ -247,7 +267,8 @@ double empirical_eeu_py_interface(
   double* gen_cdf,
   double* gen_expectation);
 
-double semiparametric_eeu_py_interface(
+double semiparametric_cvar_py_interface(
+  int q,
   double u,
   double p,
   double sigma,
@@ -259,7 +280,8 @@ double semiparametric_eeu_py_interface(
   double* gen_cdf,
   double* gen_expectation);
 
-double bayesian_semiparametric_eeu_py_interface(
+void bayesian_semiparametric_cvar_trace_py_interface(
+  int q,
   double u,
   double p,
   int n_posterior,
@@ -270,4 +292,5 @@ double bayesian_semiparametric_eeu_py_interface(
   int gen_max,
   int* nd_vals,
   double* gen_cdf,
-  double* gen_expectation);
+  double* gen_expectation,
+  double* py_output);

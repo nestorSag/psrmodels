@@ -9,10 +9,10 @@
  * @param value data
  * @param size data size (length)
  */
-typedef struct DoubleVector{
+/*typedef struct DoubleVector{
   double* value;
   int size;
-} DoubleVector;
+} DoubleVector;*/
 
 /**
  * @brief This object represents a bivariate discrete distribution with independent components
