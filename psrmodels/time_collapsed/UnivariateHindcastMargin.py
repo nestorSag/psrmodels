@@ -30,7 +30,7 @@ class UnivariateHindcastMargin(object):
     self.min = -np.max(self.nd_vals)
     self.max = self.gen.max - np.min(self.nd_vals)
 
-  def renewables_efc(self,demand,renewables,metric="lole",tol=0.1):
+  def renewables_efc(self,demand,renewables,metric="lole",tol=0.01):
     """calculate efc of wind fleer
 
     **Parameters**:
@@ -66,15 +66,29 @@ class UnivariateHindcastMargin(object):
       with_fc_risk = get_risk_function(metric)(with_fc_obj)
       self.gen += (-x)
       #print("fc: {x}, with_fc_risk:{wfcr}, with_wind_risk: {wwr}".format(x=x,wfcr=with_fc_risk,wwr=with_wind_risk))
-      return with_fc_risk - with_wind_risk
+      return (with_fc_risk - with_wind_risk)/with_wind_risk
 
-    delta = 300 
-    leftmost = 0
-    rightmost = 0
-    while bisection_target(rightmost) > 0:
-      rightmost += delta
+    diff_to_null = bisection_target(0)
+    delta = 500
 
-    #print("leftmost: {l}, rightmost: {r}".format(l=leftmost,r=rightmost))
+    #print("diff to null: {x}".format(x=diff_to_null))
+
+    if diff_to_null == 0: #itc is equivalent to null interconnection riskwise
+      return 0.0
+    else:      
+      # find suitalbe search intervals that are reasonably small
+      if diff_to_null > 0: #interconnector adds risk => negative firm capacity
+        rightmost = delta
+        leftmost = 0
+        while bisection_target(rightmost) > 0 :
+          rightmost += delta
+      else:
+        leftmost = -delta
+        rightmost = 0
+        while bisection_target(leftmost) < 0:
+          leftmost -= delta
+      
+      #print("finding efc in [{a},{b}]".format(a=leftmost,b=rightmost))
     efc, res = bisect(f=bisection_target,a=leftmost,b=rightmost,full_output=True,xtol=tol/2,rtol=tol/(2*with_wind_risk))
     #print("EFC: {efc}".format(efc=efc))
     if not res.converged:
@@ -144,14 +158,17 @@ class UnivariateHindcastMargin(object):
 
     **Parameters**:
     
-    `x` (`int`): upper bound
+    `x` (`int`): absolute value of power margin shortfall's lower bound
 
     `conditional` (`boolean`): if `True`, returns E[M|M<x], otherwise returns P(X < x) * E[X|X<x]
 
     """
+    if x < 0:
+      raise Exception("x must be a non-negative number.")
+
     raw = self._rescaled_cvar(x)
     if conditional:
-      return raw/self.cdf(x-1)
+      return raw/self.cdf(-x-1)
     else:
       return raw
 
@@ -180,7 +197,7 @@ class UnivariateHindcastMargin(object):
 
     """
     def bisection(x):
-      return self.cdf(x) - q
+      return (self.cdf(x) - q)/q
     
     delta = 1000
 

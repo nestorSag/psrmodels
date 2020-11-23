@@ -572,7 +572,7 @@ class BivariateHindcastMargin(object):
       original_bivariate_dist[fc_axis] += (-original_bivariate_dist[fc_axis].fc)
 
       print("Adding {x}, getting val {v}".format(x=x,v=metric_val))
-      return metric_val - new_metric_val
+      return (metric_val - new_metric_val)/new_metric_val
 
     efc, res = bisect(f=find_efc,a=leftmost,b=rightmost,full_output=True,xtol=tol/2,rtol=tol/(2*new_metric_val))
     if not res.converged:
@@ -614,10 +614,10 @@ class BivariateHindcastMargin(object):
       #k_fc_risk =  with_itc - without_itc
       print("k: {k}, without_itc: {y}, delta: {x}".format(k=k, y=without_itc,x=with_itc - without_itc))
       self.gen_dists[axis] += (-k) #reset firm capacity to 0
-      return with_itc - without_itc
+      return (with_itc - without_itc)/with_itc
 
     diff_to_null = compare_itc_to_fc(0)
-    print("diff to null: {x}".format(x=diff_to_null))
+    #print("diff to null: {x}".format(x=diff_to_null))
     # now find the root of compare_itc_to_fc by bisection
 
     # is the interconnector adding risk?
@@ -1106,7 +1106,7 @@ class BivariateHindcastMargin(object):
       y = np.empty((2,))
       y[1-i] = np.Inf
       y[i] = x
-      return self.cdf(y,c=c,policy=policy) - q
+      return (self.cdf(y,c=c,policy=policy) - q)/q
     
     step = 1000
 

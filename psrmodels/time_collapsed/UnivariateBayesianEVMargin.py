@@ -39,12 +39,12 @@ class UnivariateBayesianEVMargin(UnivariateEVMargin):
     self._get_posterior_samples(exceedances,n_posterior_samples,seed)
     
 
-  def cdf_trace(self,m):
-    """calculate margin CDF values
+  def cdf_trace(self,x):
+    """calculate margin CDF values for each posterior parameter sample
 
     **Parameters**:
     
-    `m` (`float`): point to evaluate on
+    `x` (`float`): point to evaluate on
 
     """
 
@@ -76,6 +76,16 @@ class UnivariateBayesianEVMargin(UnivariateEVMargin):
 
   def cvar_trace(self,x):
 
+    """calculate cvar values for each posterior parameter sample
+
+    **Parameters**:
+    
+    `x` (`float`): absolute value of power margin shortfall's lower bound
+
+    """
+    if x < 0:
+      raise Exception("x must be a non-negative number.")
+
     output = np.ascontiguousarray(np.empty((self.n_posterior,)),dtype=np.float64)
 
     C_CALL.bayesian_semiparametric_cvar_trace_py_interface(
@@ -94,7 +104,7 @@ class UnivariateBayesianEVMargin(UnivariateEVMargin):
                         ffi.cast("double *",output.ctypes.data))
 
     if output[0] == -1:
-      raise Exception("Estimator is unbounded (posterior shape parameter samples are larger than 1)")
+      raise Exception("cvar is unbounded; some posterior shape samples are larger than 1")
     else:
       return output
 
@@ -123,6 +133,8 @@ class UnivariateBayesianEVMargin(UnivariateEVMargin):
       xi = pm.Normal('xi',mu=0,sigma=1)
       sigma = pm.HalfFlat('sigma')
 
+      #sigma is remapped to values that prevent the loglikelihood to be -Inf; this happens if sigma is such that
+      # the theoretical upper bound of the data distribution is lower than their observed values.
       X = pm.DensityDist("tegpd",tegpd_logp,observed={"xi":xi,"sigma":(-xi*x_max).clip(0,np.Inf) + sigma,"x":obs})
       trace = pm.sample(n_samples,random_seed = seed)
       
@@ -133,7 +145,6 @@ class UnivariateBayesianEVMargin(UnivariateEVMargin):
       np.array(sigma_samples).reshape(-1,1),
       np.array(xi_samples).reshape(-1,1)],axis=1)
 
-    print("Done")
     self.posterior_sigma = np.ascontiguousarray(mat[:,0],dtype=np.float64)
     self.posterior_xi = np.ascontiguousarray(mat[:,1],dtype=np.float64)
 
