@@ -257,9 +257,10 @@ def test_time_dependent_margins():
         np.concatenate((gb_wind,irl_wind),axis=1),\
         [gb_td_convgen,irl_td_convgen])
       convgen_sim = td_h._get_gen_simulation(n_sim,1,True)
+      #print(td_h.gen_dists[0].saved_samples)
     else:
       td_h.set_w_d(np.concatenate((gb_dem,irl_dem),axis=1),np.concatenate((gb_wind,irl_wind),axis=1))
-      convgen_sim = td_h.gensim
+      convgen_sim = np.concatenate([gen.saved_sample.reshape((-1,1)) for gen in td_h.gen_dists],axis=1)
 
     # model output
     netdem = td_h.net_demand

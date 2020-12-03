@@ -4,7 +4,7 @@ from _c_ext_timedependence import ffi, lib as C_CALL
 
 class BivariateHindcastMargin(object):
 
-  """Multivariate hindcast time-dependent margin simulator
+  """Bivariate hindcast time-dependent margin simulator
   
     **Parameters**:
 
@@ -21,8 +21,8 @@ class BivariateHindcastMargin(object):
 
     self.gen_dists = gen_dists
 
-    self.gensim = None
-    self.gensim_nsim = None
+    #self.gensim = None
+    #self.gensim_nsim = None
 
   def set_w_d(self,demand,renewables):
 
@@ -35,6 +35,8 @@ class BivariateHindcastMargin(object):
       `renewables` (`numpy.array`): Matrix of renewable generation with one column per area 
 
     """
+    if demand.shape[1] != 2 or renewables.shape[1] != 2:
+      raise Exception("data matrices must have exactly 2 columns")
     self.net_demand = np.ascontiguousarray((demand - renewables).clip(min=0),dtype=np.float64) #no negative net demand
     self.wind = renewables
     self.demand = np.ascontiguousarray(demand).clip(min=0).astype(np.float64)
@@ -44,14 +46,10 @@ class BivariateHindcastMargin(object):
 
     gensim = np.ascontiguousarray(
       np.concatenate(
-        [self.gen_dists[i].simulate(n_sim=n_sim,n_timesteps=self.n-1,seed=seed+i) for i in range(len(self.gen_dists))],
+        [self.gen_dists[i].simulate(n_sim=n_sim,n_timesteps=self.n-1,seed=seed+i,use_buffer=save) for i in range(len(self.gen_dists))],
         axis=1
         )
       )
-
-    if save:
-      self.gensim = gensim
-      self.gensim_nsim = n_sim
 
     return gensim
 
@@ -70,31 +68,34 @@ class BivariateHindcastMargin(object):
 
       numpy.array of simulated values
     """
-    if use_saved:
-      if self.gensim is None:
-        # create state and make a copy
-        self.gensim = self._get_gen_simulation(n_sim,seed,True,**kwargs)
-        gensim = self.gensim.copy()
-      else:
-        if self.gensim_nsim < n_sim:
-          # run only the necessary simulations and append, then create a copy
-          new_sim = self._get_gen_simulation(n_sim-self.gensim_nsim,seed,True,**kwargs)
-          self.gensim = np.ascontiguousarray(np.concatenate((self.gensim,new_sim),axis=0)).astype(np.float64)
-          self.gensim_nsim = n_sim
-          gensim = self.gensim.copy()
-        else:
-          #create a copy of a slice, since there are more simulations than necessary
-          gensim = self.gensim[0:(self.n*n_sim),:].copy()  
-    else:
-      gensim = self._get_gen_simulation(n_sim,seed,False,**kwargs)
+    # if use_saved:
+    #   if self.gensim is None:
+    #     # create state and make a copy
+    #     self.gensim = self._get_gen_simulation(n_sim,seed,True,**kwargs)
+    #     gensim = self.gensim.copy()
+    #   else:
+    #     if self.gensim_nsim < n_sim:
+    #       # run only the necessary simulations and append, then create a copy
+    #       new_sim = self._get_gen_simulation(n_sim-self.gensim_nsim,seed,True,**kwargs)
+    #       self.gensim = np.ascontiguousarray(np.concatenate((self.gensim,new_sim),axis=0)).astype(np.float64)
+    #       self.gensim_nsim = n_sim
+    #       gensim = self.gensim.copy()
+    #     else:
+    #       #create a copy of a slice, since there are more simulations than necessary
+    #       gensim = self.gensim[0:(self.n*n_sim),:].copy()  
+    # else:
+    #   gensim = self._get_gen_simulation(n_sim,seed,False,**kwargs)
+
+    gensim = self._get_gen_simulation(n_sim,seed,use_saved,**kwargs)
 
     # overwrite gensim array with margin values
 
     C_CALL.calculate_pre_itc_margins_py_interface(
         ffi.cast("double *", gensim.ctypes.data),
         ffi.cast("double *",self.net_demand.ctypes.data),
-        np.int64(self.n),
-        np.int64(gensim.shape[0]))
+        np.int32(self.n),
+        np.int32(gensim.shape[0]),
+        np.int32(self.net_demand.shape[1]))
 
     return gensim
     #### get simulated outages from n_sim*self.n hours
@@ -118,6 +119,8 @@ class BivariateHindcastMargin(object):
 
       numpy.array of simulated values
     """
+    if(self.net_demand.shape[1] != 2):
+      raise Exception("Data needs to have exactly 2 columns")
 
     pre_itc = self.simulate_pre_itc(n_sim,seed,use_saved,**kwargs)
 
@@ -126,6 +129,7 @@ class BivariateHindcastMargin(object):
       C_CALL.calculate_post_itc_veto_margins_py_interface(
           ffi.cast("double *", pre_itc.ctypes.data),
           np.int64(pre_itc.shape[0]),
+          np.int32(self.net_demand.shape[1]),
           np.float64(c))
 
     elif policy == "share":
@@ -135,6 +139,7 @@ class BivariateHindcastMargin(object):
           ffi.cast("double *", self.demand.ctypes.data),
           np.int64(self.n),
           np.int64(pre_itc.shape[0]),
+          np.int32(self.net_demand.shape[1]),
           np.float64(c))
 
     else:

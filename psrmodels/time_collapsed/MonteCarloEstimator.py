@@ -46,9 +46,12 @@ class MonteCarloEstimator(object):
     `axis` (`int`): area for which this will be calculated
 
     """
-    shortfalls = self.find_shortfalls(obs,axis,c,policy)
+    #shortfalls = self.find_shortfalls(obs,axis,c,policy)
 
-    return np.mean(shortfalls) * season_length
+    #return np.mean(shortfalls) * season_length
+
+    m = (-1,npInf) if axis == 0 else (np.Inf,-1)
+    return self.cdf(m,obs,c,policy,axis) * season_length
 
   #@staticmethod
   def _power_flow(self,obs,c,policy,to_axis,demand=None):
@@ -158,7 +161,15 @@ class MonteCarloEstimator(object):
     return (np.sum(pu_a0) + np.sum(pu_a1))/obs.shape[0] * season_length
 
   #@staticmethod
-  def power_margin_cdf(self,x,obs,c=1000,policy="veto",axis=0):
+
+  def _get_post_itc(self,obs,c,policy):
+    if c > 0:
+      flow_to_0 = self._power_flow(obs=obs,c=c,policy=policy,to_axis=0)
+      obs = np.concatenate([(obs[:,0] + flow_to_0).reshape(m,1),(obs[:,1] - flow_to_0).reshape(m,1)],axis=1)
+
+    return obs
+
+  def cdf(self,x,obs,c=1000,policy="veto",axis=0):
     """returns empirical CDF
 
     **Parameters**:
@@ -173,14 +184,31 @@ class MonteCarloEstimator(object):
 
     """
     m = obs.shape[0]
-    if c > 0:
-      flow_to_0 = self._power_flow(obs=obs,c=c,policy=policy,to_axis=0)
-      obs = np.concatenate([(obs[:,0] + flow_to_0).reshape(m,1),(obs[:,1] - flow_to_0).reshape(m,1)],axis=1)
+    obs = self._get_post_itc(obs,c,policy)
     
     return np.mean(np.logical_and(obs[:,0] <= x[0],obs[:,1] <= x[1]))
 
+  def cvar(self,obs,bound,c=1000,policy="veto",metric="lole",axis=0):
+    """Calculates conditional value at risk given that `obs < bound` for a vector of observations
 
+    **Parameters**:
 
+    `obs` (`numpy.ndarray`): Observation matrix with a column per area
+    
+    `bound` (`float`): Upper bound used for conditioning
+
+    `c` (`int`): interconnection capacity
+
+    `policy` (`str`): Either 'share' or 'veto'
+
+    `metric` (`string` or function): Baseline risk metric that will be used to calculate EFC. If a `string`, use matching method from the appropriate `BivariateHindcastMargin` instance (for example, "`1lole`" or "`eeu`"); if a function, it needs to take as parameters a `BivariateHindcastMargin` instance `obj`, interconnection capacity `c`, axis `axis` and  policy `policy`, and optionally additional arguments. This is useful for using more complex metrics such as quantiles.
+
+    `axis` (`int`): area for which risk will be calculated
+
+    """
+
+    obs = self._get_post_itc(obs,c,policy)
+    return np.mean(obs[obs[:,axis]<bound,axis])
 
   #@staticmethod
   def itc_efc(self,obs,c=1000,policy="veto",metric="lole",axis=0,tol=0.1,**kwargs):
@@ -215,21 +243,21 @@ class MonteCarloEstimator(object):
       return with_itc - without_itc
 
     diff_to_null = find_efc(0)
-
+    delta = max(500,c)
     if diff_to_null == 0: #itc is equivalent to null interconnection riskwise
       return 0
     else:
       # find suitalbe search intervals that are reasonably small
       if diff_to_null > 0: #interconnector adds risk => negative firm capacity
         rightmost = 0
-        leftmost = -c
+        leftmost = delta
         while find_efc(leftmost) > 0 :
-          leftmost -= c
+          leftmost -= delta
       else:
         leftmost = 0
-        rightmost = c
+        rightmost = delta
         while find_efc(rightmost) < 0:
-          rightmost += c
+          rightmost += delta
       #print("bisect  algorithm...")
       efc, res = bisect(f=find_efc,a=leftmost,b=rightmost,full_output=True,xtol=tol/2,rtol=tol/(2*with_itc))
       if not res.converged:
@@ -306,6 +334,64 @@ class MonteCarloEstimator(object):
       print("Warning: EFC estimator did not converge.")
     #print("efc:{efc}".format(efc=efc))
     return int(efc)
+
+  def renewables_efc(self,renewables, without_renewables,c=1000,policy="veto",metric="lole",axis=0,tol=0.1,**kwargs):
+    """Returns the amount of firm capacity that needs to be added to replace installed renewable generation in terms of a risk metric
+
+    **Parameters**:
+
+    `renewables` (`numpy.ndarray`): Observation matrix for renewable generation with a column per area
+
+    `without_renewables` (`numpy.ndarray`): Observation matrix for supply and demand other than renewables generation, with a column per area
+    
+    `c` (`int`): interconnection capacity
+
+    `policy` (`str`): Either 'share' or 'veto'
+
+    `metric` (`string` or function): Baseline risk metric that will be used to calculate EFC. If a `string`, use matching method from the appropriate `BivariateHindcastMargin` instance (for example, "`1lole`" or "`eeu`"); if a function, it needs to take as parameters a `BivariateHindcastMargin` instance `obj`, interconnection capacity `c`, axis `axis` and  policy `policy`, and optionally additional arguments. This is useful for using more complex metrics such as quantiles.
+
+    `axis` (`int`): area for which risk will be calculated
+
+    `tol` (`float`): absolute error tolerance from true EFC value
+
+    `kwargs` : additional parameters to be passed to the risk metric function
+
+    """
+
+    with_rnw = MonteCarloEstimator.get_efc_metric_function(metric,self,**kwargs)(obs=without_renewables+renewables,c=c,policy=policy,axis=axis)
+    #print("with_itc: {x}".format(x=with_itc))
+
+    def find_efc(x):
+      #print("x: {x}".format(x=x))
+      without_renewables[:,axis] += x
+      without_rnw = MonteCarloEstimator.get_efc_metric_function(metric,self,**kwargs)(obs=without_renewables,c=c,policy=policy,axis=axis)
+      without_renewables[:,axis] -= x
+      return with_rnw - without_rnw
+
+    diff_to_null = find_efc(0)
+    delta = max(c,500)
+    if diff_to_null == 0: #renewables is equivalent to null interconnection riskwise
+      return 0
+    else:
+      # find suitalbe search intervals that are reasonably small
+      if diff_to_null > 0: #interconnector adds risk => negative firm capacity
+        rightmost = 0
+        leftmost = -delta
+        while find_efc(leftmost) > 0 :
+          leftmost -= delta
+      else:
+        leftmost = 0
+        rightmost = delta
+        while find_efc(rightmost) < 0:
+          rightmost += delta
+      #print("bisect  algorithm...")
+      efc, res = bisect(f=find_efc,a=leftmost,b=rightmost,full_output=True,xtol=tol/2,rtol=tol/(2*with_itc))
+      if not res.converged:
+        print("Warning: EFC estimator did not converge.")
+      #print("efc:{efc}".format(efc=efc))
+      return int(efc)
+
+
 
 
 

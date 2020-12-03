@@ -27,12 +27,20 @@ class ConvGenDistribution(object):
 
   def _build_from_dict(self,gens_info):
 
+    self.fc = 0 #initialise firm capacity as zero
+    self.min = 0 #min possible generation
+    self.max = sum([x[0] for x in gens_info["states_list"]]) #max possible generation
+
     self.transition_prob_array = np.ascontiguousarray(gens_info["transition_probs"],dtype=np.float64)
 
     self.states_array = np.ascontiguousarray(gens_info["states_list"],dtype=np.float64)
     
     self.n_gen = len(self.states_array)
     self.n_states = len(self.states_array[0]) #take first element as baseline
+
+    # buffers for saved samples
+    self.saved_sample = None
+    self.saved_sample_params = None
 
     if len(self.states_array) != len(self.transition_prob_array):
       raise Exception("Length of states list do not match length of transition matrices list")
@@ -58,7 +66,42 @@ class ConvGenDistribution(object):
 
     return {"states_list":states_list,"transition_probs":transition_prob_list}
 
-  def simulate(self,n_sim,n_timesteps,x0_list=None,seed=1,simulate_streaks=True):
+  def add_fc(self,fc):
+
+    """ Add firm capacity to the system
+
+      `fc` (`int`): capacity to be added
+
+    """
+    fc_ = np.int32(fc)
+    self.max += fc_
+    self.min += fc_
+    self.fc += fc_
+    if self.saved_sample is not None:
+      self.saved_sample += fc_
+
+  def __add__(self, k):
+
+    """ adds a constant (100% available) integer capacity to the generation system; this is useful to get equivalent firm capacity values 
+  
+    **Parameters**:
+
+    `k` (`int`): capacity to be added
+
+    """
+    # if there is no generator with 100% availability, add one
+    self.add_fc(k)
+    return self
+
+  def _same_as_saved_sample_params(self,n_timesteps,x0_list,seed):
+    if self.saved_sample_params is None:
+      return False
+    else:
+      return self.saved_sample_params["n_timesteps"] == n_timesteps and \
+      self.saved_sample_params["x0_list"] == x0_list and \
+      self.saved_sample_params["seed"] == seed
+
+  def simulate(self,n_sim,n_timesteps,x0_list=None,seed=1,simulate_streaks=True,use_buffer=True):
 
 
     """Simulate traces of available conventional generation
@@ -75,61 +118,78 @@ class ConvGenDistribution(object):
 
       `simulate_streaks` (`bool`): simulate transition time lengths only. Probably faster if any of the states have a stationary probability larger than 0.5
 
+      `use_buffer` (`bool`): save results in an internal buffer for further use without having to sample again
+
     """
 
-    # sanitise inputs
-    if n_sim <= 0 or not isinstance(n_sim,int):
-      raise Exception("Invalid 'n_sim' value or type")
-
-    if n_timesteps <= 0 or not isinstance(n_timesteps,int):
-      raise Exception("Invalid 'n_timesteps' value or type")
-
-    if seed <= 0 or not isinstance(seed,int):
-      raise Exception("Invalid 'seed' value or type")
-
-    # validate list of initial values
-    if x0_list is None:
-      # if initial values are None, generate from stationary distributions
-      np.random.seed(seed)
-      x0_list = np.ascontiguousarray(self._get_stationary_samples()).astype(np.float64)
+    if use_buffer:
+      if self.saved_sample is None or self._same_as_saved_sample_params(n_timesteps,x0_list,seed):
+        # create state and return a copy
+        self.saved_sample_params = {"n_sim":n_sim,"n_timesteps":n_timesteps,"x0_list":x0_list,"seed":seed,"fc":self.fc}
+        self.saved_sample = self.simulate(n_sim,n_timesteps,x0_list,seed,simulate_streaks,False) + (self.fc - self.saved_sample_params["fc"])
+        return self.saved_sample.copy()
+      else:
+        if self.saved_sample_params["n_sim"] < n_sim:
+          # run only the necessary simulations and append, then create a copy
+          new_sim = self.simulate(n_sim-self.saved_sample_params["n_sim"],n_timesteps,x0_list,seed,simulate_streaks,False) + self.saved_sample_params["fc"]
+          self.saved_sample = np.ascontiguousarray(np.concatenate((self.saved_sample,new_sim),axis=0)).astype(np.float64)
+          self.saved_sample_params["n_sim"] = n_sim
+          return self.saved_sample.copy() + (self.fc - self.saved_sample_params["fc"])
+        else:
+          #create a copy of a slice, since there are more simulations than necessary
+          return self.saved_sample[0:(self.n*n_sim),:].copy() + (self.fc - self.saved_sample_params["fc"])
     else:
-      if len(x0_list) != self.n_gen:
-        raise Exception("Number of initial values do not match number of generators")
 
-      for i in range(self.n_gen):
-        if x0_list[i] not in self.states_array[i]:
-          raise Exception("Some initial values are not valid for the corresponding generator")
-        if self.transition_prob_array[i].shape[0] != len(self.states_array[i]) or self.transition_prob_array[i].shape[1] != len(self.states_array[i]):
-          raise Exception("Some state sets do not match the shape of corresponding transition matrix")
+      # sanitise inputs
+      if n_sim <= 0 or not isinstance(n_sim,int):
+        raise Exception("Invalid 'n_sim' value or type")
 
-    # set output array
-    output_length = n_timesteps+1 #initial state + n_timesteps
-    output = np.ascontiguousarray(np.empty((n_sim,output_length)),dtype=np.float64)
+      if n_timesteps <= 0 or not isinstance(n_timesteps,int):
+        raise Exception("Invalid 'n_timesteps' value or type")
 
-    #print("output shape: {s}".format(s=output.shape))
-    #print("output before: {o}".format(o=output))
+      if seed <= 0 or not isinstance(seed,int):
+        raise Exception("Invalid 'seed' value or type")
 
-    # set initial values array
-    initial_values = np.ascontiguousarray(x0_list,dtype=np.float64)
+      # validate list of initial values
+      if x0_list is None:
+        # if initial values are None, generate from stationary distributions
+        np.random.seed(seed)
+        x0_list = np.ascontiguousarray(self._get_stationary_samples()).astype(np.float64)
+      else:
+        if len(x0_list) != self.n_gen:
+          raise Exception("Number of initial values do not match number of generators")
 
-    # call C program
+        for i in range(self.n_gen):
+          if x0_list[i] not in self.states_array[i]:
+            raise Exception("Some initial values are not valid for the corresponding generator")
+          if self.transition_prob_array[i].shape[0] != len(self.states_array[i]) or self.transition_prob_array[i].shape[1] != len(self.states_array[i]):
+            raise Exception("Some state sets do not match the shape of corresponding transition matrix")
 
+      # set output array
+      output_length = n_timesteps+1 #initial state + n_timesteps
+      output = np.ascontiguousarray(np.empty((n_sim,output_length)),dtype=np.float64)
 
-    C_CALL.simulate_mc_power_grid_py_interface(
-      ffi.cast("double *",output.ctypes.data),
-      ffi.cast("double *",self.transition_prob_array.ctypes.data),
-      ffi.cast("double *",self.states_array.ctypes.data),
-      ffi.cast("double *",initial_values.ctypes.data),
-      np.int64(self.n_gen),
-      np.int64(n_sim),
-      np.int64(n_timesteps),
-      np.int64(self.n_states),
-      np.int32(seed),
-      np.int32(simulate_streaks))
+      #print("output shape: {s}".format(s=output.shape))
+      #print("output before: {o}".format(o=output))
 
-    #print("output after: {o}".format(o=output))
+      # set initial values array
+      initial_values = np.ascontiguousarray(x0_list,dtype=np.float64)
 
-    return output.reshape((-1,1))
+      # call C program
+
+      C_CALL.simulate_mc_power_grid_py_interface(
+        ffi.cast("double *",output.ctypes.data),
+        ffi.cast("double *",self.transition_prob_array.ctypes.data),
+        ffi.cast("double *",self.states_array.ctypes.data),
+        ffi.cast("double *",initial_values.ctypes.data),
+        np.int64(self.n_gen),
+        np.int64(n_sim),
+        np.int64(n_timesteps),
+        np.int64(self.n_states),
+        np.int32(seed),
+        np.int32(simulate_streaks))
+
+      return output.reshape((-1,1)) + self.fc
 
   def _get_stationary_samples(self):
 

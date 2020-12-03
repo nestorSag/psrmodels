@@ -163,11 +163,13 @@ void calculate_post_itc_share_margins_py_interface(
   double* dem_series,
   int period_length,
   int series_length,
+  int n_areas,
   double c);
 
 void calculate_post_itc_veto_margins_py_interface(
   double* margin_series,
   int series_length,
+  int n_areas,
   double c);
 
 
@@ -175,7 +177,8 @@ void calculate_pre_itc_margins_py_interface(
   double* gen_series,
   double* netdem_series,
   int period_length,
-  int series_length);
+  int series_length,
+  int n_areas);
 
 void simulate_mc_power_grid_py_interface(
     double *output, 

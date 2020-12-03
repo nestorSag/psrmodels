@@ -311,13 +311,14 @@ void calculate_post_itc_share_margins_py_interface(
   double* dem_series,
   int period_length,
   int series_length,
+  int n_areas,
   double c){
 
   DoubleMatrix power_margin_matrix;
   DoubleMatrix demand_matrix;
 
-  get_double_matrix_from_py_objs(&power_margin_matrix, margin_series, series_length, 2);
-  get_double_matrix_from_py_objs(&demand_matrix, dem_series, period_length, 2);
+  get_double_matrix_from_py_objs(&power_margin_matrix, margin_series, series_length, n_areas);
+  get_double_matrix_from_py_objs(&demand_matrix, dem_series, period_length, n_areas);
 
   calculate_post_itc_share_margins(&power_margin_matrix, &demand_matrix, c);
 
@@ -326,11 +327,12 @@ void calculate_post_itc_share_margins_py_interface(
 void calculate_post_itc_veto_margins_py_interface(
   double* margin_series,
   int series_length,
+  int n_areas,
   double c){
 
   DoubleMatrix power_margin_matrix;
 
-  get_double_matrix_from_py_objs(&power_margin_matrix, margin_series, series_length, 2);
+  get_double_matrix_from_py_objs(&power_margin_matrix, margin_series, series_length, n_areas);
 
   calculate_post_itc_veto_margins(&power_margin_matrix, c);
 
@@ -341,13 +343,14 @@ void calculate_pre_itc_margins_py_interface(
   double* gen_series,
   double* netdem_series,
   int period_length,
-  int series_length){
+  int series_length,
+  int n_areas){
 
   DoubleMatrix generation_matrix;
   DoubleMatrix net_demand_matrix;
 
-  get_double_matrix_from_py_objs(&generation_matrix, gen_series, series_length, 2);
-  get_double_matrix_from_py_objs(&net_demand_matrix, netdem_series, period_length, 2);
+  get_double_matrix_from_py_objs(&generation_matrix, gen_series, series_length, n_areas);
+  get_double_matrix_from_py_objs(&net_demand_matrix, netdem_series, period_length, n_areas);
 
   calculate_pre_itc_margins(&generation_matrix, &net_demand_matrix);
 
