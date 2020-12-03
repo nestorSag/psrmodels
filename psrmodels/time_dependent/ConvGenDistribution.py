@@ -9,12 +9,16 @@ class ConvGenDistribution(object):
   
   **Parameters**:
 
-  `gens_info` (`dict` or `pandas.DataFrame`): Either a data frame with columns 'Capacity', 'Availability' and 'TTR' (time to repair), or a dictionary with keys 'transition_probs' (a list of transition matrices) and 'states_list' (a list of state sets corresponding to transition matrices)
+  `gens_info` (`str`, `dict` or `pandas.DataFrame`): Either a csv file path, a data frame with columns 'Capacity', 'Availability' and 'TTR' (time to repair), or a dictionary with keys 'transition_probs' (a list of transition matrices) and 'states_list' (a list of state sets corresponding to transition matrices)
 
   """
 
   #def __init__(self,states_list, transition_probs):
   def __init__(self,gens_info):
+
+    if isinstance(gens_info,str):
+      data = pd.read_csv(gens_info,sep=",")
+      gens_info = self._map_df_to_dict(data)
 
     if isinstance(gens_info,pd.DataFrame):
       
