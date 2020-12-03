@@ -81,8 +81,6 @@ class ConvGenDistribution(object):
     self.max += fc_
     self.min += fc_
     self.fc += fc_
-    if self.saved_sample is not None:
-      self.saved_sample += fc_
 
   def __add__(self, k):
 
@@ -97,11 +95,8 @@ class ConvGenDistribution(object):
     self.add_fc(k)
     return self
 
-  def _same_as_saved_sample_params(self,n_timesteps,x0_list,seed):
-    if self.saved_sample_params is None:
-      return False
-    else:
-      return self.saved_sample_params["n_timesteps"] == n_timesteps and \
+  def _same_params_as_buffer(self,n_timesteps,x0_list,seed):
+    return self.saved_sample_params["n_timesteps"] == n_timesteps and \
       self.saved_sample_params["x0_list"] == x0_list and \
       self.saved_sample_params["seed"] == seed
 
@@ -122,26 +117,29 @@ class ConvGenDistribution(object):
 
       `simulate_streaks` (`bool`): simulate transition time lengths only. Probably faster if any of the states have a stationary probability larger than 0.5
 
-      `use_buffer` (`bool`): save results in an internal buffer for further use without having to sample again
+      `use_buffer` (`bool`): save results in an internal buffer for further use without having to sample again; if buffer exists already, reuse results
 
     """
 
     if use_buffer:
-      if self.saved_sample is None or self._same_as_saved_sample_params(n_timesteps,x0_list,seed):
-        # create state and return a copy
+      if self.saved_sample is None or not self._same_params_as_buffer(n_timesteps,x0_list,seed):
+        # if there is no buffered data or if its stale, create new one and return a copy
+        self.saved_sample = self.simulate(n_sim,n_timesteps,x0_list,seed,simulate_streaks,False)
         self.saved_sample_params = {"n_sim":n_sim,"n_timesteps":n_timesteps,"x0_list":x0_list,"seed":seed,"fc":self.fc}
-        self.saved_sample = self.simulate(n_sim,n_timesteps,x0_list,seed,simulate_streaks,False) + (self.fc - self.saved_sample_params["fc"])
         return self.saved_sample.copy()
       else:
+        # if there is valid buffered data
         if self.saved_sample_params["n_sim"] < n_sim:
           # run only the necessary simulations and append, then create a copy
-          new_sim = self.simulate(n_sim-self.saved_sample_params["n_sim"],n_timesteps,x0_list,seed,simulate_streaks,False) + self.saved_sample_params["fc"]
+          new_seed = int(self.saved_sample_params["seed"] + np.random.randint(low = 1, high = 1000,size=1)[0])
+          print("Buffer is not large enough for required number of samples; generating additional ones with new seed to avoid duplication. Be aware that this affects reproducibility.")
+          new_sim = self.simulate(n_sim-self.saved_sample_params["n_sim"],n_timesteps,x0_list,new_seed,simulate_streaks,False) + self.saved_sample_params["fc"]
           self.saved_sample = np.ascontiguousarray(np.concatenate((self.saved_sample,new_sim),axis=0)).astype(np.float64)
           self.saved_sample_params["n_sim"] = n_sim
           return self.saved_sample.copy() + (self.fc - self.saved_sample_params["fc"])
         else:
           #create a copy of a slice, since there are more simulations than necessary
-          return self.saved_sample[0:(self.n*n_sim),:].copy() + (self.fc - self.saved_sample_params["fc"])
+          return self.saved_sample[0:(n_timesteps*n_sim),:].copy() + (self.fc - self.saved_sample_params["fc"])
     else:
 
       # sanitise inputs
