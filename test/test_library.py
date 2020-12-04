@@ -255,18 +255,19 @@ def test_time_dependent_margins():
       td_h = td.BivariateHindcastMargin(\
         np.concatenate((gb_dem,irl_dem),axis=1),\
         np.concatenate((gb_wind,irl_wind),axis=1),\
-        [gb_td_convgen,irl_td_convgen])
-      convgen_sim = td_h._get_gen_simulation(n_sim,1,True)
+        [gb_td_convgen,irl_td_convgen],
+        n_sim)
+      convgen_sim = td_h._get_gen_simulation(1,True)
       #print(td_h.gen_dists[0].saved_samples)
     else:
       td_h.set_w_d(np.concatenate((gb_dem,irl_dem),axis=1),np.concatenate((gb_wind,irl_wind),axis=1))
-      convgen_sim = np.concatenate([gen.saved_sample.reshape((-1,1)) for gen in td_h.gen_dists],axis=1)
+      convgen_sim = np.concatenate([gen.saved_sample.reshape((-1,1)) for gen in td_h.gen],axis=1)
 
     # model output
     netdem = td_h.net_demand
-    margins = td_h.simulate_pre_itc(n_sim,1)
-    veto_margins = td_h.simulate_post_itc(n_sim,c,"veto",1)
-    share_margins = td_h.simulate_post_itc(n_sim,c,"share",1)
+    margins = td_h.simulate_pre_itc(1)
+    veto_margins = td_h.simulate_post_itc(c,"veto",1)
+    share_margins = td_h.simulate_post_itc(c,"share",1)
 
     veto_shortfalls = td_h._process_shortfall_data(veto_margins)
     share_shortfalls = td_h._process_shortfall_data(share_margins)

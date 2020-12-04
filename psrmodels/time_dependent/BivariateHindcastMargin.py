@@ -14,12 +14,16 @@ class BivariateHindcastMargin(object):
 
     `gen_dists` (`list`): List of `time_dependent.ConvGenDistribution` objects corresponding to the areas
 
+    `n_sim` (`int`): number of peak seasons to simulate
+
   """
-  def __init__(self,demand,renewables,gen_dists):
+  def __init__(self,demand,renewables,gen_dists,n_simulations=1000):
 
     self.set_w_d(demand,renewables)
 
-    self.gen_dists = gen_dists
+    self.gen = gen_dists
+
+    self.n_sim = n_simulations
 
     #self.gensim = None
     #self.gensim_nsim = None
@@ -38,27 +42,25 @@ class BivariateHindcastMargin(object):
     if demand.shape[1] != 2 or renewables.shape[1] != 2:
       raise Exception("data matrices must have exactly 2 columns")
     self.net_demand = np.ascontiguousarray((demand - renewables).clip(min=0),dtype=np.float64) #no negative net demand
-    self.wind = renewables
+    self.renewables = renewables
     self.demand = np.ascontiguousarray(demand).clip(min=0).astype(np.float64)
     self.n = self.net_demand.shape[0]
 
-  def _get_gen_simulation(self,n_sim,seed,save,**kwargs):
+  def _get_gen_simulation(self,seed,save,**kwargs):
 
     gensim = np.ascontiguousarray(
       np.concatenate(
-        [self.gen_dists[i].simulate(n_sim=n_sim,n_timesteps=self.n-1,seed=seed+i,use_buffer=save) for i in range(len(self.gen_dists))],
+        [self.gen[i].simulate(n_sim=self.n_sim,n_timesteps=self.n-1,seed=seed+i,use_buffer=save) for i in range(len(self.gen))],
         axis=1
         )
       )
 
     return gensim
 
-  def simulate_pre_itc(self,n_sim,seed=1,use_saved=True,**kwargs):
+  def simulate_pre_itc(self,seed=1,use_saved=True,**kwargs):
     """Simulate pre-interconnection power margins
   
       **Parameters**:
-
-      `n_sim` (`int`): number of peak seasons to simulate
 
       `seed` (`int`): random seed
 
@@ -86,7 +88,7 @@ class BivariateHindcastMargin(object):
     # else:
     #   gensim = self._get_gen_simulation(n_sim,seed,False,**kwargs)
 
-    gensim = self._get_gen_simulation(n_sim,seed,use_saved,**kwargs)
+    gensim = self._get_gen_simulation(seed,use_saved,**kwargs)
 
     # overwrite gensim array with margin values
 
@@ -100,12 +102,10 @@ class BivariateHindcastMargin(object):
     return gensim
     #### get simulated outages from n_sim*self.n hours
 
-  def simulate_post_itc(self,n_sim,c,policy,seed=1,use_saved=True,**kwargs):
+  def simulate_post_itc(self,c,policy,seed=1,use_saved=True,**kwargs):
     """Simulate post-interconnection power margins
   
       **Parameters**:
-
-      `n_sim` (`int`): number of peak seasons to simulate
 
       `c` (`int`): interconnection capacity
 
@@ -122,7 +122,7 @@ class BivariateHindcastMargin(object):
     if(self.net_demand.shape[1] != 2):
       raise Exception("Data needs to have exactly 2 columns")
 
-    pre_itc = self.simulate_pre_itc(n_sim,seed,use_saved,**kwargs)
+    pre_itc = self.simulate_pre_itc(seed,use_saved,**kwargs)
 
     #override pre_itc array with margin values
     if policy == "veto":
@@ -150,18 +150,16 @@ class BivariateHindcastMargin(object):
 
   def simulate_shortfalls(
     self,
-    n_sim,
     c=1000,
     policy="veto",
     seed=1,
     raw=False,
+    stf_bound=0,
     **kwargs):
 
     """Run simulation and return only shortfall events
   
       **Parameters**:
-
-      `n_sim` (`int`): number of peak seasons to simulate
 
       `c` (`int`): interconnection capacity
 
@@ -172,6 +170,8 @@ class BivariateHindcastMargin(object):
       `use_saved` (`bool`): use saved state of simulated generation values. Save them if they don't exist yet.
       
       `raw` (`bool`): return dataframe with margin values in all areas, when at least one of them have a shortfall.
+
+      `stf_bound` (`float`): bound below which is considered a shortfall; defaults to 0
 
       **Returns**:
 
@@ -194,17 +194,17 @@ class BivariateHindcastMargin(object):
         `time_id`: time of occurrence in simulation
 
     """
-    post_itc = self.simulate_post_itc(n_sim,c,policy,seed,True,**kwargs)
-    df = self._process_shortfall_data(post_itc,raw)
+    post_itc = self.simulate_post_itc(c=c,policy=policy,seed=seed,use_saved=True,**kwargs)
+    df = self._process_shortfall_data(post_itc,raw=raw,stf_bound=stf_bound)
     return df
 
-  def _process_shortfall_data(self,post_itc,raw=False):
+  def _process_shortfall_data(self,post_itc,raw=False,stf_bound=0):
     
     m,n = post_itc.shape
     #add time index with respect to simulations
     post_itc = np.concatenate((post_itc,np.arange(m).reshape(m,1)),axis=1)
     #filter non-shortfalls
-    post_itc = post_itc[np.any(post_itc<0,axis=1),:]
+    post_itc = post_itc[np.any(post_itc<stf_bound,axis=1),:]
     post_itc = pd.DataFrame(post_itc)
     # name columns 
     post_itc.columns = ["m" + str(i) for i in range(n)] + ["time_id"]
@@ -246,5 +246,92 @@ class BivariateHindcastMargin(object):
 
     formatted_df = area_df[[current_margin,"shortfall_event_id","time_id"]].rename(columns={current_margin:"margin"})
     formatted_df["area"] = area_id
-    return formatted_df[["margin","area","shortfall_event_id","time_id"]]   
+    return formatted_df[["margin","area","shortfall_event_id","time_id"]] 
+
+  def simulate_eu(
+    self,
+    c=1000,
+    policy="veto",
+    axis=0,
+    seed=1):
+
+    """Simulate season-agreggated energy unserved. Seasons without shortfall events below said level are ignored
+  
+      **Parameters**:
+
+      `c` (`int`): interconnection capacity
+
+      `policy` (`string`): shortfall sharing policy. Only 'veto' (no shortfall sharing) and 'share' (demand-proportional shortfall sharing) are supported
+
+      `axis` (`int`): area for which this will be simulated
+
+      `seed` (`int`): random seed
+
+      `use_saved` (`boolean`): if `True`, use saved simulation samples from previous runs
+
+    """
+
+    df = self.simulate_shortfalls(c=c,policy=policy,seed=seed,raw=True,stf_bound=0)
+    df["season"] = (df["time_id"]/self.n).astype(np.int32)
+    df.groupby(by="season").agg({("m" + str(axis)):"sum"})
+    return - np.array(df[("m" + str(axis))])
+
+  def lole(self, c=1000, policy="veto", axis=0, **kwargs):
+    """calculates Monte Carlo estimate of LOLE
+
+    **Parameters**:
+    
+    `c` (`int`): interconnection capacity
+
+    `policy` (`string`): shortfall sharing policy. Only 'veto' (no shortfall sharing) and 'share' (demand-proportional shortfall sharing) are supported
+
+    `axis` (`int`): area for which this will be simulated
+
+    `**kwargs` : Additional parameters to be passed to `simulate_shortfalls`
+
+    """
+    samples = self.simulate_shortfalls(c=c,policy=policy,raw=True,**kwargs)[("m" + str(axis))]
+    samples = samples[samples < 0]
+
+    return samples.shape[0]/self.n_sim
+
+  def eeu(self, c=1000, policy="veto", axis=0, **kwargs):
+
+    """calculates Monte Carlo estimate of EEU
+
+    **Parameters**:
+    
+    `c` (`int`): interconnection capacity
+
+    `policy` (`string`): shortfall sharing policy. Only 'veto' (no shortfall sharing) and 'share' (demand-proportional shortfall sharing) are supported
+
+    `axis` (`int`): area for which this will be simulated
+
+    `**kwargs` : Additional parameters to be passed to `simulate_shortfalls`
+
+    """
+    return np.sum(self.simulate_eu(c=c,policy=policy,axis=axis,**kwargs))/self.n_sim
+
+  def cvar(self,bound, c=1000, policy="veto", axis=0,**kwargs):
+
+    """calculate conditional value at risk for the energy unserved distribution conditioned to being non-zero
+
+    **Parameters**:
+    
+    `bound` (`float`): absolute value of power margin shortfall's lower bound
+
+    `c` (`int`): interconnection capacity
+
+    `policy` (`string`): shortfall sharing policy. Only 'veto' (no shortfall sharing) and 'share' (demand-proportional shortfall sharing) are supported
+
+    `axis` (`int`): area for which this will be simulated
+
+    """
+    if bound < 0:
+      raise Error("bound has to be a non-negative number")
+    sample = self.simulate_eu(c=c,policy=policy,axis=axis,**kwargs)
+    sample = sample[sample > bound]
+    return np.mean(sample)
+
+
       

@@ -153,24 +153,24 @@ class UnivariateHindcastMargin(object):
               ffi.cast("double *",self.gen.cdf_vals.ctypes.data),
               ffi.cast("double *",self.gen.expectation_vals.ctypes.data))
 
-  def cvar(self, x, conditional = True):
-    """calculate conditional value at risk for the left tail of the power margin distribution
+  def cvar(self, x):
+    """calculate conditional value at risk for the energy unserved distribution conditioned to being non-zero
 
     **Parameters**:
     
     `x` (`int`): absolute value of power margin shortfall's lower bound
 
-    `conditional` (`boolean`): if `True`, returns E[M|M<x], otherwise returns P(X < x) * E[X|X<x]
-
     """
     if x < 0:
       raise Exception("x must be a non-negative number.")
 
-    raw = self._rescaled_cvar(x)
-    if conditional:
-      return raw/self.cdf(-x-1)
-    else:
-      return raw
+    # raw = self._rescaled_cvar(x)
+    # if conditional:
+    #   return raw/self.cdf(-x-1)
+    # else:
+    #   return raw
+
+    return raw/self.cdf(-x-1)
 
   def eeu(self):
     """calculate expected energy unserved

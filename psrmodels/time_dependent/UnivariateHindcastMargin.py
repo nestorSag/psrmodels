@@ -2,6 +2,8 @@ import numpy as np
 import pandas as pd
 from _c_ext_timedependence import ffi, lib as C_CALL
 
+from scipy.optimize import bisect
+
 class UnivariateHindcastMargin(object):
 
   """Univariate hindcast time-dependent margin simulator
@@ -14,12 +16,16 @@ class UnivariateHindcastMargin(object):
 
     `gen_dists` (`list`): List of `time_dependent.ConvGenDistribution` objects corresponding to the areas
 
+    `n_simulations` (`int`): number of peak seasons to simulate
+
   """
-  def __init__(self,demand,renewables,gen_dist):
+  def __init__(self,demand,renewables,gen_dist,n_simulations=1000):
 
     self.set_w_d(demand,renewables)
 
-    self.gen_dist = gen_dist
+    self.gen = gen_dist
+
+    self.n_sim = n_simulations
 
   def set_w_d(self,demand,renewables):
 
@@ -33,22 +39,20 @@ class UnivariateHindcastMargin(object):
 
     """
     self.net_demand = np.ascontiguousarray((demand - renewables).clip(min=0),dtype=np.float64) #no negative net demand
-    self.wind = renewables
+    self.renewables = renewables
     self.demand = np.ascontiguousarray(demand).clip(min=0).astype(np.float64)
     self.n = self.net_demand.shape[0]
 
-  def _get_gen_simulation(self,n_sim,seed,use_saved,**kwargs):
+  def _get_gen_simulation(self,seed,use_saved,**kwargs):
 
-    output = np.ascontiguousarray(self.gen_dist.simulate(n_sim=n_sim,n_timesteps=self.n-1,seed=seed,use_buffer=use_saved))
+    output = np.ascontiguousarray(self.gen.simulate(n_sim=self.n_sim,n_timesteps=self.n-1,seed=seed,use_buffer=use_saved))
 
     return output
 
-  def simulate(self,n_sim,seed=1,use_saved=True,**kwargs):
+  def simulate(self,seed=1,use_saved=True,**kwargs):
     """Simulate pre-interconnection power margins
   
       **Parameters**:
-
-      `n_sim` (`int`): number of peak seasons to simulate
 
       `seed` (`int`): random seed
 
@@ -58,7 +62,7 @@ class UnivariateHindcastMargin(object):
 
       numpy.array of simulated values
     """
-    generation = self._get_gen_simulation(n_sim,seed,use_saved)
+    generation = self._get_gen_simulation(seed,use_saved)
 
     # overwrite gensim array with margin values
 
@@ -74,30 +78,28 @@ class UnivariateHindcastMargin(object):
 
   def simulate_shortfalls(
     self,
-    n_sim,
     seed=1,
     use_saved=True,
-    raw=False):
+    raw=False,
+    stf_bound=0):
 
     """Run simulation and return only shortfall events
   
       **Parameters**:
-
-      `n_sim` (`int`): number of peak seasons to simulate
 
       `seed` (`int`): random seed
 
       `use_saved` (`boolean`): if `True`, use saved simulation samples from previous runs
 
       `raw` (`boolean`): whether to get raw or processed data. See below
+
+      `stf_bound` (`float`): bound below which is considered a shortfall; defaults to 0
       
       **Returns**:
 
       if raw is False, pandas DataFrame object with columns:
 
         `margin`: shortfall size
-
-        `area`: area in which the shortfall occurred
 
         `shortfall_event_id`: identifier that groups consecutive hourly shortfalls. This allows to measure shortfall durations
 
@@ -112,17 +114,17 @@ class UnivariateHindcastMargin(object):
         `time_id`: time of occurrence in simulation
 
     """
-    sampled = self.simulate(n_sim,seed)
-    df = self._process_shortfall_data(sampled,raw)
+    sampled = self.simulate(seed,use_saved)
+    df = self._process_shortfall_data(sampled,raw,stf_bound)
     return df
 
-  def _process_shortfall_data(self,sampled,raw=False):
+  def _process_shortfall_data(self,sampled,raw=False,stf_bound=0):
     
     m,n = sampled.shape
     #add global time index with respect to simulations
     sampled = np.concatenate((sampled,np.arange(m).reshape(m,1)),axis=1)
     #filter non-shortfalls
-    sampled = sampled[np.any(sampled<0,axis=1),:]
+    sampled = sampled[np.any(sampled<stf_bound,axis=1),:]
     sampled = pd.DataFrame(sampled)
     # name columns 
     sampled.columns = ["m"] + ["time_id"]
@@ -162,15 +164,12 @@ class UnivariateHindcastMargin(object):
 
   def simulate_eu(
     self,
-    n_sim,
     seed=1,
     use_saved=True):
 
-    """Simulate aggregated energy unserved events per peak season. Peak season without shortfall events are ignored
+    """Simulate season-agreggated energy unserved. Seasons without shortfall events below said level are ignored
   
       **Parameters**:
-
-      `n_sim` (`int`): number of peak seasons to simulate
 
       `seed` (`int`): random seed
 
@@ -178,8 +177,123 @@ class UnivariateHindcastMargin(object):
 
     """
 
-    df = self.simulate_shortfalls(n_sim,seed,use_saved,True)
+    df = self.simulate_shortfalls(seed,use_saved,True,0)
     df["season"] = (df["time_id"]/self.n).astype(np.int32)
     df.groupby(by="season").agg({"m":"sum"})
-    return - np.array(df.groupby(by="season").agg({"m":"sum"})["m"])
+    return - np.array(df["m"])
+
+  def lole(self, **kwargs):
+    """calculates Monte Carlo estimate of LOLE
+
+    **Parameters**:
+    
+    `**kwargs` : Additional parameters to be passed to `simulate_shortfalls`
+
+    """
+    return self.simulate_shortfalls(**kwargs).shape[0]/self.n_sim
+
+  def eeu(self,**kwargs):
+
+    """calculates Monte Carlo estimate of EEU
+
+    **Parameters**:
+    
+    `**kwargs` : Additional parameters to be passed to `simulate_shortfalls`
+
+    """
+    return np.sum(self.simulate_eu(**kwargs))/self.n_sim
+
+  def cvar(self,bound,**kwargs):
+
+    """calculate conditional value at risk for the energy unserved distribution conditioned to being non-zero
+
+    **Parameters**:
+    
+    `bound` (`float`): absolute value of power margin shortfall's lower bound
+
+    """
+    if bound < 0:
+      raise Error("bound has to be a non-negative number")
+    sample = self.simulate_eu(**kwargs)
+    sample = sample[sample > bound]
+    return np.mean(sample)
+
+  def renewables_efc(self,demand,renewables,metric="lole",tol=0.01):
+      """calculate efc of wind fleer
+
+      **Parameters**:
       
+      `demand` (`numpy.ndarray`): array of demand observations
+
+      `renewables` (`numpy.ndarray`): vector of renewable generation observations
+
+      `metric` (`str` or function): baseline risk metric to perform the calculations; if `str`, the instance's method with matching name will be used; of a function, it needs to take a `UnivariateHindcastMargin` object as a parameter
+
+      `tol` (`float`): absolute error tolerance with respect to true baseline risk metric for bisection function
+      """
+
+      if np.any(renewables < 0):
+        raise Exception("renewable generation observations contain negative values.")
+
+      if self.gen.fc != 0:
+        warnings.warn("available generation's firm capacity is nonzero.")
+
+      def get_risk_function(metric):
+
+        if isinstance(metric,str):
+          return lambda x: getattr(x,metric)()
+        elif callable(metric):
+          return metric
+
+      original_demand = self.demand
+      original_renewables = self.renewables
+      self.set_w_d(demand,renewables)
+      #with_wind_obj = UnivariateHindcastMargin(self.gen,demand,renewables)
+      with_wind_risk = get_risk_function(metric)(self)
+
+      def bisection_target(x):
+        self.gen += x
+        #with_fc_obj = UnivariateHindcastMargin(self.gen,demand,0*renewables)
+        self.set_w_d(demand,np.zeros(renewables.shape))
+        with_fc_risk = get_risk_function(metric)(self)
+        self.gen += (-x)
+        #print("fc: {x}, with_fc_risk:{wfcr}, with_wind_risk: {wwr}".format(x=x,wfcr=with_fc_risk,wwr=with_wind_risk))
+        return (with_fc_risk - with_wind_risk)/with_wind_risk
+
+      diff_to_null = bisection_target(0)
+      delta = 500
+
+      #print("diff to null: {x}".format(x=diff_to_null))
+
+      if diff_to_null == 0: #itc is equivalent to null interconnection riskwise
+        return 0.0
+      else:      
+        # find suitalbe search intervals that are reasonably small
+        if diff_to_null > 0: #interconnector adds risk => negative firm capacity
+          rightmost = delta
+          leftmost = 0
+          while bisection_target(rightmost) > 0 :
+            rightmost += delta
+        else:
+          leftmost = -delta
+          rightmost = 0
+          while bisection_target(leftmost) < 0:
+            leftmost -= delta
+        
+        #print("finding efc in [{a},{b}]".format(a=leftmost,b=rightmost))
+      efc, res = bisect(f=bisection_target,a=leftmost,b=rightmost,full_output=True,xtol=tol/2,rtol=tol/(2*with_wind_risk))
+      #print("EFC: {efc}".format(efc=efc))
+      if not res.converged:
+        print("Warning: EFC estimator did not converge.")
+      #print("efc:{efc}".format(efc=efc))
+
+      ## set original demand and wind before returinin
+      self.set_w_d(original_demand,original_renewables)
+      return efc
+
+
+
+
+
+
+        

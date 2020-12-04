@@ -121,6 +121,7 @@ class ConvGenDistribution(object):
 
     """
 
+    timesteps_in_season = n_timesteps + 1 #t0 + n_timesteps timesteps = [t0,...,tn]
     if use_buffer:
       if self.saved_sample is None or not self._same_params_as_buffer(n_timesteps,x0_list,seed):
         # if there is no buffered data or if its stale, create new one and return a copy
@@ -139,7 +140,7 @@ class ConvGenDistribution(object):
           return self.saved_sample.copy() + (self.fc - self.saved_sample_params["fc"])
         else:
           #create a copy of a slice, since there are more simulations than necessary
-          return self.saved_sample[0:(n_timesteps*n_sim),:].copy() + (self.fc - self.saved_sample_params["fc"])
+          return self.saved_sample[0:(timesteps_in_season*n_sim),:].copy() + (self.fc - self.saved_sample_params["fc"])
     else:
 
       # sanitise inputs
@@ -168,8 +169,7 @@ class ConvGenDistribution(object):
             raise Exception("Some state sets do not match the shape of corresponding transition matrix")
 
       # set output array
-      output_length = n_timesteps+1 #initial state + n_timesteps
-      output = np.ascontiguousarray(np.empty((n_sim,output_length)),dtype=np.float64)
+      output = np.ascontiguousarray(np.empty((n_sim,timesteps_in_season)),dtype=np.float64)
 
       #print("output shape: {s}".format(s=output.shape))
       #print("output before: {o}".format(o=output))
