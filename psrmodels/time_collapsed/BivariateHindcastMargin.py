@@ -29,7 +29,7 @@ class BivariateHindcastMargin(object):
 
   def __init__(self,demand,renewables,gen_dists,**kwargs):
 
-    self.net_demand = np.ascontiguousarray((demand - renewables),dtype=np.int32).clip(min=0) #no negative net demand
+    self.net_demand = np.ascontiguousarray((demand - renewables),dtype=np.int32)#.clip(min=0) #no negative net demand
     self.renewables = renewables
     self.demand = np.ascontiguousarray(demand,dtype=np.int32)
     self.gen_dists = self._parse_gendists(gen_dists,**kwargs)

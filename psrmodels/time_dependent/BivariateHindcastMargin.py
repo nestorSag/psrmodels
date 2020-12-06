@@ -41,7 +41,7 @@ class BivariateHindcastMargin(object):
     """
     if demand.shape[1] != 2 or renewables.shape[1] != 2:
       raise Exception("data matrices must have exactly 2 columns")
-    self.net_demand = np.ascontiguousarray((demand - renewables).clip(min=0),dtype=np.float64) #no negative net demand
+    self.net_demand = np.ascontiguousarray((demand - renewables),dtype=np.float64) #no negative net demand
     self.renewables = renewables
     self.demand = np.ascontiguousarray(demand).clip(min=0).astype(np.float64)
     self.n = self.net_demand.shape[0]
@@ -273,7 +273,7 @@ class BivariateHindcastMargin(object):
 
     df = self.simulate_shortfalls(c=c,policy=policy,seed=seed,raw=True,stf_bound=0)
     df["season"] = (df["time_id"]/self.n).astype(np.int32)
-    df.groupby(by="season").agg({("m" + str(axis)):"sum"})
+    df = df.groupby(by="season").agg({("m" + str(axis)):"sum"})
     return - np.array(df[("m" + str(axis))])
 
   def lole(self, c=1000, policy="veto", axis=0, **kwargs):

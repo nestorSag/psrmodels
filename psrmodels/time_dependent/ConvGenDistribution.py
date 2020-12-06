@@ -121,6 +121,9 @@ class ConvGenDistribution(object):
 
     """
 
+    max_array_size = int(2**31-1) #2**31-1 -> C integer range
+    if n_sim*(n_timesteps+1) >= max_array_size:
+      raise Exception("Resulting arrays are too large; for the provided data, n_sim cannot be larger than {x} at each individual run".format(x=x))
     timesteps_in_season = n_timesteps + 1 #t0 + n_timesteps timesteps = [t0,...,tn]
     if use_buffer:
       if self.saved_sample is None or not self._same_params_as_buffer(n_timesteps,x0_list,seed):

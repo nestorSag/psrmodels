@@ -24,7 +24,7 @@ class UnivariateHindcastMargin(object):
       raise Exception("gen is not an instance of ConvGenDistribution")
       
     self.gen = gen
-    self.nd_vals = np.ascontiguousarray(nd_data).clip(min=0).astype(np.int32)
+    self.nd_vals = np.ascontiguousarray(nd_data).astype(np.int32)#.clip(min=0)
     self.n = len(self.nd_vals)
 
     self.min = -np.max(self.nd_vals)
