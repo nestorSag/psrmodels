@@ -7,7 +7,7 @@ double cumulative_value(DiscreteDistribution* F, double* array, int x){
   if(x < F->min){
     return 0.0;
   }else{
-    if(x >= F->max - F->min){
+    if(x >= F->max){
       return array[F->max - F->min];
     }else{
       return array[x - F->min];

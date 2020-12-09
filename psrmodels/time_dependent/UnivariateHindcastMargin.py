@@ -49,13 +49,13 @@ class UnivariateHindcastMargin(object):
       colnames = self.shortfall_history.columns
       new_data_df = pd.DataFrame({"new_net_demand":(demand-renewables).reshape(-1),"season_time":np.arange(len(demand))})
       old_data_df = pd.DataFrame({"old_net_demand":(self.demand-self.renewables).reshape(-1),"season_time":np.arange(len(self.demand))})
-      joint_shortfalls = self.shortfall_history.join(new_data_df,on="season_time").join(old_data_df,on="season_time")
+      joint_shortfalls = self.shortfall_history.merge(new_data_df,on="season_time").merge(old_data_df,on="season_time")
       delta = joint_shortfalls["old_net_demand"] - joint_shortfalls["new_net_demand"]
-      if delta >= 0:
+      if np.all(delta >= 0):
         # 
         joint_shortfalls["m"] = joint_shortfalls["m"] + delta
         joint_shortfalls.dropna(axis=0,inplace=False)
-        self.shortfall_history = joint_shortfalls[columns]
+        self.shortfall_history = joint_shortfalls[colnames]
       else:
         # if we don't drop historic samples now, there will be a gap in the EU distribution that will be underrepresented
         # so results will be wrong
@@ -142,7 +142,7 @@ class UnivariateHindcastMargin(object):
       df = df[df["m"] < 0] #return only shortfalls under the new firm capacity value
       if df.shape[0] == 0:
         print("no suitable shortfall data found in history; computing new batch")
-        df = self._process_shortfall_batch(sampled)
+        df = self.get_shortfalls(raw=raw,cold_start=True)
     else:
       #print("simulating shortfalls...")
       sampled = self.simulate_shortfalls()
@@ -167,18 +167,20 @@ class UnivariateHindcastMargin(object):
     original_seed = self.seed
     tries = 0
     n_shortfalls = 0
-    while n_shortfalls == 0 or tries < max_tries:
+    while n_shortfalls == 0 and tries < max_tries:
       if tries > 0:
         print("No shortfalls found; retrying.")
         self.seed += 1
       df = self.simulate()
+      #print(df)
       m,n = df.shape
       #add global time index with respect to simulations
       df = np.concatenate((df,np.arange(m).reshape(m,1)),axis=1)
       df = df[np.any(df<0,axis=1),:]
+      #print(df)
       n_shortfalls = df.shape[0]
       tries += 1
-    if df.shape[0] == 0:
+    if n_shortfalls == 0:
       raise Exception("No shortfalls were found in {k} runs of {n} simulated seasons with the current data; shortfall probability of n_simulations parameter might be too low".format(k=max_tries,n=self.n_sim))
 
     df = pd.DataFrame(df)
@@ -356,7 +358,7 @@ class UnivariateHindcastMargin(object):
         #with_fc_obj = UnivariateHindcastMargin(self.gen,demand,0*renewables)
         with_fc_risk = get_risk_function(metric)(self)
         self.gen += (-x)
-        print("fc: {x}, with_fc_risk:{wfcr}, with_wind_risk: {wwr}".format(x=x,wfcr=with_fc_risk,wwr=with_wind_risk))
+        #print("fc: {x}, with_fc_risk:{wfcr}, with_wind_risk: {wwr}".format(x=x,wfcr=with_fc_risk,wwr=with_wind_risk))
         y = (with_fc_risk - with_wind_risk)/with_wind_risk
         #print("fc: {x}, risk: {y}".format(x=x,y=y))
         return y
