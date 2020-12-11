@@ -27,7 +27,7 @@ class BivariateLogisticNetDemand(object):
   def __init__(self,X,p,alpha,shapes,scales):
 
     self.n, self.d = X.shape
-    self.X = X.clip(min=0)
+    self.X = X#.clip(min=0)
 
     #self.u = np.array(u)
     #self.p = np.array([np.sum(self.X[:,i] <= self.u[i])/self.n for i in range(self.d)])
@@ -432,6 +432,7 @@ class BivariateLogisticNetDemand(object):
     
     
     # b[i] == 1 <==> i-th simulation comes from empirical portion of CDF
+    #print("n: {n}, exs_prob: {x}, u: {u}, p: {p}".format(n=n,x=exs_prob,u=self.u,p=self.p))
     empirical = np.random.binomial(1,1-exs_prob,n)
 
     n_empirical = np.sum(empirical)

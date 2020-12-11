@@ -50,7 +50,7 @@ class MonteCarloEstimator(object):
 
     #return np.mean(shortfalls) * season_length
 
-    m = (-1,npInf) if axis == 0 else (np.Inf,-1)
+    m = (-1,np.Inf) if axis == 0 else (np.Inf,-1)
     return self.cdf(m,obs,c,policy,axis) * season_length
 
   #@staticmethod
@@ -163,6 +163,7 @@ class MonteCarloEstimator(object):
   #@staticmethod
 
   def _get_post_itc(self,obs,c,policy):
+    m,n = obs.shape
     if c > 0:
       flow_to_0 = self._power_flow(obs=obs,c=c,policy=policy,to_axis=0)
       obs = np.concatenate([(obs[:,0] + flow_to_0).reshape(m,1),(obs[:,1] - flow_to_0).reshape(m,1)],axis=1)
