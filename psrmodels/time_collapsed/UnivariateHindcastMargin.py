@@ -169,7 +169,7 @@ class UnivariateHindcastMargin(object):
     #   return raw/self.cdf(-x-1)
     # else:
     #   return raw
-
+    raw = self._rescaled_cvar(x)
     return raw/self.cdf(-x-1)
 
   def eeu(self):
@@ -177,7 +177,7 @@ class UnivariateHindcastMargin(object):
 
     """
 
-    return self.n * self.cvar(0,False)
+    return self.n * self.cvar(0)
 
   def _simulate_nd(self,n):
 

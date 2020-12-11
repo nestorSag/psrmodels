@@ -30,7 +30,7 @@ class MonteCarloEstimator(object):
   #   return np.mean(shortfalls)
 
   #@staticmethod
-  def lole(self,obs,season_length=3360,c=1000,policy="veto",axis=0):
+  def lole(self,obs,season_length=3360,c=1000,policy="veto",axis=0,demand=None):
     """returns LOLE estimate
 
     **Parameters**:
@@ -45,13 +45,15 @@ class MonteCarloEstimator(object):
 
     `axis` (`int`): area for which this will be calculated
 
+    `demand` (`numpy.ndarray`): Matrix with observations of demand values, with a column per area. Can be `None` if policy equals `veto`.
+
     """
     #shortfalls = self.find_shortfalls(obs,axis,c,policy)
 
     #return np.mean(shortfalls) * season_length
 
     m = (-1,np.Inf) if axis == 0 else (np.Inf,-1)
-    return self.cdf(m,obs,c,policy,axis) * season_length
+    return self.cdf(x=m,obs=obs,c=c,policy=policy,axis=axis,demand=demand) * season_length
 
   #@staticmethod
   def _power_flow(self,obs,c,policy,to_axis,demand=None):
@@ -162,15 +164,15 @@ class MonteCarloEstimator(object):
 
   #@staticmethod
 
-  def _get_post_itc(self,obs,c,policy):
+  def _get_post_itc(self,obs,c,policy,**kwargs):
     m,n = obs.shape
     if c > 0:
-      flow_to_0 = self._power_flow(obs=obs,c=c,policy=policy,to_axis=0)
+      flow_to_0 = self._power_flow(obs=obs,c=c,policy=policy,to_axis=0,**kwargs)
       obs = np.concatenate([(obs[:,0] + flow_to_0).reshape(m,1),(obs[:,1] - flow_to_0).reshape(m,1)],axis=1)
 
     return obs
 
-  def cdf(self,x,obs,c=1000,policy="veto",axis=0):
+  def cdf(self,x,obs,c=1000,policy="veto",axis=0,**kwargs):
     """returns empirical CDF
 
     **Parameters**:
@@ -185,7 +187,7 @@ class MonteCarloEstimator(object):
 
     """
     m = obs.shape[0]
-    obs = self._get_post_itc(obs,c,policy)
+    obs = self._get_post_itc(obs=obs,c=c,policy=policy,**kwargs)
     
     return np.mean(np.logical_and(obs[:,0] <= x[0],obs[:,1] <= x[1]))
 

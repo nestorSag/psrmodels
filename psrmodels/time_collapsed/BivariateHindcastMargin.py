@@ -374,7 +374,7 @@ class BivariateHindcastMargin(object):
     if axis == 1:
       self._swap_axes()
     
-    epu_vals = self.epu(c=c,policy=policy,get_pointwise_risk=get_pointwise_risk)
+    epu_vals = self._get_area_1_eeu(c=c,policy=policy,get_pointwise_risk=get_pointwise_risk)
 
     if axis == 1:
       self._swap_axes()
@@ -405,8 +405,8 @@ class BivariateHindcastMargin(object):
   #   else:
   #     return self.n * r
 
-  def epu(self,c,policy="share",get_pointwise_risk=False):
-    """Returns EPU for area 1
+  def _get_area_1_eeu(self,c,policy="share",get_pointwise_risk=False):
+    """Returns EEU for area 1
 
     **Parameters**:
     
@@ -458,7 +458,7 @@ class BivariateHindcastMargin(object):
       # if interconnector capacity is zero, use UnivariateHindcastMargin to compute risks
       # as it does it more efficiently
       margin = UnivariateHindcastMargin(self.gen_dists[0],self.net_demand[:,0])
-      return margin.epu()
+      return margin.eeu()
   
 
 
