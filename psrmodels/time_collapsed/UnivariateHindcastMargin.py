@@ -177,7 +177,7 @@ class UnivariateHindcastMargin(object):
 
     """
 
-    return self.n * self.cvar(0)
+    return self.cvar(0) * self.cdf(-1)
 
   def _simulate_nd(self,n):
 

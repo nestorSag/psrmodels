@@ -51,23 +51,48 @@ class MonteCarloEstimator(object):
     #shortfalls = self.find_shortfalls(obs,axis,c,policy)
 
     #return np.mean(shortfalls) * season_length
-
     m = (-1,np.Inf) if axis == 0 else (np.Inf,-1)
-    return self.cdf(x=m,obs=obs,c=c,policy=policy,axis=axis,demand=demand) * season_length
+    #print("from MC m = {m}, axis ={a}".format(m=m,a=axis))
+    return self.cdf(x=m,obs=obs,c=c,policy=policy,demand=demand) * season_length
 
   #@staticmethod
   def _power_flow(self,obs,c,policy,to_axis,demand=None):
+    m, n = obs.shape
     other = 1 - to_axis
+
+    def veto_flow(row):
+      if np.all(row <= 0) or np.all(row >= 0):
+        return 0.0
+      elif row[other] > 0 and row[to_axis] < 0:
+        return np.min([row[other],-row[to_axis],c])
+      else:
+        return -np.min([c,-row[other],row[to_axis]])
+
+    def share_flow(extended_row):
+      demand = extended_row[2:4]
+      row = extended_row[0:2]
+      if np.sum(row) < 0 and np.all(row < c):
+        r = demand[to_axis]/np.sum(demand,axis=1)
+        flow = min(max(r*obs[other] - (1-r)*obs[to_axis],-c),c)
+      else:
+        return veto_flow(row)
+
+    shortfall_idx = np.logical_or(obs[:,0] < 0, obs[:,1] < 0)
+    shortfalls = obs[shortfall_idx,:]
+
     if policy == "veto":
-      flow = np.minimum(np.maximum(obs[:,other],0),c)
+      flow = np.apply_along_axis(lambda row: float(veto_flow(row)),arr=shortfalls,axis=1)
     else:
       if demand is not None:
         r = demand[:,to_axis]/np.sum(demand,axis=1)
-        flow = np.minimum(np.maximum(r*obs[:,other] - (1-r)*obs[:,to_axis],-c),c)
+        flow = np.apply_along_axis(lambda row: float(share_flow(row)),arr=np.concatenate([shortfalls,demand[shortfall_idx,:]],axis=1),axis=1)
+        #flow = np.minimum(np.maximum(r*obs[:,other] - (1-r)*obs[:,to_axis],-c),c)
       else:
         raise Exception("demand not supplied")
 
-    return flow
+    total_flow = np.zeros((m,))
+    total_flow[shortfall_idx] = flow
+    return total_flow
 
   #@staticmethod
   def _epu_vector(self,obs,c=1000,policy="veto",axis=0,demand=None):
@@ -172,7 +197,7 @@ class MonteCarloEstimator(object):
 
     return obs
 
-  def cdf(self,x,obs,c=1000,policy="veto",axis=0,**kwargs):
+  def cdf(self,x,obs,c=1000,policy="veto",**kwargs):
     """returns empirical CDF
 
     **Parameters**:
@@ -183,10 +208,7 @@ class MonteCarloEstimator(object):
 
     `policy` (`string`): either 'share' or 'veto'
 
-    `axis` (`int`): area for which this will be calculated
-
     """
-    m = obs.shape[0]
     obs = self._get_post_itc(obs=obs,c=c,policy=policy,**kwargs)
     
     return np.mean(np.logical_and(obs[:,0] <= x[0],obs[:,1] <= x[1]))

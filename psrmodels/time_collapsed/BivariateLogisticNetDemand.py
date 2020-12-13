@@ -443,7 +443,7 @@ class BivariateLogisticNetDemand(object):
     s1 = self._simulate_empirical(n_empirical,threshold = threshold)
     s2 = self._simulate_exceedances(n_tails,threshold = threshold)
     
-    print("{n} samples from tail".format(n=n_tails))
+    #print("{n} samples from tail".format(n=n_tails))
     sim = np.concatenate((s1,s2),axis=0)
     np.random.shuffle(sim)
     return sim
@@ -455,15 +455,15 @@ class BivariateLogisticNetDemand(object):
     if exs_prob is None and threshold is None:
       exs_prob = 1-self.cdf(self.u)
       threshold = self._from_gumbel((self.alpha*np.log(2) - np.log(-np.log(1-exs_prob))) * np.ones((1,2))).reshape((2,))
-      print("Using marginal thresholds as bivariate model threshold")
+      #print("Using marginal thresholds as bivariate model threshold")
     elif exs_prob is not None:
       if exs_prob > 1-self.cdf(self.u):
-        print("exs_prob too low. Using margin thresholds as joint threshold value")
+        #print("exs_prob too low. Using margin thresholds as joint threshold value")
         exs_prob = 1-self.cdf(self.u)
       threshold = self._from_gumbel((self.alpha*np.log(2) - np.log(-np.log(1-exs_prob))) * np.ones((1,2))).reshape((2,))
     else:
       if np.any(threshold < self.u):
-        print("thresholds too low. Using margin thresholds as joint threshold value")
+        #print("thresholds too low. Using margin thresholds as joint threshold value")
         for i in range(self.d):
           threshold[i] = max(self.u[i],threshold[i])
       exs_prob = 1-self.cdf(threshold)
