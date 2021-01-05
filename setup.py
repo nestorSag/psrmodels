@@ -30,11 +30,9 @@ setuptools.setup(
         'scipy',
         'pandas',
         'matplotlib',
-        'pymc3==3.7',
+        'pymc3',
         'seaborn',
-        'cffi>=1.0.0',
-        'shapely'
-
+        'cffi>=1.0.0'
     ],
 
      long_description=long_description,

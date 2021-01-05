@@ -1,24 +1,20 @@
 [[source]]
-name = "pypi"
-url = "https://pypi.org/simple"
+url = "https://pypi.python.org/simple"
 verify_ssl = true
-
-[dev-packages]
+name = "pypi"
 
 [packages]
-pandas = "*"
-numpy = "*"
-scipy = "*"
-matplotlib = "*"
+theano = "*"
+pymc3 = "*"
 seaborn = "*"
 pytest = "*"
 pdoc3 = "*"
 cffi = "*"
-shapely = "*"
 dfply = "*"
-"pymc3" = "*"
 twine = "*"
 deprecated = "*"
 
+[dev-packages]
+
 [requires]
-python_version = "3.6"
+python_version = "3.8"
