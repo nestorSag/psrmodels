@@ -27,7 +27,8 @@ void simulate_mc_generator_steps(float *output, MarkovChain* chain, int n_timest
   // simulate each step in a power availability time series
 
   int current_state_idx = 0, current_timestep = 0, k = 0;
-  float cdf, u;
+  float cdf;
+  double u;
 
   //find index of initial state to get initial transition probability row
   while(chain->states[current_state_idx] != chain->initial_state){
@@ -61,7 +62,7 @@ void simulate_mc_generator_steps(float *output, MarkovChain* chain, int n_timest
 int simulate_geometric_dist(
   float p){
   // p = probability of looping back to same state
-  float u = mt_drand();
+  double u = mt_drand();
   int x;
 
   //printf("p: %f, u: %f\n",p,u);
@@ -77,8 +78,8 @@ int simulate_geometric_dist(
 int get_next_state_idx(
   float* prob_row, int current_state_idx){
 
-  float u, cdf = 0.0, escape_prob = 1.0 - prob_row[current_state_idx]; //total_prob = probabiliti mass f(x)
-
+  float cdf = 0.0, escape_prob = 1.0 - prob_row[current_state_idx]; //total_prob = probabiliti mass f(x)
+  double u;
   int j = 0;
 
   u = mt_drand();
