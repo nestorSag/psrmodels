@@ -41,9 +41,9 @@ class BivariateHindcastMargin(object):
     """
     if demand.shape[1] != 2 or renewables.shape[1] != 2:
       raise Exception("data matrices must have exactly 2 columns")
-    self.net_demand = np.ascontiguousarray((demand - renewables),dtype=np.float64) #no negative net demand
+    self.net_demand = np.ascontiguousarray((demand - renewables),dtype=np.float32) #no negative net demand
     self.renewables = renewables
-    self.demand = np.ascontiguousarray(demand).clip(min=0).astype(np.float64)
+    self.demand = np.ascontiguousarray(demand).clip(min=0).astype(np.float32)
     self.n = self.net_demand.shape[0]
 
   def _get_gen_simulation(self,seed,save,**kwargs):
@@ -79,7 +79,7 @@ class BivariateHindcastMargin(object):
     #     if self.gensim_nsim < n_sim:
     #       # run only the necessary simulations and append, then create a copy
     #       new_sim = self._get_gen_simulation(n_sim-self.gensim_nsim,seed,True,**kwargs)
-    #       self.gensim = np.ascontiguousarray(np.concatenate((self.gensim,new_sim),axis=0)).astype(np.float64)
+    #       self.gensim = np.ascontiguousarray(np.concatenate((self.gensim,new_sim),axis=0)).astype(np.float32)
     #       self.gensim_nsim = n_sim
     #       gensim = self.gensim.copy()
     #     else:
@@ -93,8 +93,8 @@ class BivariateHindcastMargin(object):
     # overwrite gensim array with margin values
 
     C_CALL.calculate_pre_itc_margins_py_interface(
-        ffi.cast("double *", gensim.ctypes.data),
-        ffi.cast("double *",self.net_demand.ctypes.data),
+        ffi.cast("float *", gensim.ctypes.data),
+        ffi.cast("float *",self.net_demand.ctypes.data),
         np.int32(self.n),
         np.int32(gensim.shape[0]),
         np.int32(self.net_demand.shape[1]))
@@ -127,20 +127,20 @@ class BivariateHindcastMargin(object):
     #override pre_itc array with margin values
     if policy == "veto":
       C_CALL.calculate_post_itc_veto_margins_py_interface(
-          ffi.cast("double *", pre_itc.ctypes.data),
+          ffi.cast("float *", pre_itc.ctypes.data),
           np.int64(pre_itc.shape[0]),
           np.int32(self.net_demand.shape[1]),
-          np.float64(c))
+          np.float32(c))
 
     elif policy == "share":
 
       C_CALL.calculate_post_itc_share_margins_py_interface(
-          ffi.cast("double *", pre_itc.ctypes.data),
-          ffi.cast("double *", self.demand.ctypes.data),
+          ffi.cast("float *", pre_itc.ctypes.data),
+          ffi.cast("float *", self.demand.ctypes.data),
           np.int64(self.n),
           np.int64(pre_itc.shape[0]),
           np.int32(self.net_demand.shape[1]),
-          np.float64(c))
+          np.float32(c))
 
     else:
 

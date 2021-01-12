@@ -245,11 +245,11 @@ def test_time_dependent_margins():
   n_sim = 10
   for y in range(2007,2014):
     df_ = obj["data"].query("period == {y}".format(y=y))
-    gb_dem = np.array(df_[["gbdem_r"]]).round().astype(np.float64)
-    irl_dem = np.array(df_[["idem_r"]]).round().astype(np.float64)
+    gb_dem = np.array(df_[["gbdem_r"]]).round().astype(np.float32)
+    irl_dem = np.array(df_[["idem_r"]]).round().astype(np.float32)
 
-    gb_wind = np.array(df_[["gbwind_r"]]).round().astype(np.float64)
-    irl_wind = np.array(df_[["iwind_r"]]).round().astype(np.float64)
+    gb_wind = np.array(df_[["gbwind_r"]]).round().astype(np.float32)
+    irl_wind = np.array(df_[["iwind_r"]]).round().astype(np.float32)
 
     if y == 2007:
       td_h = td.BivariateHindcastMargin(\
@@ -278,12 +278,12 @@ def test_time_dependent_margins():
     for i in range(n_sim):
       netdem_sim[(i*td_h.n):((i+1)*td_h.n),:] = np.array(netdem)
     
-    true_margins = convgen_sim - netdem_sim
+    true_margins = (convgen_sim - netdem_sim).astype(np.float32)
     veto_flow_to_a1 = np.apply_along_axis(func1d = lambda x: float(BivariateHindcastMargin._get_veto_flow(m1=x[0],m2=x[1],c=c)),axis=1,arr=true_margins).reshape(-1,1)
     true_veto_margins = true_margins + np.concatenate(
       (veto_flow_to_a1,
        -veto_flow_to_a1),
-      axis=1)
+      axis=1).astype(np.float32)
 
     dem_sim = np.empty(convgen_sim.shape)
     for i in range(n_sim):
@@ -295,7 +295,7 @@ def test_time_dependent_margins():
     true_share_margins = true_margins + np.concatenate(
       (share_flow_to_a1,
        -share_flow_to_a1),
-      axis=1).astype(np.float64)
+      axis=1).astype(np.float32)
 
     true_veto_shortfalls = td_h._process_shortfall_data(true_veto_margins)
     true_share_shortfalls = td_h._process_shortfall_data(true_share_margins)

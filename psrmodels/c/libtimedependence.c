@@ -6,19 +6,28 @@
 
 // documentation is in .h files 
 
-double get_element(DoubleMatrix* m, int i, int j){
+/*float get_double_element(DoubleMatrix* m, int i, int j){
   return m->value[i*m->n_cols + j];
 }
 
-void set_element(DoubleMatrix* m, int i, int j, double x){
+void set_double_element(DoubleMatrix* m, int i, int j, float x){
+  m->value[i*m->n_cols + j] = x;
+}*/
+
+float get_float_element(FloatMatrix* m, int i, int j){
+  return m->value[i*m->n_cols + j];
+}
+
+void set_float_element(FloatMatrix* m, int i, int j, float x){
   m->value[i*m->n_cols + j] = x;
 }
 
-void simulate_mc_generator_steps(double *output, MarkovChain* chain, int n_timesteps){
+
+void simulate_mc_generator_steps(float *output, MarkovChain* chain, int n_timesteps){
   // simulate each step in a power availability time series
 
   int current_state_idx = 0, current_timestep = 0, k = 0;
-  double cdf, u;
+  float cdf, u;
 
   //find index of initial state to get initial transition probability row
   while(chain->states[current_state_idx] != chain->initial_state){
@@ -26,7 +35,7 @@ void simulate_mc_generator_steps(double *output, MarkovChain* chain, int n_times
   }
   output[current_timestep] = chain->states[current_state_idx]; //initial state output
 
-  double *prob_row = &chain->transition_probs[chain->n_states*current_state_idx];
+  float *prob_row = &chain->transition_probs[chain->n_states*current_state_idx];
 
 
   // simulate n hours and save inplace in output
@@ -50,9 +59,9 @@ void simulate_mc_generator_steps(double *output, MarkovChain* chain, int n_times
 
 
 int simulate_geometric_dist(
-  double p){
+  float p){
   // p = probability of looping back to same state
-  double u = mt_drand();
+  float u = mt_drand();
   int x;
 
   //printf("p: %f, u: %f\n",p,u);
@@ -66,9 +75,9 @@ int simulate_geometric_dist(
 }
 
 int get_next_state_idx(
-  double* prob_row, int current_state_idx){
+  float* prob_row, int current_state_idx){
 
-  double u, cdf = 0.0, escape_prob = 1.0 - prob_row[current_state_idx]; //total_prob = probabiliti mass f(x)
+  float u, cdf = 0.0, escape_prob = 1.0 - prob_row[current_state_idx]; //total_prob = probabiliti mass f(x)
 
   int j = 0;
 
@@ -87,34 +96,34 @@ int get_next_state_idx(
 /**
  * Find minimum between two numbers.
  */
-double min(double num1, double num2) 
+float min(float num1, float num2) 
 {
     return (num1 > num2 ) ? num2 : num1;
 }
 
-double max(double num1, double num2) 
+float max(float num1, float num2) 
 {
     return (num1 > num2 ) ? num1 : num2;
 }
 
 
-void simulate_mc_generator_streaks(double* output, MarkovChain* chain, int n_timesteps){
+void simulate_mc_generator_streaks(float* output, MarkovChain* chain, int n_timesteps){
   // simulate 'escape time': number of steps before leaving a state
   // if one state has a large stationary probability (> 0.5) this method might be faster
   // than simply simulating each step
 
   //find index of initial state to get initial transition probability row
   int current_state_idx = 0, current_timestep = 0, k = 0, streak, next_state_idx;
-  double current_state;
+  float current_state;
 
   while(chain->states[current_state_idx] != chain->initial_state){
     ++current_state_idx;
   }
 
   // get initial row and loop probability
-  double *prob_row = &chain->transition_probs[chain->n_states*current_state_idx];
+  float *prob_row = &chain->transition_probs[chain->n_states*current_state_idx];
 
-  double prob_loop = prob_row[current_state_idx];
+  float prob_loop = prob_row[current_state_idx];
 
   while(current_timestep <= n_timesteps){
     current_state = chain->states[current_state_idx];
@@ -139,7 +148,7 @@ void simulate_mc_generator_streaks(double* output, MarkovChain* chain, int n_tim
 
 }
 
-void simulate_mc_power_grid(DoubleMatrix* output, MarkovChainArray* mkv_chains, TimeSimulationParameters* pars){
+void simulate_mc_power_grid(FloatMatrix* output, MarkovChainArray* mkv_chains, TimeSimulationParameters* pars){
 
   mt_seed32(pars->seed);
 
@@ -147,7 +156,7 @@ void simulate_mc_power_grid(DoubleMatrix* output, MarkovChainArray* mkv_chains, 
 
   int output_length = pars->n_timesteps+1; //number of simulated timesteps + initial state
 
-  double aggregate[output_length], gen_output[pars->n_timesteps];
+  float aggregate[output_length], gen_output[pars->n_timesteps];
 
   MarkovChain* chains = mkv_chains->chains;
 
@@ -179,8 +188,8 @@ void simulate_mc_power_grid(DoubleMatrix* output, MarkovChainArray* mkv_chains, 
     }
 
     for(k = 0; k < output_length; ++k){
-      set_element(output,i,k,aggregate[k]);
-      //set_element(output,i,k,aggregate[k]);
+      set_float_element(output,i,k,(float) aggregate[k]);
+      //set_float_element(output,i,k,aggregate[k]);
       //output[i*output_length+k] = aggregate[k];
     }
 
@@ -189,7 +198,7 @@ void simulate_mc_power_grid(DoubleMatrix* output, MarkovChainArray* mkv_chains, 
 }
 
 
-double min3(double a, double b, double c){
+float min3(float a, float b, float c){
   if(a < b && a < c){
     return a;
   }else{
@@ -202,8 +211,8 @@ double min3(double a, double b, double c){
 }
 
 
-double get_veto_flow(double m1, double m2, double c){
-  double transfer = 0;
+float get_veto_flow(float m1, float m2, float c){
+  float transfer = 0.0;
   if(m1 < 0 && m2 > 0){
     transfer = min3(-m1,m2,c);
   }else{
@@ -215,15 +224,15 @@ double get_veto_flow(double m1, double m2, double c){
   return transfer;
 }
 
-double get_share_flow(
-  double m1,
-  double m2,
-  double d1,
-  double d2,
-  double c){
+float get_share_flow(
+  float m1,
+  float m2,
+  float d1,
+  float d2,
+  float c){
 
-  double alpha = d1/(d1+d2);
-  double unbounded_flow = alpha*m2 - (1-alpha)*m1;
+  float alpha = d1/(d1+d2);
+  float unbounded_flow = alpha*m2 - (1-alpha)*m1;
 
   if (m1+m2 < 0 && m1 < c && m2 < c){
     return min(max( unbounded_flow,-c),c);
@@ -232,38 +241,38 @@ double get_share_flow(
   }
 }
 
-void calculate_post_itc_veto_margins(DoubleMatrix* power_margin_matrix, double c){
+void calculate_post_itc_veto_margins(FloatMatrix* power_margin_matrix, float c){
 
   int i;
-  double m1, m2, flow;
+  float m1, m2, flow;
   for(i=0;i<power_margin_matrix->n_rows;++i){
-    m1 = get_element(power_margin_matrix,i,0);
-    m2 = get_element(power_margin_matrix,i,1);
+    m1 = get_float_element(power_margin_matrix,i,0);
+    m2 = get_float_element(power_margin_matrix,i,1);
     flow = get_veto_flow(m1, m2,c);
 
-    set_element(power_margin_matrix,i,0, m1 + flow);
-    set_element(power_margin_matrix,i,1, m2 - flow);
+    set_float_element(power_margin_matrix,i,0, m1 + flow);
+    set_float_element(power_margin_matrix,i,1, m2 - flow);
 
   }
 }
 
-void calculate_post_itc_share_margins(DoubleMatrix* power_margin_matrix, DoubleMatrix* demand_matrix, int c){
+void calculate_post_itc_share_margins(FloatMatrix* power_margin_matrix, FloatMatrix* demand_matrix, int c){
 
-  double flow, m1, m2;
+  float flow, m1, m2;
   int i, j=0, period_length = demand_matrix->n_rows;
   for(i=0;i<power_margin_matrix->n_rows;++i){
-    m1 = get_element(power_margin_matrix, i, 0);
-    m2 = get_element(power_margin_matrix, i, 1);
+    m1 = get_float_element(power_margin_matrix, i, 0);
+    m2 = get_float_element(power_margin_matrix, i, 1);
 
     flow = get_share_flow(
       m1,
       m2,
-      get_element(demand_matrix, j, 0),
-      get_element(demand_matrix, j, 1),
+      get_float_element(demand_matrix, j, 0),
+      get_float_element(demand_matrix, j, 1),
       c);
 
-    set_element(power_margin_matrix,i,0, m1 + flow);
-    set_element(power_margin_matrix,i,1, m2 - flow);
+    set_float_element(power_margin_matrix,i,0, m1 + flow);
+    set_float_element(power_margin_matrix,i,1, m2 - flow);
     // this is to avoid using integer remainder operators, which is expensive
     j += 1;
     if(j==period_length){
@@ -273,13 +282,13 @@ void calculate_post_itc_share_margins(DoubleMatrix* power_margin_matrix, DoubleM
   }
 }
 
-void calculate_pre_itc_margins(DoubleMatrix* gen_series, DoubleMatrix* netdem_series){
+void calculate_pre_itc_margins(FloatMatrix* gen_series, FloatMatrix* netdem_series){
   // Assuming row-major order
 
   int i = 0, j=0, k=0, period_length = netdem_series->n_rows, series_length = gen_series->n_rows, n_areas = gen_series->n_cols;
   for(k=0;k<n_areas;++k){
     for(i = 0; i < series_length; ++i){
-      set_element(gen_series, i, k, get_element(gen_series, i, k) - get_element(netdem_series, j, k));
+      set_float_element(gen_series, i, k, get_float_element(gen_series, i, k) - get_float_element(netdem_series, j, k));
       //gen_series[k + n_areas*i] += (-netdem_series[k + n_areas*j]);
       // this is to avoid using integer remainder operators, which is expensive
       j += 1;
@@ -299,7 +308,7 @@ void calculate_pre_itc_margins(DoubleMatrix* gen_series, DoubleMatrix* netdem_se
 
 // interfaces for Python
 
-void get_double_matrix_from_py_objs(DoubleMatrix* m, double* value, int n_rows, int n_cols){
+void get_float_matrix_from_py_objs(FloatMatrix* m, float* value, int n_rows, int n_cols){
 
   m->value = value;
   m->n_rows = n_rows;
@@ -307,32 +316,32 @@ void get_double_matrix_from_py_objs(DoubleMatrix* m, double* value, int n_rows, 
 }
 
 void calculate_post_itc_share_margins_py_interface(
-  double* margin_series,
-  double* dem_series,
+  float* margin_series,
+  float* dem_series,
   int period_length,
   int series_length,
   int n_areas,
-  double c){
+  float c){
 
-  DoubleMatrix power_margin_matrix;
-  DoubleMatrix demand_matrix;
+  FloatMatrix power_margin_matrix;
+  FloatMatrix demand_matrix;
 
-  get_double_matrix_from_py_objs(&power_margin_matrix, margin_series, series_length, n_areas);
-  get_double_matrix_from_py_objs(&demand_matrix, dem_series, period_length, n_areas);
+  get_float_matrix_from_py_objs(&power_margin_matrix, margin_series, series_length, n_areas);
+  get_float_matrix_from_py_objs(&demand_matrix, dem_series, period_length, n_areas);
 
   calculate_post_itc_share_margins(&power_margin_matrix, &demand_matrix, c);
 
 }
 
 void calculate_post_itc_veto_margins_py_interface(
-  double* margin_series,
+  float* margin_series,
   int series_length,
   int n_areas,
-  double c){
+  float c){
 
-  DoubleMatrix power_margin_matrix;
+  FloatMatrix power_margin_matrix;
 
-  get_double_matrix_from_py_objs(&power_margin_matrix, margin_series, series_length, n_areas);
+  get_float_matrix_from_py_objs(&power_margin_matrix, margin_series, series_length, n_areas);
 
   calculate_post_itc_veto_margins(&power_margin_matrix, c);
 
@@ -340,27 +349,27 @@ void calculate_post_itc_veto_margins_py_interface(
 
 
 void calculate_pre_itc_margins_py_interface(
-  double* gen_series,
-  double* netdem_series,
+  float* gen_series,
+  float* netdem_series,
   int period_length,
   int series_length,
   int n_areas){
 
-  DoubleMatrix generation_matrix;
-  DoubleMatrix net_demand_matrix;
+  FloatMatrix generation_matrix;
+  FloatMatrix net_demand_matrix;
 
-  get_double_matrix_from_py_objs(&generation_matrix, gen_series, series_length, n_areas);
-  get_double_matrix_from_py_objs(&net_demand_matrix, netdem_series, period_length, n_areas);
+  get_float_matrix_from_py_objs(&generation_matrix, gen_series, series_length, n_areas);
+  get_float_matrix_from_py_objs(&net_demand_matrix, netdem_series, period_length, n_areas);
 
   calculate_pre_itc_margins(&generation_matrix, &net_demand_matrix);
 
 }
 
 void simulate_mc_power_grid_py_interface(
-  double *output, 
-  double *transition_probs,
-  double *states,
-  double *initial_values,
+  float *output, 
+  float *transition_probs,
+  float *states,
+  float *initial_values,
   int n_generators,
   int n_simulations, 
   int n_timesteps, 
@@ -392,8 +401,8 @@ void simulate_mc_power_grid_py_interface(
   mkv_chains.chains = &chains[0];
   mkv_chains.size = n_generators;
 
-  DoubleMatrix m;
-  get_double_matrix_from_py_objs(&m,output,n_simulations,n_timesteps+1);
+  FloatMatrix m;
+  get_float_matrix_from_py_objs(&m,output,n_simulations,n_timesteps+1);
 
   simulate_mc_power_grid(&m, &mkv_chains, &pars);
 

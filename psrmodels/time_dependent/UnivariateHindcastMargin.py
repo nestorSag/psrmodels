@@ -62,9 +62,9 @@ class UnivariateHindcastMargin(object):
         print("starting new shortfall history dataset")
         self.shortfall_history = None
 
-    self.net_demand = np.ascontiguousarray((demand - renewables),dtype=np.float64) #no negative net demand
+    self.net_demand = np.ascontiguousarray((demand - renewables),dtype=np.float32) #no negative net demand
     self.renewables = renewables
-    self.demand = np.ascontiguousarray(demand).astype(np.float64)#.clip(min=0)
+    self.demand = np.ascontiguousarray(demand).astype(np.float32)#.clip(min=0)
     self.season_length = self.net_demand.shape[0]
     # mark buffered data as stale
 
@@ -88,8 +88,8 @@ class UnivariateHindcastMargin(object):
     # overwrite gensim array with margin values
 
     C_CALL.calculate_pre_itc_margins_py_interface(
-        ffi.cast("double *", generation.ctypes.data),
-        ffi.cast("double *",self.net_demand.ctypes.data),
+        ffi.cast("float *", generation.ctypes.data),
+        ffi.cast("float *",self.net_demand.ctypes.data),
         np.int32(self.season_length),
         np.int32(generation.shape[0]),
         np.int32(1))

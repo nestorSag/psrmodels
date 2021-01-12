@@ -35,9 +35,9 @@ class ConvGenDistribution(object):
     self.min = 0 #min possible generation
     self.max = sum([x[0] for x in gens_info["states_list"]]) #max possible generation
 
-    self.transition_prob_array = np.ascontiguousarray(gens_info["transition_probs"],dtype=np.float64)
+    self.transition_prob_array = np.ascontiguousarray(gens_info["transition_probs"],dtype=np.float32)
 
-    self.states_array = np.ascontiguousarray(gens_info["states_list"],dtype=np.float64)
+    self.states_array = np.ascontiguousarray(gens_info["states_list"],dtype=np.float32)
     
     self.n_gen = len(self.states_array)
     self.n_states = len(self.states_array[0]) #take first element as baseline
@@ -123,7 +123,7 @@ class ConvGenDistribution(object):
 
     max_array_size = int(2**31-1) #2**31-1 -> C integer range
     if n_sim*(n_timesteps+1) >= max_array_size:
-      raise Exception("Resulting arrays are too large; for the provided data, n_sim cannot be larger than {x} at each individual run".format(x=x))
+      raise Exception("Resulting arrays are too large; for the provided data, n_sim cannot be larger than {x} at each individual run".format(x=int(max_array_size/(n_timesteps+1))))
     timesteps_in_season = n_timesteps + 1 #t0 + n_timesteps timesteps = [t0,...,tn]
     if use_buffer:
       if self.saved_sample is None or not self._same_params_as_buffer(n_timesteps,x0_list,seed):
@@ -138,7 +138,7 @@ class ConvGenDistribution(object):
           new_seed = int(self.saved_sample_params["seed"] + np.random.randint(low = 1, high = 1000,size=1)[0])
           print("Buffer is not large enough for required number of samples; generating additional ones with new seed to avoid duplication. Be aware that this affects reproducibility.")
           new_sim = self.simulate(n_sim-self.saved_sample_params["n_sim"],n_timesteps,x0_list,new_seed,simulate_streaks,False) + self.saved_sample_params["fc"]
-          self.saved_sample = np.ascontiguousarray(np.concatenate((self.saved_sample,new_sim),axis=0)).astype(np.float64)
+          self.saved_sample = np.ascontiguousarray(np.concatenate((self.saved_sample,new_sim),axis=0)).astype(np.float32)
           self.saved_sample_params["n_sim"] = n_sim
           return self.saved_sample.copy() + (self.fc - self.saved_sample_params["fc"])
         else:
@@ -160,7 +160,7 @@ class ConvGenDistribution(object):
       if x0_list is None:
         # if initial values are None, generate from stationary distributions
         np.random.seed(seed)
-        x0_list = np.ascontiguousarray(self._get_stationary_samples()).astype(np.float64)
+        x0_list = np.ascontiguousarray(self._get_stationary_samples()).astype(np.float32)
       else:
         if len(x0_list) != self.n_gen:
           raise Exception("Number of initial values do not match number of generators")
@@ -172,25 +172,25 @@ class ConvGenDistribution(object):
             raise Exception("Some state sets do not match the shape of corresponding transition matrix")
 
       # set output array
-      output = np.ascontiguousarray(np.empty((n_sim,timesteps_in_season)),dtype=np.float64)
+      output = np.ascontiguousarray(np.empty((n_sim,timesteps_in_season)),dtype=np.float32)
 
       #print("output shape: {s}".format(s=output.shape))
       #print("output before: {o}".format(o=output))
 
       # set initial values array
-      initial_values = np.ascontiguousarray(x0_list,dtype=np.float64)
+      initial_values = np.ascontiguousarray(x0_list,dtype=np.float32)
 
       # call C program
 
       C_CALL.simulate_mc_power_grid_py_interface(
-        ffi.cast("double *",output.ctypes.data),
-        ffi.cast("double *",self.transition_prob_array.ctypes.data),
-        ffi.cast("double *",self.states_array.ctypes.data),
-        ffi.cast("double *",initial_values.ctypes.data),
-        np.int64(self.n_gen),
-        np.int64(n_sim),
-        np.int64(n_timesteps),
-        np.int64(self.n_states),
+        ffi.cast("float *",output.ctypes.data),
+        ffi.cast("float *",self.transition_prob_array.ctypes.data),
+        ffi.cast("float *",self.states_array.ctypes.data),
+        ffi.cast("float *",initial_values.ctypes.data),
+        np.int32(self.n_gen),
+        np.int32(n_sim),
+        np.int32(n_timesteps),
+        np.int32(self.n_states),
         np.int32(seed),
         np.int32(simulate_streaks))
 
