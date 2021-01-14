@@ -108,13 +108,13 @@ void simulate_mc_power_grid(FloatMatrix* output, MarkovChainArray* mkv_chains, T
 
 /**
  * @brief Calculate bivariate pre-interconnection margins
- *
- * @param gen_series struct that wraps a generation time series simulation
+
+ * @param output array in which results will be stored
+ * @param gen_series compressed conventional generation trace representation
  * @param netdem_series struct that wraps net demand time series
  */
 
-void calculate_pre_itc_margins(FloatMatrix* gen_series, FloatMatrix* netdem_series);
-
+void calculate_pre_itc_margins(FloatMatrix* output, FloatMatrix* gen_series, FloatMatrix* netdem_series);
 // gets the minimum between 3 values
 
 float min3(float a, float b, float c);
@@ -185,10 +185,12 @@ void calculate_post_itc_veto_margins_py_interface(
 
 
 void calculate_pre_itc_margins_py_interface(
+  float* output;
   float* gen_series,
   float* netdem_series,
   int period_length,
   int series_length,
+  int output_length,
   int n_areas);
 
 void simulate_mc_power_grid_py_interface(

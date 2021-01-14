@@ -135,6 +135,7 @@ void simulate_mc_generator_streaks(float* output, MarkovChain* chain, int n_time
     next_state_idx = get_next_state_idx(prob_row,current_state_idx);
     //printf("next state id: %d\n",next_state_idx);
 
+    //set_float_element(output,current_timestep,0,current_state)
     for(k=current_timestep;k<current_timestep+streak+1;++k){
       output[k] = current_state;
     }
@@ -149,15 +150,15 @@ void simulate_mc_generator_streaks(float* output, MarkovChain* chain, int n_time
 
 }
 
-void simulate_mc_power_grid(FloatMatrix* output, MarkovChainArray* mkv_chains, TimeSimulationParameters* pars){
+int simulate_mc_power_grid(FloatMatrix* output, MarkovChainArray* mkv_chains, TimeSimulationParameters* pars){
 
   mt_seed32(pars->seed);
 
-  int i = 0, j = 0, k = 0;
+  int i = 0, j = 0, k = 0, l=0, same;
 
   int output_length = pars->n_timesteps+1; //number of simulated timesteps + initial state
 
-  float aggregate[output_length], gen_output[pars->n_timesteps];
+  float current, aggregate[output_length], gen_output[pars->n_timesteps];
 
   MarkovChain* chains = mkv_chains->chains;
 
@@ -189,12 +190,31 @@ void simulate_mc_power_grid(FloatMatrix* output, MarkovChainArray* mkv_chains, T
     }
 
     for(k = 0; k < output_length; ++k){
-      set_float_element(output,i,k,(float) aggregate[k]);
-      //set_float_element(output,i,k,aggregate[k]);
-      //output[i*output_length+k] = aggregate[k];
+      //set_float_element(output,i,k,(float) aggregate[k]);
+
+    }
+    while(k < output_length){
+      if(k==0){
+        current = aggregate[k];
+        same = 1;
+        k += 1;
+      }else{
+        if(aggregate[k] == current){
+          same +=1;
+        }else{
+          set_float_element(output,l,0,current);
+          set_float_element(output,l,1,same);
+          l += same;
+
+          current = aggregate[k];
+          same = 1;
+        }
+        k += 1;
+      }
     }
 
   }
+  return l;
 
 }
 
@@ -283,12 +303,29 @@ void calculate_post_itc_share_margins(FloatMatrix* power_margin_matrix, FloatMat
   }
 }
 
-void calculate_pre_itc_margins(FloatMatrix* gen_series, FloatMatrix* netdem_series){
+void calculate_pre_itc_margins(FloatMatrix* output, FloatMatrix* gen_series, FloatMatrix* netdem_series){
   // Assuming row-major order
 
-  int i = 0, j=0, k=0, period_length = netdem_series->n_rows, series_length = gen_series->n_rows, n_areas = gen_series->n_cols;
+  int l = 0, i = 0, j=0, k=0, period_length = netdem_series->n_rows, n_areas = output->n_cols, series_length=output->n_rows;
+
   for(k=0;k<n_areas;++k){
-    for(i = 0; i < series_length; ++i){
+    float cumsum = 0;
+    l = 0;
+    i = 0
+    while(cumsum < series_length){
+      cumsum += get_float_element(gen_series,i,1+2*k);
+      current = get_float_element(gen_series,i,2*k);
+      while(l < cumsum){
+        set_float_element(output,l,k,current - get_float_element(netdem_series, l, k));
+        l += 1;
+        if(l==period_length){
+          l = 0;
+        }
+      }
+      i += 1;
+    }
+
+    /*for(i = 0; i < series_length; ++i){
       set_float_element(gen_series, i, k, get_float_element(gen_series, i, k) - get_float_element(netdem_series, j, k));
       //gen_series[k + n_areas*i] += (-netdem_series[k + n_areas*j]);
       // this is to avoid using integer remainder operators, which is expensive
@@ -296,7 +333,7 @@ void calculate_pre_itc_margins(FloatMatrix* gen_series, FloatMatrix* netdem_seri
       if(j==period_length){
         j = 0;
       }
-    }
+    }*/
   }
 }
 
@@ -350,19 +387,23 @@ void calculate_post_itc_veto_margins_py_interface(
 
 
 void calculate_pre_itc_margins_py_interface(
+  float* output;
   float* gen_series,
   float* netdem_series,
   int period_length,
   int series_length,
+  int output_length,
   int n_areas){
 
+  FloatMatrix output_matrix;
   FloatMatrix generation_matrix;
   FloatMatrix net_demand_matrix;
 
-  get_float_matrix_from_py_objs(&generation_matrix, gen_series, series_length, n_areas);
+  get_float_matrix_from_py_objs(&output_matrix, output, output_length, n_areas);
+  get_float_matrix_from_py_objs(&generation_matrix, gen_series, series_length, 2*n_areas);
   get_float_matrix_from_py_objs(&net_demand_matrix, netdem_series, period_length, n_areas);
 
-  calculate_pre_itc_margins(&generation_matrix, &net_demand_matrix);
+  calculate_pre_itc_margins(&output_matrix, &generation_matrix, &net_demand_matrix);
 
 }
 

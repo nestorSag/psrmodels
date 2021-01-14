@@ -84,14 +84,18 @@ class UnivariateHindcastMargin(object):
       numpy.array of simulated values
     """
     generation = self._get_gen_simulation()
+    output_length = self.n_sim*self.season_length
+    output = np.ascontiguousarray(np.empty(output_length,1),dtype=np.float32)
 
     # overwrite gensim array with margin values
 
     C_CALL.calculate_pre_itc_margins_py_interface(
+        ffi.cast("float *", output.ctypes.data),
         ffi.cast("float *", generation.ctypes.data),
         ffi.cast("float *",self.net_demand.ctypes.data),
         np.int32(self.season_length),
         np.int32(generation.shape[0]),
+        np.int32(output_length),
         np.int32(1))
 
     return generation

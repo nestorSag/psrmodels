@@ -21,10 +21,12 @@ ffibuilder.cdef("""
 
 
   void calculate_pre_itc_margins_py_interface(
+    float* output;
     float* gen_series,
     float* netdem_series,
     int period_length,
     int series_length,
+    int output_length,
     int n_areas);
 
   void simulate_mc_power_grid_py_interface(

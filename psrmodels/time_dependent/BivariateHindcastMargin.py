@@ -51,7 +51,7 @@ class BivariateHindcastMargin(object):
     gensim = np.ascontiguousarray(
       np.concatenate(
         [self.gen[i].simulate(n_sim=self.n_sim,n_timesteps=self.n-1,seed=seed+i,use_buffer=save) for i in range(len(self.gen))],
-        axis=1
+        axis=0
         )
       )
 
@@ -89,10 +89,11 @@ class BivariateHindcastMargin(object):
     #   gensim = self._get_gen_simulation(n_sim,seed,False,**kwargs)
 
     gensim = self._get_gen_simulation(seed,use_saved,**kwargs)
-
+    
     # overwrite gensim array with margin values
 
     C_CALL.calculate_pre_itc_margins_py_interface(
+        ffi.cast("float *", output.ctypes.data),
         ffi.cast("float *", gensim.ctypes.data),
         ffi.cast("float *",self.net_demand.ctypes.data),
         np.int32(self.n),
