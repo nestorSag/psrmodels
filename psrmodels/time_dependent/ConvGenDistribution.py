@@ -1,3 +1,5 @@
+import warnings
+
 import numpy as np
 import pandas as pd
 
@@ -9,12 +11,20 @@ class ConvGenDistribution(object):
   
   **Parameters**:
 
-  `gens_info` (`str`, `dict` or `pandas.DataFrame`): Either a csv file path, a data frame with columns 'Capacity', 'Availability' and 'TTR' (time to repair), or a dictionary with keys 'transition_probs' (a list of transition matrices) and 'states_list' (a list of state sets corresponding to transition matrices)
+  `gens_info` (`str`, `dict` or `pandas.DataFrame`): Either a csv file path, a data frame with columns 'Capacity', 'Availability' and 'TTR' (time to repair), or a dictionary with keys 'transition_probs' (a list of transition matrices) and 'states_list' (a list of state 'np.ndarray's corresponding to transition matrices)
+
+
+  `seed` (`int`): If not none, this will be the random seed used by the object throughout its lifetime, overriding other random seeds that are passed as arguments. 
+
 
   """
 
   #def __init__(self,states_list, transition_probs):
-  def __init__(self,gens_info):
+  def __init__(self,gens_info,seed=None):
+
+    self.seed = seed
+    if self.seed is not None:
+      print(f"A random seed of {seed} was provided to ConvGenDistribution at instantiation time, and will remain fixed throughout the instance's lifetime, ignoring seeds passed as arguments.")
 
     if isinstance(gens_info,str):
       data = pd.read_csv(gens_info,sep=",")
@@ -102,7 +112,10 @@ class ConvGenDistribution(object):
 
   def simulate(self,n_sim,n_timesteps,x0_list=None,seed=1,simulate_streaks=True,use_buffer=True):
 
-
+    if self.seed is not None:
+      warnings.warn("Using random seed set at instantiation time; ignoring seed from argument list.")
+      seed = self.seed
+    
     """Simulate traces of available conventional generation
     
       **Parameters**:
@@ -130,6 +143,7 @@ class ConvGenDistribution(object):
         # if there is no buffered data or if its stale, create new one and return a copy
         self.saved_sample = self.simulate(n_sim,n_timesteps,x0_list,seed,simulate_streaks,False)
         self.saved_sample_params = {"n_sim":n_sim,"n_timesteps":n_timesteps,"x0_list":x0_list,"seed":seed,"fc":self.fc}
+        print("ConvGenDistribution: returing fresh samples")
         return self.saved_sample.copy()
       else:
         # if there is valid buffered data
@@ -140,9 +154,11 @@ class ConvGenDistribution(object):
           new_sim = self.simulate(n_sim-self.saved_sample_params["n_sim"],n_timesteps,x0_list,new_seed,simulate_streaks,False) + self.saved_sample_params["fc"]
           self.saved_sample = np.ascontiguousarray(np.concatenate((self.saved_sample,new_sim),axis=0)).astype(np.float32)
           self.saved_sample_params["n_sim"] = n_sim
+          print("ConvGenDistribution: returing precomputed samples plus fresh samples")
           return self.saved_sample.copy() + (self.fc - self.saved_sample_params["fc"])
         else:
           #create a copy of a slice, since there are more simulations than necessary
+          print("ConvGenDistribution: returing precomputed samples")
           return self.saved_sample[0:(timesteps_in_season*n_sim),:].copy() + (self.fc - self.saved_sample_params["fc"])
     else:
 

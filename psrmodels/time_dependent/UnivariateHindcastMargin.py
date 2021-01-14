@@ -273,8 +273,10 @@ class UnivariateHindcastMargin(object):
       #self.shortfall_history = df
       self.seed = original_seed
 
-    df = df.groupby(by="season").agg({"m":"sum"})
-    return - np.array(df["m"])
+    sim_eu = np.empty((self.n_sim,),dtype=np.float32)
+    nz_eu = df.groupby(by="season").agg({"m":"sum"})["m"]
+    sim_eu[np.array(df["season"],dtype=np.int32)] = nz_eu
+    return - sim_eu
 
   def lole(self):
     """calculates Monte Carlo estimate of LOLE
@@ -287,6 +289,8 @@ class UnivariateHindcastMargin(object):
 
     """
     df = self.get_shortfalls(raw=True)
+    # import time
+    # time.sleep(5)
     total_effective_seasons = self.n_sim*len(np.unique(df["batch"]))
     return df.shape[0]/total_effective_seasons
 
