@@ -18,21 +18,27 @@ class UnivariateHindcastMargin(object):
 
     `n_simulations` (`int`): number of peak seasons to simulate
 
+    `seed` (`int`): Random seed to be passed to the conventional generation distribution sampler
+
+    `season_length` (`int`): Length of individual peak seasons in time series data. Defaults to time series length (single peak season in data).
+
   """
-  def __init__(self,demand,renewables,gen_dist,n_simulations=1000,seed=1):
+  def __init__(self,demand,renewables,gen_dist,n_simulations=1000,seed=1,season_length=None):
 
     self.shortfall_history = None
 
-    self.set_w_d(demand,renewables)
+    self.series_length = self.demand.shape[0]
+    self.season_length = self.series_length if season_length is None else season_length
+    self.n_sim_series = n_simulations
+
+    self._set_w_d(demand,renewables)
 
     self.gen = gen_dist
-
-    self.n_sim = n_simulations
 
     self.seed = seed
 
 
-  def set_w_d(self,demand,renewables):
+  def _set_w_d(self,demand,renewables):
 
     """Set new demand and renewable generation matrices
   
@@ -43,9 +49,11 @@ class UnivariateHindcastMargin(object):
       `renewables` (`numpy.array`): Matrix of renewable generation with one column per area 
 
     """
+    if demand.reshape((-1,1)).shape[0] != self.series_length:
+      raise Exception("Cannot change length of time series data; instantiate a new UnivariateHindcastMargin object instead.")
 
     # to avoid throwing away samples, merge new net demand data in old samples to update them
-    if self.shortfall_history is not None and demand.reshape((-1,1)).shape[0] == self.demand.reshape((-1,1)).shape[0]:
+    if self.shortfall_history is not None:
       colnames = self.shortfall_history.columns
       new_data_df = pd.DataFrame({"new_net_demand":(demand-renewables).reshape(-1),"season_time":np.arange(len(demand))})
       old_data_df = pd.DataFrame({"old_net_demand":(self.demand-self.renewables).reshape(-1),"season_time":np.arange(len(self.demand))})
@@ -65,12 +73,14 @@ class UnivariateHindcastMargin(object):
     self.net_demand = np.ascontiguousarray((demand - renewables),dtype=np.float32) #no negative net demand
     self.renewables = renewables
     self.demand = np.ascontiguousarray(demand).astype(np.float32)#.clip(min=0)
-    self.season_length = self.net_demand.shape[0]
+    if self.series length%self.season_length != 0:
+      raise Exception("Provided time series length is not a multiple of provided peak season length.")
+    self.n_sim_seasons = self.n_sim_series*self.series_length/self.season_length
     # mark buffered data as stale
 
   def _get_gen_simulation(self,**kwargs):
 
-    output = np.ascontiguousarray(self.gen.simulate(n_sim=self.n_sim,n_timesteps=self.season_length-1,seed=self.seed,use_buffer=True))
+    output = np.ascontiguousarray(self.gen.simulate(n_sim=self.n_sim_series,n_timesteps=self.series_length-1,seed=self.seed,use_buffer=True))
 
     return output
 
@@ -112,21 +122,23 @@ class UnivariateHindcastMargin(object):
       
       **Returns**:
 
-      if raw is False, pandas DataFrame object including columns:
-
-        `margin`: shortfall size
-
-        `shortfall_event_id`: identifier that groups consecutive hourly shortfalls. This allows to measure shortfall durations
-
-        `period_simulation_time`: time id with respect to simulated time length. This allows to find common shortfalls across areas.
-
       If raw is True pandas DataFrame object including columns:
 
         `m`: margin value of area i
 
-        `season_time`: time of ocurrence in peak season
+        `season_time`: time of ocurrence in net demand time series scope
 
         `simulation_time`: time of occurrence in simulation
+
+        `season`: simulated peak season number 
+
+      if raw is False, pandas DataFrame object including columns:
+
+        `margin`: shortfall size
+
+        `shortfall_event_id`: identifier that groups consecutive hourly shortfalls. This allows to measure shortfall duration
+
+        `period_simulation_time`: time id with respect to simulated time length. This allows to find common shortfalls across areas.
 
     """
 
@@ -153,8 +165,101 @@ class UnivariateHindcastMargin(object):
 
     return df
 
+
+  def _process_shortfall_batch(self,sampled):
+    
+    # add metadata
+    sampled["fc"] = self.gen.fc
+    if self.shortfall_history is not None:
+      sampled["batch"] = len(np.unique(self.shortfall_history["batch"])) + 1
+    else:
+      sampled["batch"] = 1
+    # also need time index with respect to simulated peak seasons
+    sampled["season_time"] = (sampled["simulation_time"]%self.season_length).astype(np.int32)
+
+    previously_computed_seasons = 0 if self.shortfall_history is None else self.n_sim_series*len(np.unique(self.shortfall_history["batch"]))
+    sampled["season"] = (sampled["simulation_time"]/self.season_length).astype(np.int32) + previously_computed_seasons
+
+    # store new data in buffer or create it if it doesn't exist
+    if self.shortfall_history is not None:
+      self.shortfall_history = pd.concat([self.shortfall_history,sampled])
+    else:
+      self.shortfall_history = sampled
+
+    return sampled
+
+    # if raw:
+    #   #self.shortfall_historys = sampled
+    #   #self.shortfall_historys_params = {"stf_bound":stf_bound,"fc":self.gen.fc}
+    #   return sampled
+    # else:
+    #   formated_df = self._group_shortfalls(sampled)
+
+    #   return formated_df
+
+  def _group_shortfalls(self,df):
+    season_length = self.season_length 
+    # I call a shortfall cluster a shortfall of potentially multiple consecutive hours
+    current_margin = "m"
+
+    # the first shortfall in a cluster must have at least 1 timestep between it and the previous shortfall
+    cond1 = np.array((df["season_time"] - df["season_time"].shift()).fillna(value=2) != 1)
+
+    # shortfalls that are not the first of their clusters must be in the same peak season simulation
+    # than the previous shortfall in the same cluster
+
+    #first check if previous shortfall is in same peak season simulation
+    peak_season_idx = (np.array(df["simulation_time"])/self.season_length).astype(np.int64)
+    lagged_peak_season_idx =  (np.array(df["simulation_time"].shift().fillna(value=2))/self.season_length).astype(np.int64)
+    same_peak_season = peak_season_idx != lagged_peak_season_idx
+    # check that peak season is the same but only for shortfalls that are not first in their cluster
+    cond2 = np.logical_not(cond1)*same_peak_season
+
+    df["shortfall_event_id"] = np.cumsum(cond1 + cond2)
+
+    formatted_df = df[[current_margin,"shortfall_event_id","simulation_time"]].rename(columns={current_margin:"margin"})
+    return formatted_df
+
+  def simulate_lold(self,min_samples=0):
+    """Simulate duration of loss of load events
+  
+      **Parameters**:
+      
+      `min_samples` (`int`): minimum acceptable number of season-aggregated energy unserved events to compute the estimate; if needed, the model samples more data.
+
+    """
+
+    df = self.get_shortfalls(raw=False)
+    n_distinct_events = len(np.unique(df["shortfall_event_id"]))
+
+    if min_samples > self.n_sim_seasons:
+      print("min_samples larger than number of simulated seasons; ignoring.")
+    elif n_distinct_events < min_samples:
+      original_seed = self.seed
+      while n_distinct_events < min_samples:
+        print(f"Insuficient samples ({n_distinct_events}); simulating {self.n_sim_series} additional seasons to get at least {min_samples} samples")
+        self.seed += 1
+        new_df = self.get_shortfalls(raw=False,cold_start=True)
+        #new_df["season"] = (new_df["simulation_time"]/self.season_length).astype(np.int32) + self.season_length*counter
+        df = pd.concat([df,new_df])
+
+        n_distinct_seasons = len(np.unique(df["shortfall_event_id"]))
+
+      #self.shortfall_history = df
+      self.seed = original_seed
+
+    grouped_df["shortfalls"] = 1
+    grouped_df = df.groupby(by="shortfall_event_id").agg({"shortfalls":"sum"}).reset_index()
+    return np.array(grouped_df["shortfalls"])
+
+
+  def lold(self):
+
+    lold_samples = self.simulate_lold()
+    return np.mean(lold)
+
   def simulate_shortfalls(self,max_tries = 5):
-    """Returns data frame of simualted shortfall events
+    """Returns data frame of simulated shortfall events
   
       **Parameters**:
 
@@ -181,7 +286,7 @@ class UnivariateHindcastMargin(object):
       n_shortfalls = df.shape[0]
       tries += 1
     if n_shortfalls == 0:
-      raise Exception("No shortfalls were found in {k} runs of {n} simulated seasons with the current data; shortfall probability of n_simulations parameter might be too low".format(k=max_tries,n=self.n_sim))
+      raise Exception(f"No shortfalls were found in {max_tries} runs of {self.n_sim_seasons} simulated seasons with the current data; shortfall probability of n_simulations parameter might be too low")
 
     df = pd.DataFrame(df)
     # name columns 
@@ -189,64 +294,10 @@ class UnivariateHindcastMargin(object):
 
     return df
 
-  def _process_shortfall_batch(self,sampled):
-    
-    # add metadata
-    sampled["fc"] = self.gen.fc
-    if self.shortfall_history is not None:
-      sampled["batch"] = len(np.unique(self.shortfall_history["batch"])) + 1
-    else:
-      sampled["batch"] = 1
-    # also need time index with respect to simulated periods
-    sampled["season_time"] = (sampled["simulation_time"]%self.season_length).astype(np.int32)
-
-    previously_computed_seasons = 0 if self.shortfall_history is None else self.n_sim*len(np.unique(self.shortfall_history["batch"]))
-    sampled["season"] = (sampled["simulation_time"]/self.season_length).astype(np.int32) + previously_computed_seasons
-
-    # store new data in buffer or create it if it doesn't exist
-    if self.shortfall_history is not None:
-      self.shortfall_history = pd.concat([self.shortfall_history,sampled])
-    else:
-      self.shortfall_history = sampled
-
-    return sampled
-
-    # if raw:
-    #   #self.shortfall_historys = sampled
-    #   #self.shortfall_historys_params = {"stf_bound":stf_bound,"fc":self.gen.fc}
-    #   return sampled
-    # else:
-    #   formated_df = self._group_shortfalls(sampled)
-
-    #   return formated_df
-
-  def _group_shortfalls(self,df):
-    # I call a shortfall cluster a shortfall of potentially multiple consecutive hours
-    current_margin = "m"
-
-    # the first shortfall in a cluster must have at least 1 timestep between it and the previous shortfall
-    cond1 = np.array((df["season_time"] - df["season_time"].shift()).fillna(value=2) != 1)
-
-    # shortfalls that are not the first of their clusters must be in the same peak season simulation
-    # than the previous shortfall in the same cluster
-
-    #first check if previous shortfall is in same peak season simulation
-    peak_season_idx = (np.array(df["simulation_time"])/self.season_length).astype(np.int64)
-    lagged_peak_season_idx =  (np.array(df["simulation_time"].shift().fillna(value=2))/self.season_length).astype(np.int64)
-    same_peak_season = peak_season_idx != lagged_peak_season_idx
-    # check that peak season is the same but only for shortfalls that are not first in their cluster
-    cond2 = np.logical_not(cond1)*same_peak_season
-
-    df["shortfall_event_id"] = np.cumsum(cond1 + cond2)
-
-    formatted_df = df[[current_margin,"shortfall_event_id","simulation_time"]].rename(columns={current_margin:"margin"})
-    return formatted_df
-
   def simulate_eu(
-    self,
-    min_samples = 100):
+    self):
 
-    """Simulate season-agreggated energy unserved. Seasons without shortfall events below said level are ignored
+    """Simulate season-agreggated energy unserved
   
       **Parameters**:
 
@@ -255,27 +306,31 @@ class UnivariateHindcastMargin(object):
     """
 
     df = self.get_shortfalls(raw=True)
-    n_distinct_seasons = len(np.unique(df["season"]))
+    # n_distinct_seasons = len(np.unique(df["season"]))
 
-    if min_samples > self.n_sim:
-      print("min_samples larger than number of simulated seasons; ignoring.")
-    elif n_distinct_seasons < min_samples:
-      original_seed = self.seed
-      while n_distinct_seasons < min_samples:
-        print("Insuficient samples ({n}); simulating {k} additional seasons to get at least {ms} points".format(k=self.n_sim,ms=min_samples,n=n_distinct_seasons))
-        self.seed += 1
-        new_df = self.get_shortfalls(raw=True,cold_start=True)
-        #new_df["season"] = (new_df["simulation_time"]/self.season_length).astype(np.int32) + self.season_length*counter
-        df = pd.concat([df,new_df])
+    # if min_samples > self.n_sim_seasons:
+    #   print("min_samples larger than number of simulated seasons; ignoring.")
+    # elif n_distinct_seasons < min_samples:
+    #   original_seed = self.seed
+    #   while n_distinct_seasons < min_samples:
+    #     print(f"Insuficient samples ({n_distinct_seasons}); simulating {self.n_sim_series} additional seasons to get at least {min_samples} points")
+    #     self.seed += 1
+    #     new_df = self.get_shortfalls(raw=True,cold_start=True)
+    #     #new_df["season"] = (new_df["simulation_time"]/self.season_length).astype(np.int32) + self.season_length*counter
+    #     df = pd.concat([df,new_df])
 
-        n_distinct_seasons = len(np.unique(df["season"]))
+    #     n_distinct_seasons = len(np.unique(df["season"]))
 
-      #self.shortfall_history = df
-      self.seed = original_seed
+    #   #self.shortfall_history = df
+    #   self.seed = original_seed
 
-    sim_eu = np.empty((self.n_sim,),dtype=np.float32)
-    nz_eu = df.groupby(by="season").agg({"m":"sum"})["m"]
-    sim_eu[np.array(df["season"],dtype=np.int32)] = nz_eu
+    sim_eu = np.empty((self.n_sim_seasons,),dtype=np.float32)
+    grouped_df = df.groupby(by="season").agg({"m":"sum"}).reset_index()
+    #print(grouped_df)
+    nz_eu = grouped_df["m"]
+    nz_eu_seasons = grouped_df["season"]
+    sim_eu[np.array(grouped_df["season"],dtype=np.int32)] = nz_eu
+    #return self.n_sim_series, grouped_df
     return - sim_eu
 
   def lole(self):
@@ -291,8 +346,7 @@ class UnivariateHindcastMargin(object):
     df = self.get_shortfalls(raw=True)
     # import time
     # time.sleep(5)
-    total_effective_seasons = self.n_sim*len(np.unique(df["batch"]))
-    return df.shape[0]/total_effective_seasons
+    return df.shape[0]/self.n_sim_seasons
 
   def eeu(self,min_samples=100):
 
@@ -304,13 +358,11 @@ class UnivariateHindcastMargin(object):
 
     """
     eu_samples = self.simulate_eu(min_samples)
-    df = self.get_shortfalls(raw=True)
-    total_effective_seasons = self.n_sim*len(np.unique(df["batch"]))
-    return np.sum(eu_samples)/total_effective_seasons
+    return np.mean(eu_samples)
 
   def cvar(self,bound,min_samples=100):
 
-    """calculate conditional value at risk for the energy unserved distribution conditioned to being non-zero
+    """calculate conditional value at risk for the energy unserved distribution conditioned to being at last as large as the provided bound
 
     **Parameters**:
     
@@ -320,7 +372,7 @@ class UnivariateHindcastMargin(object):
     if bound < 0:
       raise Error("bound has to be a non-negative number")
     sample = self.simulate_eu(min_samples)
-    sample = sample[sample > bound]
+    sample = sample[sample >= bound]
     return np.mean(sample)
 
   def renewables_efc(self,demand,renewables,metric="lole",tol=0.01):
@@ -352,11 +404,11 @@ class UnivariateHindcastMargin(object):
 
       original_demand = self.demand
       original_renewables = self.renewables
-      self.set_w_d(demand,renewables)
+      self._set_w_d(demand,renewables)
       #with_wind_obj = UnivariateHindcastMargin(self.gen,demand,renewables)
       with_wind_risk = get_risk_function(metric)(self)
 
-      self.set_w_d(demand,np.zeros(renewables.shape))
+      self._set_w_d(demand,np.zeros(renewables.shape))
       def bisection_target(x):
         self.gen += x
         #with_fc_obj = UnivariateHindcastMargin(self.gen,demand,0*renewables)
@@ -395,7 +447,7 @@ class UnivariateHindcastMargin(object):
       #print("efc:{efc}".format(efc=efc))
 
       ## set original demand and wind before returinin
-      self.set_w_d(original_demand,original_renewables)
+      self._set_w_d(original_demand,original_renewables)
       return efc
 
 
