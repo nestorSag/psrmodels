@@ -27,7 +27,9 @@ class UnivariateHindcastMargin(object):
 
     self.shortfall_history = None
 
-    self.series_length = self.demand.shape[0]
+    if demand.shape[0] != renewables.shape[0]:
+      raise Exception("Dimensions of demand and renewables time series don't match.")
+    self.series_length = demand.shape[0]
     self.season_length = self.series_length if season_length is None else season_length
     self.n_sim_series = n_simulations
 
@@ -73,9 +75,9 @@ class UnivariateHindcastMargin(object):
     self.net_demand = np.ascontiguousarray((demand - renewables),dtype=np.float32) #no negative net demand
     self.renewables = renewables
     self.demand = np.ascontiguousarray(demand).astype(np.float32)#.clip(min=0)
-    if self.series length%self.season_length != 0:
-      raise Exception("Provided time series length is not a multiple of provided peak season length.")
-    self.n_sim_seasons = self.n_sim_series*self.series_length/self.season_length
+    if self.series_length%self.season_length != 0:
+      raise Exception("Provided time series length is not a multiple of provided  season_length.")
+    self.n_sim_seasons = int(self.n_sim_series*self.series_length/self.season_length)
     # mark buffered data as stale
 
   def _get_gen_simulation(self,**kwargs):
@@ -100,7 +102,7 @@ class UnivariateHindcastMargin(object):
     C_CALL.calculate_pre_itc_margins_py_interface(
         ffi.cast("float *", generation.ctypes.data),
         ffi.cast("float *",self.net_demand.ctypes.data),
-        np.int32(self.season_length),
+        np.int32(self.series_length),
         np.int32(generation.shape[0]),
         np.int32(1))
 
@@ -138,7 +140,7 @@ class UnivariateHindcastMargin(object):
 
         `shortfall_event_id`: identifier that groups consecutive hourly shortfalls. This allows to measure shortfall duration
 
-        `period_simulation_time`: time id with respect to simulated time length. This allows to find common shortfalls across areas.
+        `simulation_time`: time id with respect to simulated time length. This allows to find common shortfalls across areas.
 
     """
 
@@ -163,6 +165,7 @@ class UnivariateHindcastMargin(object):
     if not raw:
       df = self._group_shortfalls(df)
 
+    df["simulation_time"] = df["simulation_time"].astype(np.int64)
     return df
 
 
@@ -225,7 +228,7 @@ class UnivariateHindcastMargin(object):
   
       **Parameters**:
       
-      `min_samples` (`int`): minimum acceptable number of season-aggregated energy unserved events to compute the estimate; if needed, the model samples more data.
+      `min_samples` (`int`): minimum acceptable number of shortfall clusters to simulate
 
     """
 
@@ -248,7 +251,7 @@ class UnivariateHindcastMargin(object):
       #self.shortfall_history = df
       self.seed = original_seed
 
-    grouped_df["shortfalls"] = 1
+    df["shortfalls"] = 1
     grouped_df = df.groupby(by="shortfall_event_id").agg({"shortfalls":"sum"}).reset_index()
     return np.array(grouped_df["shortfalls"])
 
@@ -256,7 +259,19 @@ class UnivariateHindcastMargin(object):
   def lold(self):
 
     lold_samples = self.simulate_lold()
-    return np.mean(lold)
+    return np.mean(lold_samples)
+
+  def get_shortfall_clusters_timestamps(self,timesteps_per_day=24):
+    """Returns the start time of shortfall clusters (i.e., a group of consecutive hourly shortfalls) and their duration with respect to season time scope.
+  
+    """
+
+    df = self.get_shortfalls(raw=False)
+    df["shortfalls"] = 1
+    grouped_df = df.groupby(by="shortfall_event_id").agg(start_time=("simulation_time",np.min),duration=("shortfalls",np.sum)).reset_index()
+    grouped_df["season_day"] = (grouped_df["start_time"]/timesteps_per_day).astype(np.int32) % int((self.season_length/timesteps_per_day))
+    grouped_df["season"] = (grouped_df["start_time"]/self.season_length).astype(np.int32)
+    return grouped_df
 
   def simulate_shortfalls(self,max_tries = 5):
     """Returns data frame of simulated shortfall events
@@ -301,8 +316,6 @@ class UnivariateHindcastMargin(object):
   
       **Parameters**:
 
-      `min_samples` (`int`): minimum acceptable number of season-aggregated energy unserved events to compute the estimate; if needed, the model samples more data.
-
     """
 
     df = self.get_shortfalls(raw=True)
@@ -324,7 +337,7 @@ class UnivariateHindcastMargin(object):
     #   #self.shortfall_history = df
     #   self.seed = original_seed
 
-    sim_eu = np.empty((self.n_sim_seasons,),dtype=np.float32)
+    sim_eu = np.zeros((self.n_sim_seasons,),dtype=np.float32)
     grouped_df = df.groupby(by="season").agg({"m":"sum"}).reset_index()
     #print(grouped_df)
     nz_eu = grouped_df["m"]
@@ -348,7 +361,7 @@ class UnivariateHindcastMargin(object):
     # time.sleep(5)
     return df.shape[0]/self.n_sim_seasons
 
-  def eeu(self,min_samples=100):
+  def eeu(self):
 
     """calculates Monte Carlo estimate of EEU
 
@@ -357,10 +370,10 @@ class UnivariateHindcastMargin(object):
     `min_samples` (`int`): minimum acceptable number of season-aggregated energy unserved events to compute the estimate; if needed, the model samples more data.
 
     """
-    eu_samples = self.simulate_eu(min_samples)
+    eu_samples = self.simulate_eu()
     return np.mean(eu_samples)
 
-  def cvar(self,bound,min_samples=100):
+  def cvar(self,bound):
 
     """calculate conditional value at risk for the energy unserved distribution conditioned to being at last as large as the provided bound
 
@@ -371,7 +384,7 @@ class UnivariateHindcastMargin(object):
     """
     if bound < 0:
       raise Error("bound has to be a non-negative number")
-    sample = self.simulate_eu(min_samples)
+    sample = self.simulate_eu()
     sample = sample[sample >= bound]
     return np.mean(sample)
 
