@@ -74,6 +74,8 @@ typedef struct TimeSimulationParameters{
  */
 void simulate_mc_generator_steps(float *output, MarkovChain* chain, int n_timesteps);
 
+float* get_float_element_pointer(FloatMatrix* m, int i, int j);
+
 float get_float_element(FloatMatrix* m, int i, int j);
 
 void set_float_element(FloatMatrix* m, int i, int j, float x);

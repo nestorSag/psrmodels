@@ -14,6 +14,10 @@ void set_double_element(DoubleMatrix* m, int i, int j, float x){
   m->value[i*m->n_cols + j] = x;
 }*/
 
+float* get_float_element_pointer(FloatMatrix* m, int i, int j){
+  return &(m->value[i*m->n_cols + j]);
+}
+
 float get_float_element(FloatMatrix* m, int i, int j){
   return m->value[i*m->n_cols + j];
 }
@@ -52,7 +56,8 @@ void simulate_mc_generator_steps(float *output, MarkovChain* chain, int n_timest
 
 
     prob_row = &chain->transition_probs[chain->n_states*(k-1)];
-    output[current_timestep] = chain->states[k-1];
+    //output[current_timestep] = chain->states[k-1];
+    output[current_timestep] += chain->states[k-1];
 
   }
 
@@ -135,8 +140,9 @@ void simulate_mc_generator_streaks(float* output, MarkovChain* chain, int n_time
     next_state_idx = get_next_state_idx(prob_row,current_state_idx);
     //printf("next state id: %d\n",next_state_idx);
 
-    for(k=current_timestep;k<current_timestep+streak+1;++k){
-      output[k] = current_state;
+    for(k=current_timestep;k<=current_timestep+streak;++k){
+      output[k] += current_state;
+      //output[k] = current_state;
     }
 
     // update objects
@@ -153,46 +159,48 @@ void simulate_mc_power_grid(FloatMatrix* output, MarkovChainArray* mkv_chains, T
 
   mt_seed32(pars->seed);
 
-  int i = 0, j = 0, k = 0;
+  int i = 0, j = 0;
 
-  int output_length = pars->n_timesteps+1; //number of simulated timesteps + initial state
+  //int output_length = pars->n_timesteps+1; //number of simulated timesteps + initial state
 
-  float aggregate[output_length], gen_output[pars->n_timesteps];
-
+  //float aggregate[output_length], gen_output[pars->n_timesteps];
+  float* current_trace;
   MarkovChain* chains = mkv_chains->chains;
 
   for(i=0;i<pars->n_simulations;++i){
 
     // initialise auxiliary aggregator
 
-    for(k=0;k<output_length;++k){
+    /*for(k=0;k<output_length;++k){
       aggregate[k] = 0;
-    }
+    }*/
 
+    current_trace = get_float_element_pointer(output,i,0);
     for(j=0;j<mkv_chains->size;++j){
       // get generators' output
 
       if(pars->simulate_streaks > 0){
 
-        simulate_mc_generator_streaks(gen_output, &chains[j], pars->n_timesteps);
+        //simulate_mc_generator_streaks(gen_output, &chains[j], pars->n_timesteps);
+        simulate_mc_generator_streaks(current_trace, &chains[j], pars->n_timesteps);
 
       }else{
 
-        simulate_mc_generator_steps(gen_output, &chains[j], pars->n_timesteps);
+        //simulate_mc_generator_steps(gen_output, &chains[j], pars->n_timesteps);
+        simulate_mc_generator_steps(current_trace, &chains[j], pars->n_timesteps);
 
       }
 
-      for(k = 0; k < output_length; ++k){
+      /*for(k = 0; k < output_length; ++k){
         aggregate[k] += gen_output[k];
-      }
+      }*/
 
     }
 
-    for(k = 0; k < output_length; ++k){
+    /*for(k = 0; k < output_length; ++k){
       set_float_element(output,i,k,(float) aggregate[k]);
-      //set_float_element(output,i,k,aggregate[k]);
-      //output[i*output_length+k] = aggregate[k];
-    }
+      
+    }*/
 
   }
 

@@ -188,8 +188,8 @@ class ConvGenDistribution(object):
             raise Exception("Some state sets do not match the shape of corresponding transition matrix")
 
       # set output array
-      output = np.ascontiguousarray(np.empty((n_sim,timesteps_in_season),dtype=np.float32),dtype=np.float32)
-
+      output = np.ascontiguousarray(np.zeros((n_sim,timesteps_in_season),dtype=np.float32),dtype=np.float32)
+      #print(f"ConvGenDist: output array of size {output.shape}")
       #print("output shape: {s}".format(s=output.shape))
       #print("output before: {o}".format(o=output))
 
