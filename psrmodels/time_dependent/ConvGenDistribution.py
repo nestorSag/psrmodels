@@ -105,12 +105,12 @@ class ConvGenDistribution(object):
     self.add_fc(k)
     return self
 
-  def _same_params_as_buffer(self,n_timesteps,x0_list,seed):
-    return self.saved_sample_params["n_timesteps"] == n_timesteps and \
+  def _same_params_as_buffer(self,n_transitions,x0_list,seed):
+    return self.saved_sample_params["n_transitions"] == n_transitions and \
       self.saved_sample_params["x0_list"] == x0_list and \
       self.saved_sample_params["seed"] == seed
 
-  def simulate(self,n_sim,n_timesteps,x0_list=None,seed=1,simulate_streaks=True,use_buffer=True):
+  def simulate(self,n_sim,n_transitions,x0_list=None,seed=1,simulate_streaks=True,use_buffer=True):
 
     if self.seed is not None:
       warnings.warn("Using random seed set at instantiation time; ignoring seed from argument list.")
@@ -122,7 +122,7 @@ class ConvGenDistribution(object):
 
       `n_sim` (`int`): number of traces to simulate
 
-      `n_timesteps` (`int`): number of transitions to simulate in each trace
+      `n_transitions` (`int`): number of transitions to simulate in each trace
 
       `x0_list`: `list` of initial state values. If `None`, they are sampled from the statinary distributions
 
@@ -135,15 +135,15 @@ class ConvGenDistribution(object):
     """
 
     max_array_size = int(2**31-1) #2**31-1 -> C integer range
-    if n_sim*(n_timesteps+1) >= max_array_size:
-      raise Exception("Resulting arrays are too large; for the provided data, n_sim cannot be larger than {x} at each individual run".format(x=int(max_array_size/(n_timesteps+1))))
-    timesteps_in_season = n_timesteps + 1 #t0 + n_timesteps timesteps = [t0,...,tn]
+    if n_sim*(n_transitions+1) >= max_array_size:
+      raise Exception("Resulting arrays are too large; for the provided data, n_sim cannot be larger than {x} at each individual run".format(x=int(max_array_size/(n_transitions+1))))
+    timesteps_in_season = n_transitions + 1 #t0 + n_transitions timesteps = [t0,...,tn]
     if use_buffer:
-      if self.saved_sample is None or not self._same_params_as_buffer(n_timesteps,x0_list,seed):
+      if self.saved_sample is None or not self._same_params_as_buffer(n_transitions,x0_list,seed):
         # if there is no buffered data or if its stale, create new one and return a copy
-        self.saved_sample = self.simulate(n_sim,n_timesteps,x0_list,seed,simulate_streaks,False)
-        self.saved_sample_params = {"n_sim":n_sim,"n_timesteps":n_timesteps,"x0_list":x0_list,"seed":seed,"fc":self.fc}
-        print("ConvGenDistribution: returing fresh samples")
+        self.saved_sample = self.simulate(n_sim,n_transitions,x0_list,seed,simulate_streaks,False)
+        self.saved_sample_params = {"n_sim":n_sim,"n_transitions":n_transitions,"x0_list":x0_list,"seed":seed,"fc":self.fc}
+        #print("ConvGenDistribution: returing fresh samples")
         return self.saved_sample.copy()
       else:
         # if there is valid buffered data
@@ -151,14 +151,14 @@ class ConvGenDistribution(object):
           # run only the necessary simulations and append, then create a copy
           new_seed = int(self.saved_sample_params["seed"] + np.random.randint(low = 1, high = 1000,size=1)[0])
           print("Buffer is not large enough for required number of samples; generating additional ones with new seed to avoid duplication. Be aware that this affects reproducibility.")
-          new_sim = self.simulate(n_sim-self.saved_sample_params["n_sim"],n_timesteps,x0_list,new_seed,simulate_streaks,False) + self.saved_sample_params["fc"]
+          new_sim = self.simulate(n_sim-self.saved_sample_params["n_sim"],n_transitions,x0_list,new_seed,simulate_streaks,False) + self.saved_sample_params["fc"]
           self.saved_sample = np.ascontiguousarray(np.concatenate((self.saved_sample,new_sim),axis=0)).astype(np.float32)
           self.saved_sample_params["n_sim"] = n_sim
-          print("ConvGenDistribution: returing precomputed samples plus fresh samples")
+          #print("ConvGenDistribution: returing precomputed samples plus fresh samples")
           return self.saved_sample.copy() + (self.fc - self.saved_sample_params["fc"])
         else:
           #create a copy of a slice, since there are more simulations than necessary
-          print("ConvGenDistribution: returing precomputed samples")
+          #print("ConvGenDistribution: returing precomputed samples")
           return self.saved_sample[0:(timesteps_in_season*n_sim),:].copy() + (self.fc - self.saved_sample_params["fc"])
     else:
 
@@ -166,8 +166,8 @@ class ConvGenDistribution(object):
       if n_sim <= 0 or not isinstance(n_sim,int):
         raise Exception("Invalid 'n_sim' value or type")
 
-      if n_timesteps <= 0 or not isinstance(n_timesteps,int):
-        raise Exception("Invalid 'n_timesteps' value or type")
+      if n_transitions <= 0 or not isinstance(n_transitions,int):
+        raise Exception("Invalid 'n_transitions' value or type")
 
       if seed <= 0 or not isinstance(seed,int):
         raise Exception("Invalid 'seed' value or type")
@@ -205,7 +205,7 @@ class ConvGenDistribution(object):
         ffi.cast("float *",initial_values.ctypes.data),
         np.int32(self.n_gen),
         np.int32(n_sim),
-        np.int32(n_timesteps),
+        np.int32(n_transitions),
         np.int32(self.n_states),
         np.int32(seed),
         np.int32(simulate_streaks))

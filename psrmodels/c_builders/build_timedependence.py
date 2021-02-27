@@ -34,7 +34,7 @@ ffibuilder.cdef("""
       float *initial_values,
       int n_generators,
       int n_simulations, 
-      int n_timesteps, 
+      int n_transitions, 
       int n_states,
       int random_seed,
       int simulate_streaks);

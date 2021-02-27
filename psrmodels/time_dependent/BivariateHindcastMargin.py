@@ -50,7 +50,7 @@ class BivariateHindcastMargin(object):
 
     gensim = np.ascontiguousarray(
       np.concatenate(
-        [self.gen[i].simulate(n_sim=self.n_sim,n_timesteps=self.n-1,seed=seed+i,use_buffer=save) for i in range(len(self.gen))],
+        [self.gen[i].simulate(n_sim=self.n_sim,n_transitions=self.n-1,seed=seed+i,use_buffer=save) for i in range(len(self.gen))],
         axis=1
         )
       )

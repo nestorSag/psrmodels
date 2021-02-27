@@ -23,17 +23,20 @@ class BivariateHindcastMargin(object):
   `renewables` (`numpy.ndarray`): matrix of renewable generation values where columns are areas and rows are observations
 
   `gen_dists` (`ConvGenDistribution`, `pd.DataFrame` or `str`): list with information to build conventional generation objects: either the objects themselves, or input to the ConvGenDistribution class constructors
+
+  `season_length` (`int`): Peak season length. if `None`, defaults to data length
     
   `kwargs` Additional parameters to be passed to ConvGenDistribution constructor, such as column separators.
   """
 
-  def __init__(self,demand,renewables,gen_dists,**kwargs):
+  def __init__(self,demand,renewables,gen_dists,season_length=None,**kwargs):
 
     self.net_demand = np.ascontiguousarray((demand - renewables),dtype=np.int32)#.clip(min=0) #no negative net demand
     self.renewables = renewables
     self.demand = np.ascontiguousarray(demand,dtype=np.int32)
     self.gen_dists = self._parse_gendists(gen_dists,**kwargs)
     self.n = self.net_demand.shape[0]
+    self.season_length = season_length if season_length is not None else self.n
 
     self.MARGIN_BOUND = int(np.iinfo(np.int32).max / 2)
 
@@ -101,6 +104,32 @@ class BivariateHindcastMargin(object):
                       ffi.cast("double *",bigen.X1.cdf_vals.ctypes.data),
                       ffi.cast("double *",bigen.X2.cdf_vals.ctypes.data))
 
+  def _trapezoid_prob(self,X,ulc,c):
+
+    """Compute the probability mass of a trapezoidal segment of the plane
+    # The trapezoid is formed by stacking a right triangle on top of a rectangle
+    # where the hypotenuse is facing right
+
+    **Parameters**:
+
+    `X` (`BivariateConvGenDist`) bivariate available conventional generation object 
+    
+    `ulc` (`list`): upper left corner
+
+    `c` (`int`): width of trapezoid
+
+    """
+    ulc1, ulc2 = ulc
+    return C_CALL.trapezoid_prob_py_interface(
+                        np.int32(ulc1),
+                        np.int32(ulc2),
+                        np.int32(c),
+                        np.int32(X.X1.min),
+                        np.int32(X.X2.min),
+                        np.int32(X.X1.max),
+                        np.int32(X.X2.max),
+                        ffi.cast("double *",X.X1.cdf_vals.ctypes.data),
+                        ffi.cast("double *",X.X2.cdf_vals.ctypes.data))
 
   @staticmethod
   def _is_shortfall_region(m1,m2,c,policy):
@@ -304,7 +333,7 @@ class BivariateHindcastMargin(object):
     if get_pointwise_risk:
       lole = lolp_vals
     else:
-      lole = self.n * lolp_vals
+      lole = self.n * lolp_vals /(self.n/self.season_length)
 
     return lole
 
@@ -374,7 +403,7 @@ class BivariateHindcastMargin(object):
     if axis == 1:
       self._swap_axes()
     
-    epu_vals = self._get_area_1_eeu(c=c,policy=policy,get_pointwise_risk=get_pointwise_risk)
+    eeu = self._get_area_1_eeu(c=c,policy=policy,get_pointwise_risk=get_pointwise_risk)
 
     if axis == 1:
       self._swap_axes()
@@ -382,7 +411,7 @@ class BivariateHindcastMargin(object):
     if get_pointwise_risk:
       return epu_vals
     else:
-      return self.n * epu_vals
+      return eeu
 
     #return epu
 
@@ -417,48 +446,49 @@ class BivariateHindcastMargin(object):
     `get_pointwise_risk` (`str`): return pandas DataFrame with EPU for each historic observation
 
     """
-    if c > 0 or get_pointwise_risk:
+    #if c > 0 or get_pointwise_risk:
       #self._check_null_fc()
-      X1 = self.gen_dists[0]
-      X2 = self.gen_dists[1]
-      n = self.n
 
-      EPU = 0
+    X1 = self.gen_dists[0]
+    X2 = self.gen_dists[1]
+    n = self.n
 
-      if get_pointwise_risk:
-        nd0 = []
-        nd1 = []
-        pu = []
-        
-      for i in range(n):
-        #print(i)
-        v1, v2 = self.net_demand[i,:]
-        d1, d2 = self.demand[i,:]
-        if policy == "share":
-          point_EPU = self._cond_EPU_share(X1,X2,d1,d2,v1,v2,c)
-        else:
-          point_EPU = self._cond_EPU_veto(X1,X2,v1,v2,c)
+    eeu = 0
 
-        EPU += point_EPU
-        
-        if get_pointwise_risk:
-          nd0.append(v1)
-          nd1.append(v2)
-          pu.append(point_EPU)
-
-      if get_pointwise_risk:
-        pw_df = pd.DataFrame({"nd0":nd0,"nd1":nd1,"value":pu})
-        return pw_df 
+    if get_pointwise_risk:
+      nd0 = []
+      nd1 = []
+      pu = []
+      
+    for i in range(n):
+      #print(i)
+      v1, v2 = self.net_demand[i,:]
+      d1, d2 = self.demand[i,:]
+      if policy == "share":
+        point_EPU = self._cond_EPU_share(X1,X2,d1,d2,v1,v2,c)
       else:
-        return EPU/n
+        point_EPU = self._cond_EPU_veto(X1,X2,v1,v2,c)
+
+      eeu += point_EPU
+      
+      if get_pointwise_risk:
+        nd0.append(v1)
+        nd1.append(v2)
+        pu.append(point_EPU)
+
+    if get_pointwise_risk:
+      pw_df = pd.DataFrame({"nd0":nd0,"nd1":nd1,"value":pu})
+      return pw_df 
+    else:
+      return eeu /(self.n/self.season_length)
         #return self.season_hours * EPU/n
 
 
-    else:
-      # if interconnector capacity is zero, use UnivariateHindcastMargin to compute risks
-      # as it does it more efficiently
-      margin = UnivariateHindcastMargin(self.gen_dists[0],self.net_demand[:,0])
-      return margin.eeu()
+    # else:
+    #   # if interconnector capacity is zero, use UnivariateHindcastMargin to compute risks
+    #   # as it does it more efficiently
+    #   margin = UnivariateHindcastMargin(self.gen_dists[0],self.net_demand[:,0])
+    #   return margin.eeu()
   
 
 
@@ -642,32 +672,6 @@ class BivariateHindcastMargin(object):
         print("Warning: EFC estimator did not converge.")
       #print("efc:{efc}".format(efc=efc))
       return int(efc)
-
-  def _trapezoid_prob(self,X,ulc,c):
-
-    """Compute the probability mass of a trapezoidal segment of the plane
-    # The trapezoid os formed by stacking a right triangle on top of a rectangle
-    # where the hypotenuse is facing to the right
-
-    **Parameters**:
-
-    `X` (`BivariateConvGenDist`) bivariate available conventional generation object 
-    
-    `ulc` (`list`): upper left corner
-
-    `c` (`int`): width of trapezoid
-
-    """
-    return C_CALL.trapezoid_prob_py_interface(
-                        np.int32(ulc1),
-                        np.int32(ulc2),
-                        np.int32(c),
-                        np.int32(X.X1.min),
-                        np.int32(X.X2.min),
-                        np.int32(X.X1.max),
-                        np.int32(X.X2.max),
-                        ffi.cast("double *",X.X1.cdf_vals.ctypes.data),
-                        ffi.cast("double *",X.X2.cdf_vals.ctypes.data))
 
   def _cond_EPU_share(self,FX1,FX2,d1,d2,v1,v2,c):
     """Returns EPU conditional on given demand and wind generations under a share policy
@@ -1025,6 +1029,7 @@ class BivariateHindcastMargin(object):
       # system-wide LOLP does not depend on the policy
       #point_LOLP = X.cdf((v1-c-1,math.inf)) + X.cdf((math.inf,v2-c-1)) - X.cdf((v1-c-1,v2-c-1)) + BivariateHindcastMargin._triangle_prob(X,(v1-c-1,v2-c-1),2*c+1)
       point_LOLP = X.cdf((v1-c-1,math.inf)) + X.cdf((math.inf,v2-c-1)) - X.cdf((v1+c,v2-c-1)) + self._trapezoid_prob(X,(v1-c-1,v2+c),2*c)
+
       LOLP += point_LOLP
 
       if get_pointwise_risk:
@@ -1084,7 +1089,7 @@ class BivariateHindcastMargin(object):
 
     `get_pointwise_risk` (`str`): return pandas DataFrame with system LOLE contributions for each historic observation
     """
-    return self.n * self.system_lolp(c,get_pointwise_risk)
+    return self.n * self.system_lolp(c,get_pointwise_risk) /(self.n/self.season_length)
 
 
   def margin_quantile(self,q,i=0,c=0,policy="veto"):

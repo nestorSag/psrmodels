@@ -17,9 +17,9 @@ def winter_period(dt):
   else:
     return dt.year - 1
 
-def get_objects(country="uk"):
+def get_objects(country="gb"):
   gen_file = "test/data/energy/{c}/generator_data.txt".format(c=country)
-  data_path = "test/data/energy/uk_ireland/InterconnectionData_Rescaled.txt"
+  data_path = "test/data/energy/gb_irl/InterconnectionData_Rescaled.txt"
   df = pd.read_csv(data_path,sep=" ") 
   df.columns = [x.lower() for x in df.columns]
   #
@@ -39,7 +39,7 @@ def get_bivariate_margins_object(y=2010):
   obj = get_objects()
   df_ = obj["data"].query("period == {y}".format(y=y))
   gb_gen = obj["gen"]
-  irl_gen = get_objects("ireland")["gen"]
+  irl_gen = get_objects("irl")["gen"]
   #
   gb_dem = np.array(df_[["gbdem_r"]]).round().astype(np.float64)
   irl_dem = np.array(df_[["idem_r"]]).round().astype(np.float64)
@@ -70,7 +70,7 @@ def test_UnivariateHindcastMargin():
     h = UnivariateHindcastMargin(obj["gen"],np.array(obj["data"].query("period == {y}".format(y=year))["uk_net"]))
     assert h.n*h.cdf(0) == pytest.approx(true_values_uk[year],1e-7)
 
-  obj = get_objects("ireland")
+  obj = get_objects("irl")
 
   true_values_ireland = {\
        2007:0.78562182,\
@@ -90,8 +90,8 @@ def test_UnivariateHindcastMargin():
 
 def test_generation_dist():
   # true values and calcualted values shouldn't differ by more than 1e-10 on average
-  obj = get_objects(country="ireland")
-  gen_vals_path = "test/data/energy/ireland/pmf.txt"
+  obj = get_objects(country="irl")
+  gen_vals_path = "test/data/energy/irl/pmf.txt"
   pmf_vals = np.array(pd.read_csv(gen_vals_path,sep=" ")["freq"])
   k = min(pmf_vals.size,obj["gen"].cdf_vals.size)
   s = 0
@@ -104,7 +104,7 @@ def test_generation_dist():
   cdf_allowed_error = 1e-16 #cumulative sum, so can't ensure more than say 1e-16 precission
   fc = 500
   baseline = obj["gen"]
-  fc_gen = get_objects(country="ireland")["gen"] + fc# required to avoid selfreferencing
+  fc_gen = get_objects(country="irl")["gen"] + fc# required to avoid selfreferencing
 
   ### check that PMF has shifted to the right
   k = obj["gen"].max
@@ -116,7 +116,7 @@ def test_generation_dist():
     assert obj["gen"].pdf(i)*(i+fc) == pytest.approx(fc_gen.expectation(i+fc,i+fc),expectation_allowed_error)
 
   fc = -500
-  fc_gen = get_objects(country="ireland")["gen"] + fc# required to avoid selfreferencing
+  fc_gen = get_objects(country="irl")["gen"] + fc# required to avoid selfreferencing
   ### check that PMF has shifted to the left
   for i in range(k):
     assert obj["gen"].pdf(i) == fc_gen.pdf(i+fc)
@@ -237,9 +237,9 @@ def test_time_dependent_margins():
 
   td_convgen_file = "test/data/energy/{c}/synthetic_sequential_convgen_data.csv"
   
-  gen_df = pd.read_csv(td_convgen_file.format(c="ireland"))
+  gen_df = pd.read_csv(td_convgen_file.format(c="irl"))
   irl_td_convgen = td.ConvGenDistribution(gen_df)
-  gb_td_convgen = td.ConvGenDistribution(pd.read_csv(td_convgen_file.format(c="uk")))
+  gb_td_convgen = td.ConvGenDistribution(pd.read_csv(td_convgen_file.format(c="gb")))
   
   c = 1000
   n_sim = 10

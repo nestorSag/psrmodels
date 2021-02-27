@@ -17,8 +17,10 @@ class UnivariateHindcastMargin(object):
 
     `nd_data` (`numpy.npdarray`): vector of net demand values
 
+    `season_length` (`int`): Peak season length. if `None`, defaults to data length
+
   """
-  def __init__(self,gen,nd_data):
+  def __init__(self,gen,nd_data, season_length=None):
 
     if not isinstance(gen,ConvGenDistribution):
       raise Exception("gen is not an instance of ConvGenDistribution")
@@ -26,6 +28,7 @@ class UnivariateHindcastMargin(object):
     self.gen = gen
     self.nd_vals = np.ascontiguousarray(nd_data).astype(np.int32)#.clip(min=0)
     self.n = len(self.nd_vals)
+    self.season_length = season_length if season_length is not None else self.n
 
     self.min = -np.max(self.nd_vals)
     self.max = self.gen.max - np.min(self.nd_vals)
@@ -140,7 +143,7 @@ class UnivariateHindcastMargin(object):
 
     """
 
-    return self.n * self.lolp()
+    return self.n * self.lolp() /(self.n/self.season_length)
 
   def _rescaled_cvar(self,x):
 
@@ -177,7 +180,7 @@ class UnivariateHindcastMargin(object):
 
     """
 
-    return self.cvar(0) * self.cdf(-1)
+    return self.n * self.cvar(0) * self.cdf(-1) /(self.n/self.season_length)
 
   def _simulate_nd(self,n):
 

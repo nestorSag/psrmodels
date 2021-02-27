@@ -58,7 +58,7 @@ typedef struct MarkovChainArray{
  */
 typedef struct TimeSimulationParameters{
 	int n_simulations;
-	int n_timesteps;
+	int n_transitions;
 	int seed;
 	int simulate_streaks;
 
@@ -69,10 +69,10 @@ typedef struct TimeSimulationParameters{
  *
  * @param output 1D array where time series is going to be stored
  * @param chain wrapper for a Markov Chain data
- * @param n_timesteps number of time steps to simulate
+ * @param n_transitions number of transitions to simulate
  * @return @c void
  */
-void simulate_mc_generator_steps(float *output, MarkovChain* chain, int n_timesteps);
+void simulate_mc_generator_steps(float *output, MarkovChain* chain, int n_transitions);
 
 float* get_float_element_pointer(FloatMatrix* m, int i, int j);
 
@@ -91,10 +91,10 @@ float max(float num1, float num2);
  *
  * @param output 1D array where time series is going to be stored
  * @param chain wrapper for a Markov Chain data
- * @param n_timesteps number of time steps to simulate
+ * @param n_transitions number of transitions to simulate
  * @return @c void
  */
-void simulate_mc_generator_streaks(float* output, MarkovChain* chain, int n_timesteps);
+void simulate_mc_generator_streaks(float* output, MarkovChain* chain, int n_transitions);
 
 int get_next_state_idx(
 	float* prob_row, int current_state_idx);
@@ -200,7 +200,7 @@ void simulate_mc_power_grid_py_interface(
     float *initial_values,
     int n_generators,
     int n_simulations, 
-    int n_timesteps, 
+    int n_transitions, 
     int n_states,
     int random_seed,
     int simulate_streaks);

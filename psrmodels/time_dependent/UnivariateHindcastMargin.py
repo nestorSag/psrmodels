@@ -82,7 +82,7 @@ class UnivariateHindcastMargin(object):
 
   def _get_gen_simulation(self,**kwargs):
 
-    output = np.ascontiguousarray(self.gen.simulate(n_sim=self.n_sim_series,n_timesteps=self.series_length-1,seed=self.seed,use_buffer=True))
+    output = np.ascontiguousarray(self.gen.simulate(n_sim=self.n_sim_series,n_transitions=self.series_length-1,seed=self.seed,use_buffer=True))
 
     return output
 

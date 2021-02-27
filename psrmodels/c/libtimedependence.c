@@ -27,10 +27,10 @@ void set_float_element(FloatMatrix* m, int i, int j, float x){
 }
 
 
-void simulate_mc_generator_steps(float *output, MarkovChain* chain, int n_timesteps){
+void simulate_mc_generator_steps(float *output, MarkovChain* chain, int n_transitions){
   // simulate each step in a power availability time series
 
-  int current_state_idx = 0, current_timestep = 0, k = 0;
+  int current_state_idx = 0, current_timestep = 0, k = 0, n_timesteps=n_transitions+1;
   float cdf;
   double u;
 
@@ -44,7 +44,7 @@ void simulate_mc_generator_steps(float *output, MarkovChain* chain, int n_timest
 
 
   // simulate n hours and save inplace in output
-  for(current_timestep = 1; current_timestep <= n_timesteps; ++current_timestep){
+  for(current_timestep = 1; current_timestep < n_timesteps; ++current_timestep){
     cdf = 0;
     k = 0;
     u = mt_drand();
@@ -113,13 +113,13 @@ float max(float num1, float num2)
 }
 
 
-void simulate_mc_generator_streaks(float* output, MarkovChain* chain, int n_timesteps){
+void simulate_mc_generator_streaks(float* output, MarkovChain* chain, int n_transitions){
   // simulate 'escape time': number of steps before leaving a state
   // if one state has a large stationary probability (> 0.5) this method might be faster
   // than simply simulating each step
 
   //find index of initial state to get initial transition probability row
-  int current_state_idx = 0, current_timestep = 0, k = 0, streak, next_state_idx;
+  int current_state_idx = 0, current_timestep = 0, k = 0, streak, next_state_idx, n_timesteps = n_transitions+1;
   float current_state;
 
   while(chain->states[current_state_idx] != chain->initial_state){
@@ -131,11 +131,11 @@ void simulate_mc_generator_streaks(float* output, MarkovChain* chain, int n_time
 
   float prob_loop = prob_row[current_state_idx];
 
-  while(current_timestep <= n_timesteps){
+  while(current_timestep < n_timesteps){
     current_state = chain->states[current_state_idx];
     //printf("current timestep: %d\n",current_timestep);
     //printf("current state id: %d\n",current_state_idx);
-    streak = min(simulate_geometric_dist(1.0-prob_loop), n_timesteps - current_timestep);
+    streak = min(simulate_geometric_dist(1.0-prob_loop), n_transitions - current_timestep);
     //printf("streak: %d\n",streak);
     next_state_idx = get_next_state_idx(prob_row,current_state_idx);
     //printf("next state id: %d\n",next_state_idx);
@@ -182,12 +182,12 @@ void simulate_mc_power_grid(FloatMatrix* output, MarkovChainArray* mkv_chains, T
       if(pars->simulate_streaks > 0){
 
         //simulate_mc_generator_streaks(gen_output, &chains[j], pars->n_timesteps);
-        simulate_mc_generator_streaks(current_trace, &chains[j], pars->n_timesteps);
+        simulate_mc_generator_streaks(current_trace, &chains[j], pars->n_transitions);
 
       }else{
 
         //simulate_mc_generator_steps(gen_output, &chains[j], pars->n_timesteps);
-        simulate_mc_generator_steps(current_trace, &chains[j], pars->n_timesteps);
+        simulate_mc_generator_steps(current_trace, &chains[j], pars->n_transitions);
 
       }
 
@@ -381,7 +381,7 @@ void simulate_mc_power_grid_py_interface(
   float *initial_values,
   int n_generators,
   int n_simulations, 
-  int n_timesteps, 
+  int n_transitions, 
   int n_states,
   int random_seed,
   int simulate_streaks){
@@ -391,7 +391,7 @@ void simulate_mc_power_grid_py_interface(
   TimeSimulationParameters pars;
 
   pars.n_simulations = n_simulations;
-  pars.n_timesteps = n_timesteps;
+  pars.n_transitions = n_transitions;
   pars.seed = random_seed;
   pars.simulate_streaks = simulate_streaks;
 
@@ -411,7 +411,7 @@ void simulate_mc_power_grid_py_interface(
   mkv_chains.size = n_generators;
 
   FloatMatrix m;
-  get_float_matrix_from_py_objs(&m,output,n_simulations,n_timesteps+1);
+  get_float_matrix_from_py_objs(&m,output,n_simulations,n_transitions+1);
 
   simulate_mc_power_grid(&m, &mkv_chains, &pars);
 
