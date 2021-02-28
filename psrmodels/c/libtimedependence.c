@@ -80,19 +80,33 @@ int simulate_geometric_dist(
   }
 }
 
-int get_next_state_idx(
-  float* prob_row, int current_state_idx){
 
-  float cdf = 0.0, escape_prob = 1.0 - prob_row[current_state_idx]; //total_prob = probabiliti mass f(x)
-  double u;
+int get_next_state_idx(
+  float* prob_row, int current_state_idx, int n_states){
+
+  //float cdf; //total_prob = probabiliti mass f(x)
+  float  cdf=0.0, u, escape_prob = 0.0;
   int j = 0;
 
-  u = mt_drand();
+  // compute total escape probability
+  for(j=0;j<n_states;j++){
+    if(j!= current_state_idx){
+      escape_prob += prob_row[j];
+    }
+  }
+
+  //ensure u is feasible (rounding errors can make it unfeasible)
+  u = escape_prob * ((float) mt_drand());
+  while(u > escape_prob){
+    u = escape_prob * ((float) mt_drand()); 
+  }
+
+  j = 0;
   while(cdf < u){
     if(j != current_state_idx){
-      cdf += prob_row[j]/escape_prob;
+      cdf += prob_row[j];
     }
-    ++j;
+    j += 1;
   }
 
   return j-1;
@@ -137,7 +151,7 @@ void simulate_mc_generator_streaks(float* output, MarkovChain* chain, int n_tran
     //printf("current state id: %d\n",current_state_idx);
     streak = min(simulate_geometric_dist(1.0-prob_loop), n_transitions - current_timestep);
     //printf("streak: %d\n",streak);
-    next_state_idx = get_next_state_idx(prob_row,current_state_idx);
+    next_state_idx = get_next_state_idx(prob_row,current_state_idx,chain->n_states);
     //printf("next state id: %d\n",next_state_idx);
 
     for(k=current_timestep;k<=current_timestep+streak;++k){
@@ -176,9 +190,12 @@ void simulate_mc_power_grid(FloatMatrix* output, MarkovChainArray* mkv_chains, T
     }*/
 
     current_trace = get_float_element_pointer(output,i,0);
+
+    float current_value = 0.0, last_value = 0.0, gencap;
+
     for(j=0;j<mkv_chains->size;++j){
       // get generators' output
-
+      
       if(pars->simulate_streaks > 0){
 
         //simulate_mc_generator_streaks(gen_output, &chains[j], pars->n_timesteps);
@@ -190,6 +207,17 @@ void simulate_mc_power_grid(FloatMatrix* output, MarkovChainArray* mkv_chains, T
         simulate_mc_generator_steps(current_trace, &chains[j], pars->n_transitions);
 
       }
+
+      /*if(i==4643){
+        //printf("output[7526] = %f, gen. cap. %f, %d\n",current_trace[7526], (&chains[j])->states[0],j);
+        gencap = (&chains[j])->states[0];
+        last_value = current_value;
+        current_value = current_trace[7526];
+        if(current_value - last_value > gencap){
+          printf("gencap %f, diff %f, j %d\n",gencap,current_value-last_value,j);
+        }
+
+      }*/
 
       /*for(k = 0; k < output_length; ++k){
         aggregate[k] += gen_output[k];

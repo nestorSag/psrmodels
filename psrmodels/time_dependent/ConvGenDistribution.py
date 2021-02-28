@@ -71,10 +71,14 @@ class ConvGenDistribution(object):
       pi, ttr = row
       alpha = 1 - 1/ttr
       a11 = 1 - (1-pi)*(1-alpha)/pi
-      mat = np.array([[a11,1-a11],[1-alpha,alpha]])
+      mat = np.array([[a11,1-a11],[1-alpha,alpha]],dtype=np.float32)
+      mat = mat / np.sum(mat,axis=1)
+      # this is to ensure that all chains are probability distributions
+      #remainder = np.clip(1.0 - np.sum(mat,axis=1),a_min=0,a_max=np.Inf)
+      #mat[:,0] += remainder
       return mat
 
-    mat = np.array(gens_df[["Capacity","Availability","TTR"]])
+    mat = np.array(gens_df[["Capacity","Availability","TTR"]],dtype=np.float32)
     states_list = [[x,0] for x in mat[:,0]]
     transition_prob_list = np.apply_along_axis(row_to_mc_matrix,1,mat[:,1:3])
 

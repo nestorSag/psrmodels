@@ -97,7 +97,7 @@ float max(float num1, float num2);
 void simulate_mc_generator_streaks(float* output, MarkovChain* chain, int n_transitions);
 
 int get_next_state_idx(
-	float* prob_row, int current_state_idx);
+  float* prob_row, int current_state_idx, int n_states);
 /**
  * @brief simulate a time series of aggregated availabilities for a set of generators
  *
