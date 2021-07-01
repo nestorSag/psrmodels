@@ -112,7 +112,7 @@ class UnivariateEVMargin(UnivariateHindcastMargin):
     u = np.random.binomial(1,self.p,n)
     n_samples_below = np.sum(u)
 
-    below_obs = self.nd_vals[self.nd_vals <= u]
+    below_obs = self.nd_vals[self.nd_vals <= self.u]
     n_obs_below = range(len(below_obs))
 
     row_idx = np.random.choice(n_obs_below,size=n_samples_below)

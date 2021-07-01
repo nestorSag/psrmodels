@@ -34,7 +34,7 @@ class UnivariateHindcastMargin(object):
     self.max = self.gen.max - np.min(self.nd_vals)
 
   def renewables_efc(self,demand,renewables,metric="lole",tol=0.01):
-    """calculate efc of wind fleer
+    """calculate efc of wind fleet
 
     **Parameters**:
     
@@ -226,12 +226,12 @@ class UnivariateHindcastMargin(object):
 
     """
 
-    np.seed(seed)
+    np.random.seed(seed)
     gen_simulation = self.gen.simulate(n).reshape((n,1))
     nd_simulation = self._simulate_nd(n).reshape((n,1))
 
     margin_simulation = gen_simulation - nd_simulation
 
-    return {"margin":margin_simulation,"generation":gen_simulation, "net_demand":nd_simulation}
+    return pd.DataFrame({"margin":margin_simulation.reshape(-1),"generation":gen_simulation.reshape(-1), "net_demand":nd_simulation.reshape(-1)})
                         
 

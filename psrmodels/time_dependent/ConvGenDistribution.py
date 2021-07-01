@@ -78,7 +78,7 @@ class ConvGenDistribution(object):
       #mat[:,0] += remainder
       return mat
 
-    mat = np.array(gens_df[["Capacity","Availability","TTR"]],dtype=np.float32)
+    mat = np.array(gens_df[["Capacity","Availability","MTTR"]],dtype=np.float32)
     states_list = [[x,0] for x in mat[:,0]]
     transition_prob_list = np.apply_along_axis(row_to_mc_matrix,1,mat[:,1:3])
 
@@ -117,7 +117,7 @@ class ConvGenDistribution(object):
   def simulate(self,n_sim,n_transitions,x0_list=None,seed=1,simulate_streaks=True,use_buffer=True):
 
     if self.seed is not None:
-      warnings.warn("Using random seed set at instantiation time; ignoring seed from argument list.")
+      #.warn("Using random seed set at instantiation time; ignoring seed from argument list.")
       seed = self.seed
     
     """Simulate traces of available conventional generation

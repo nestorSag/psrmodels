@@ -5,11 +5,12 @@ class MonteCarloEstimator(object):
   """ Class that contains method to calculate Monte Carlo estimates for reliability analysis from a sample of observed pre-interconnection power margin values
   """
   @staticmethod
-  def get_efc_metric_function(metric,obj,**kwargs):
+  def get_efc_metric_function(metric,obj):
       if isinstance(metric,str):
-        return getattr(obj,metric)
+        func = getattr(obj,metric)
+        return lambda obs,c,policy,axis, **kwargs: func(obs=obs,c=c,policy=policy,axis=axis,**kwargs) #return curried  
       elif callable(metric):
-        return lambda obs,c,policy,axis: metric(obj=obj,obs=obs,c=c,policy=policy,axis=axis,**kwargs) #return curried metric set_metric_function
+        return lambda obs,c,policy,axis, **kwargs: metric(obj=obj,obs=obs,c=c,policy=policy,axis=axis,**kwargs) #return curried metric set_metric_function
       else:
         raise Exception("'metric' has to be either a function or a string")
 
@@ -70,12 +71,13 @@ class MonteCarloEstimator(object):
 
     def share_flow(extended_row):
       demand = extended_row[2:4]
-      row = extended_row[0:2]
-      if np.sum(row) < 0 and np.all(row < c):
-        r = demand[to_axis]/np.sum(demand,axis=1)
-        flow = min(max(r*obs[other] - (1-r)*obs[to_axis],-c),c)
+      power_margins = extended_row[0:2]
+      if np.sum(power_margins) < 0 and np.all(power_margins < c):
+        r = demand[to_axis]/np.sum(demand)
+        flow = min(max(r*power_margins[other] - (1-r)*power_margins[to_axis],-c),c)
+        return flow
       else:
-        return veto_flow(row)
+        return veto_flow(power_margins)
 
     shortfall_idx = np.logical_or(obs[:,0] < 0, obs[:,1] < 0)
     shortfalls = obs[shortfall_idx,:]
@@ -84,7 +86,7 @@ class MonteCarloEstimator(object):
       flow = np.apply_along_axis(lambda row: float(veto_flow(row)),arr=shortfalls,axis=1)
     else:
       if demand is not None:
-        r = demand[:,to_axis]/np.sum(demand,axis=1)
+        #r = demand[:,to_axis]/np.sum(demand,axis=1)
         flow = np.apply_along_axis(lambda row: float(share_flow(row)),arr=np.concatenate([shortfalls,demand[shortfall_idx,:]],axis=1),axis=1)
         #flow = np.minimum(np.maximum(r*obs[:,other] - (1-r)*obs[:,to_axis],-c),c)
       else:
@@ -257,13 +259,13 @@ class MonteCarloEstimator(object):
 
     """
     obs = obs.astype(dtype=np.float64)
-    with_itc = MonteCarloEstimator.get_efc_metric_function(metric,self,**kwargs)(obs=obs,c=c,policy=policy,axis=axis)
+    with_itc = MonteCarloEstimator.get_efc_metric_function(metric,self)(obs=obs,c=c,policy=policy,axis=axis,**kwargs)
     #print("with_itc: {x}".format(x=with_itc))
 
     def find_efc(x):
       #print("x: {x}".format(x=x))
       obs[:,axis] += x
-      without_itc = MonteCarloEstimator.get_efc_metric_function(metric,self,**kwargs)(obs=obs,c=0,policy=policy,axis=axis)
+      without_itc = MonteCarloEstimator.get_efc_metric_function(metric,self)(obs=obs,c=0,policy=policy,axis=axis,**kwargs)
       obs[:,axis] -= x
       return with_itc - without_itc
 
@@ -339,7 +341,7 @@ class MonteCarloEstimator(object):
     new_gen_simulations = cap * np.random.binomial(n=1,p=prob,size=obs.shape[0])
     #pint(new_gen_simulations)
     obs[:,gen_axis] += new_gen_simulations
-    with_gen = MonteCarloEstimator.get_efc_metric_function(metric,self,**kwargs)(obs = obs,c=c,policy=policy,axis=axis)
+    with_gen = MonteCarloEstimator.get_efc_metric_function(metric,self)(obs = obs,c=c,policy=policy,axis=axis,**kwargs)
     #print("with_gen: {x}".format(x=with_gen))
 
     # get efc of new generator
@@ -348,7 +350,7 @@ class MonteCarloEstimator(object):
 
     def find_efc(x):
       obs[:,fc_axis] += x
-      with_fc = MonteCarloEstimator.get_efc_metric_function(metric,self,**kwargs)(obs = obs,c=c,policy=policy,axis=axis)
+      with_fc = MonteCarloEstimator.get_efc_metric_function(metric,self)(obs = obs,c=c,policy=policy,axis=axis,**kwargs)
       #with_fc = getattr(self,metric)(obs=obs,c=c,policy=policy,axis=axis,**kwargs)
       obs[:,fc_axis] -= x
       #print("x: {x}, with_fc: {with_fc}, with_gen: {with_gen}".format(x=x,with_fc=with_fc,with_gen=with_gen))
@@ -383,13 +385,13 @@ class MonteCarloEstimator(object):
 
     """
 
-    with_rnw = MonteCarloEstimator.get_efc_metric_function(metric,self,**kwargs)(obs=without_renewables+renewables,c=c,policy=policy,axis=axis)
+    with_rnw = MonteCarloEstimator.get_efc_metric_function(metric,self)(obs=without_renewables+renewables,c=c,policy=policy,axis=axis,**kwargs)
     #print("with_itc: {x}".format(x=with_itc))
 
     def find_efc(x):
       #print("x: {x}".format(x=x))
       without_renewables[:,axis] += x
-      without_rnw = MonteCarloEstimator.get_efc_metric_function(metric,self,**kwargs)(obs=without_renewables,c=c,policy=policy,axis=axis)
+      without_rnw = MonteCarloEstimator.get_efc_metric_function(metric,self)(obs=without_renewables,c=c,policy=policy,axis=axis,**kwargs)
       without_renewables[:,axis] -= x
       return with_rnw - without_rnw
 

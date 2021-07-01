@@ -200,6 +200,9 @@ class ConvGenDistribution(object):
     f_length = self.max+1 - self.min
     f = np.zeros((f_length,),dtype=np.float64)
     f[zero_idx] = 1.0
+
+    #print(f"Processing {len(self.capacity_vals)} generators.")
+    i = 0
     for c,p in zip(self.capacity_vals,self.availability_vals):
       if c >= 0:
         suffix = f[0:f_length-c]
@@ -208,6 +211,8 @@ class ConvGenDistribution(object):
         preffix = f[np.abs(c):f_length]
         suffix = np.zeros((np.abs(c),))
       f = (1-p) * f + p * np.concatenate([preffix,suffix])
+      #print(f"P(X = 0) = {f[0]}, i = {i}, p = {p}")
+      i += 1
     F = np.cumsum(f/np.sum(f))
     return F
 

@@ -97,7 +97,7 @@ class BivariateLogisticNetDemand(object):
     # x is a scalar
     # semiparametric marginal cdf
     if x <= self.u[i]:
-      return self._mecdf(x,i=i)
+      return self.marginal_empirical_cdf(x,i=i)
     else:
       p = self.p
       return p + (1-p)*self._margin_tail_cdf(x,i)
@@ -109,11 +109,11 @@ class BivariateLogisticNetDemand(object):
     else:
       return (1-self.p)*self._margin_tail_pdf(x,i)
 
-  def _jecdf(self,x):
+  def joint_empirical_cdf(self,x):
     # joint empirical cdf
     return np.sum((self.X[:,0] <= x[0])*(self.X[:,1] <= x[1] ))/self.X.shape[0]
 
-  def _mecdf(self,x,i=0):
+  def marginal_empirical_cdf(self,x,i=0):
     # marginal empirical cdf
     return np.sum(self.X[:,i] <= np.array(x))/self.X.shape[0]
 
@@ -155,14 +155,14 @@ class BivariateLogisticNetDemand(object):
 
     return dF_dy1dy2 * dyi_dxi * dyj_dxj
   
-  def _jtcdf(self,x):
+  def joint_tail_cdf(self,x):
     # joint tail cdf
 
     # transform data to Gumbel margins first
     y = self._to_gumbel(x)
     return np.exp(-np.sum(np.exp(-1.0/self.alpha*y))**self.alpha)
 
-  def _jtpdf(self,x):
+  def joint_tail_pdf(self,x):
     # joint tail pdf
 
     # transform data to Gumbel margins first
@@ -189,16 +189,20 @@ class BivariateLogisticNetDemand(object):
 
     """
     
+    # m = np.minimum(self,u, x)
+
+    # return self.joint_empirical_cdf(m) + (1.0 - self.p)* (self.joint_tail_cdf(x) - self.joint_tail_cdf(m))
+
     if np.all(x > self.u):
-      return self._jtcdf(x)
+      return self.joint_tail_cdf(x)
     
     elif np.all(x <= self.u):
-      return self._jecdf(x)
+      return self.joint_empirical_cdf(x)
     
     else:
       i = int(np.argwhere(x > self.u))
       return self._cond_ext_pdf(x,i)
-      #return self._jtcdf(x)
+      return self.joint_tail_cdf(x)
 
   def pdf(self,x):
     """ Get model probability density function (PDF)
@@ -213,12 +217,12 @@ class BivariateLogisticNetDemand(object):
       return 0
     
     elif np.all(x >= self.u):
-      return self._jtpdf(x)
+      return self.joint_tail_pdf(x)
     
     else:
       i = int(np.argwhere(x > self.u))
       return self._cond_ext_pdf(x,i)
-      #return self._jtpdf(x)
+      #return self.joint_tail_pdf(x)
       
 
   def raster(self,nx=100,ny=100,cdf=True,llim=None,ulim=None,beta=0.995):
@@ -346,7 +350,7 @@ class BivariateLogisticNetDemand(object):
 
     return m_
 
-  def _simulate_exceedances(self,n,threshold=None,exs_prob=None,seed=None,asymptotic=False):
+  def _simulate_exceedances(self,n,threshold=None,exs_prob=None,seed=None,asymptotic=True):
     # simulate from extreme value model at the tails
     if seed is not None:
       np.random.seed(int(seed))
@@ -408,7 +412,7 @@ class BivariateLogisticNetDemand(object):
     return fX[rand_i,:]
 
     
-  def simulate(self,n=1000,exs_prob=None,threshold=None,seed=1):
+  def simulate(self,n=1000,exs_prob=None,threshold=None,seed=1, asymptotic=True):
     """simulate net demand observations
     
     **Parameters**:
@@ -441,7 +445,7 @@ class BivariateLogisticNetDemand(object):
     
     #s1 = self._simulate_exceedances(n_cond,g_th,seed)
     s1 = self._simulate_empirical(n_empirical,threshold = threshold)
-    s2 = self._simulate_exceedances(n_tails,threshold = threshold)
+    s2 = self._simulate_exceedances(n_tails,threshold = threshold, asymptotic=asymptotic)
     
     #print("{n} samples from tail".format(n=n_tails))
     sim = np.concatenate((s1,s2),axis=0)
