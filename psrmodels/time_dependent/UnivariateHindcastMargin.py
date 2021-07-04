@@ -52,25 +52,24 @@ class UnivariateHindcastMargin(object):
 
     """
     if demand.reshape((-1,1)).shape[0] != self.series_length:
-      raise Exception("Cannot change length of time series data; instantiate a new UnivariateHindcastMargin object instead.")
+      raise ValueError("Cannot change length of time series data; instantiate a new UnivariateHindcastMargin object instead.")
 
     # to avoid throwing away samples, merge new net demand data in old samples to update them
-    if self.shortfall_history is not None:
+    if self.shortfall_history is not None and np.all(demand - renewables <= self.net_demand):
       colnames = self.shortfall_history.columns
       new_data_df = pd.DataFrame({"new_net_demand":(demand-renewables).reshape(-1),"season_time":np.arange(len(demand))})
       old_data_df = pd.DataFrame({"old_net_demand":(self.demand-self.renewables).reshape(-1),"season_time":np.arange(len(self.demand))})
       joint_shortfalls = self.shortfall_history.merge(new_data_df,on="season_time").merge(old_data_df,on="season_time")
       delta = joint_shortfalls["old_net_demand"] - joint_shortfalls["new_net_demand"]
-      if np.all(delta >= 0):
         # 
-        joint_shortfalls["m"] = joint_shortfalls["m"] + delta
-        joint_shortfalls.dropna(axis=0,inplace=False)
-        self.shortfall_history = joint_shortfalls[colnames]
-      else:
+      joint_shortfalls["m"] = joint_shortfalls["m"] + delta
+      joint_shortfalls.dropna(axis=0,inplace=False)
+      self.shortfall_history = joint_shortfalls[colnames].query("m < 0")
+    else:
         # if we don't drop historic samples now, there will be a gap in the EU distribution that will be underrepresented
         # so results will be wrong
-        print("starting new shortfall history dataset")
-        self.shortfall_history = None
+      #print("starting new shortfall history dataset")
+      self.shortfall_history = None
 
     self.net_demand = np.ascontiguousarray((demand - renewables),dtype=np.float32) #no negative net demand
     self.renewables = renewables
@@ -166,7 +165,7 @@ class UnivariateHindcastMargin(object):
       df = self._group_shortfalls(df)
 
     df["simulation_time"] = df["simulation_time"].astype(np.int64)
-    return df
+    return df.copy()
 
 
   def _process_shortfall_batch(self,sampled):
@@ -319,30 +318,14 @@ class UnivariateHindcastMargin(object):
     """
 
     df = self.get_shortfalls(raw=True)
-    # n_distinct_seasons = len(np.unique(df["season"]))
-
-    # if min_samples > self.n_sim_seasons:
-    #   print("min_samples larger than number of simulated seasons; ignoring.")
-    # elif n_distinct_seasons < min_samples:
-    #   original_seed = self.seed
-    #   while n_distinct_seasons < min_samples:
-    #     print(f"Insuficient samples ({n_distinct_seasons}); simulating {self.n_sim_series} additional seasons to get at least {min_samples} points")
-    #     self.seed += 1
-    #     new_df = self.get_shortfalls(raw=True,cold_start=True)
-    #     #new_df["season"] = (new_df["simulation_time"]/self.season_length).astype(np.int32) + self.season_length*counter
-    #     df = pd.concat([df,new_df])
-
-    #     n_distinct_seasons = len(np.unique(df["season"]))
-
-    #   #self.shortfall_history = df
-    #   self.seed = original_seed
 
     sim_eu = np.zeros((self.n_sim_seasons,),dtype=np.float32)
     grouped_df = df.groupby(by="season").agg({"m":"sum"}).reset_index()
     #print(grouped_df)
     nz_eu = grouped_df["m"]
-    nz_eu_seasons = grouped_df["season"]
-    sim_eu[np.array(grouped_df["season"],dtype=np.int32)] = nz_eu
+    nz_eu_seasons = np.array(grouped_df["season"],dtype=np.int32)
+    nz_eu_seasons = nz_eu_seasons - np.min(nz_eu_seasons)
+    sim_eu[nz_eu_seasons] = nz_eu
     #return self.n_sim_series, grouped_df
     return - sim_eu
 
@@ -373,19 +356,33 @@ class UnivariateHindcastMargin(object):
     eu_samples = self.simulate_eu()
     return np.mean(eu_samples)
 
-  def cvar(self,bound):
+  def cvar(self, bound=None, alpha=None):
 
-    """calculate conditional value at risk for the energy unserved distribution conditioned to being at last as large as the provided bound
+    """calculate conditional value at risk for the energy unserved distribution conditioned to being at last as large as the provided bound, either in absolute or quantile scale.
 
     **Parameters**:
     
-    `bound` (`float`): absolute value of power margin shortfall's lower bound
+    `bound` (`float`): lower bound for EU's value
+
+    `alpha` (`float`): quantile level bound
 
     """
-    if bound < 0:
-      raise Error("bound has to be a non-negative number")
     sample = self.simulate_eu()
-    sample = sample[sample >= bound]
+
+    if bound is None and alpha is None:
+      raise ValueError("Either bound or alpha must be provided")
+    elif bound is None:
+      if alpha < 0 or alpha >= 1:
+        raise ValueError("alpha must be in [0,1)")
+      absolute_bound = np.quantile(sample, alpha)
+    else:
+      if alpha is not None:
+        warnings.warn("absolute and quantile bounds were provided; using absolute bounds.")
+      if bound < 0:
+        raise ValueError("bound must be non-negative")
+      absolute_bound = bound
+
+    sample = sample[sample >= absolute_bound]
     return np.mean(sample)
 
   def renewables_efc(self,demand,renewables,metric="lole",tol=0.01):
